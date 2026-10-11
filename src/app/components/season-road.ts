@@ -14,12 +14,17 @@ export interface RoadStage {
 }
 
 const DAY = 86_400_000;
+/** Обычный промежуток между этапами — для отсчёта, если у пройденного этапа нет даты */
+const GAP = 30 * DAY;
+/** Огонёк всегда хотя бы на 20% участка — видно, что едем к следующему этапу */
+const MIN_POS = 0.2;
 const isLive = (s: { status: string }) => s.status === 'qualifying' || s.status === 'battles';
 
 /**
  * Где огонёк на линии и насколько он «горячий».
- * Между последним пройденным и следующим этапом — по доле прошедшего времени между их датами;
- * в день старта (и во время этапа) — на самом этапе, жар = 1. Нет даты у предыдущего — отсчёт за 14 дней до старта.
+ * Между последним пройденным и следующим этапом — по доле прошедшего времени между их датами,
+ * но не ближе 20% участка к пройденному; в день старта (и во время этапа) — на самом этапе, жар = 1.
+ * Нет даты у предыдущего — отсчёт за 30 дней до старта.
  * fill — % длины линии, heat — 0..1.
  */
 export function roadProgress(stages: { status: string; starts_at: string | null }[], now: number): { fill: number; heat: number } {
@@ -34,14 +39,16 @@ export function roadProgress(stages: { status: string; starts_at: string | null 
   const nextAt = at(next);
   const prevAt = at(next - 1);
   const clamp = (x: number) => Math.min(1, Math.max(0, x));
-  if (Number.isNaN(nextAt)) return { fill: pct(Math.max(0, next - 1)), heat: 0 };
+  // доля времени → позиция на участке: плавно от MIN_POS до конца
+  const seat = (t: number) => MIN_POS + (1 - MIN_POS) * t;
+  if (Number.isNaN(nextAt)) return { fill: next === 0 ? 0 : pct(next - 1 + MIN_POS), heat: 0 };
   if (now >= nextAt) return { fill: pct(next), heat: 1 };
-  // У предыдущего этапа нет даты — отсчитываем последние 2 недели до старта
-  const from = !Number.isNaN(prevAt) && prevAt < nextAt ? prevAt : nextAt - 14 * DAY;
+  // У предыдущего этапа нет даты — считаем, что он был за обычный промежуток до следующего
+  const from = !Number.isNaN(prevAt) && prevAt < nextAt ? prevAt : nextAt - GAP;
   const t = clamp((now - from) / (nextAt - from));
   // первый этап сезона: до него ехать неоткуда — стоим на старте, только краснеем
   if (next === 0) return { fill: 0, heat: t };
-  return { fill: pct(next - 1 + t), heat: t };
+  return { fill: pct(next - 1 + seat(t)), heat: t };
 }
 
 // «Дорога сезона»: тонкая линия с этапами; пройденное светится, название пройденного этапа перечёркивается
