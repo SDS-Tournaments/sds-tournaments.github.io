@@ -22,6 +22,8 @@ export class App {
   protected readonly menuOpen = signal(false);
   /** страница прокручена — острова шапки плотнее, под ними мягкое затемнение */
   protected readonly scrolled = signal(false);
+  /** 0…1: затемнение под шапкой нарастает вместе с прокруткой первых 160px */
+  protected readonly shade = signal(0);
   protected readonly nav = ['standings', 'stages', 'pilots', 'teams', 'rules'];
   protected readonly year = new Date().getFullYear();
   // shortcut: проверяем адрес при загрузке — /overlay открывают напрямую в OBS, переходом изнутри сайта туда не попадают
@@ -47,6 +49,7 @@ export class App {
 
   protected onScroll() {
     this.scrolled.set(scrollY > 8);
+    this.shade.set(Math.min(scrollY / 160, 1));
   }
 
   setLang(lang: Lang) {
