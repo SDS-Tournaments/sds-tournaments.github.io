@@ -1,3 +1,4 @@
+import { NgTemplateOutlet } from '@angular/common';
 import { Component, computed, input, OnDestroy, OnInit, output, signal } from '@angular/core';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '../auth';
@@ -32,6 +33,7 @@ const RESULT_LABEL: Record<string, string> = { normal: '', tech_loss: 'техп�
 // Пульт судьи — сетка и парные заезды (spec §5.2–5.3). Только RU.
 @Component({
   selector: 'app-admin-battles',
+  imports: [NgTemplateOutlet],
   template: `
     @if (!battles().length) {
       <section class="card empty">
@@ -121,24 +123,45 @@ const RESULT_LABEL: Record<string, string> = { normal: '', tech_loss: 'техп�
             <h2 class="h">Сетка</h2>
             <button class="btn btn-ghost danger small" (click)="wipe()" [disabled]="busy()">Удалить сетку</button>
           </header>
-          <div class="bracket">
-            @for (r of rounds(); track r.round) {
-              <div class="col">
-                <h3>{{ roundLabel[r.round] }}</h3>
-                @for (b of byRound(r.round); track b.id) {
-                  <button class="match" [class.cur]="b.id === current()?.id" [class.done]="b.status === 'done'" (click)="selected.set(b.id)">
-                    @for (pid of [b.leader_id, b.chaser_id]; track $index) {
-                      <span class="slotp" [class.win]="pid && pid === b.winner_id" [class.lose]="b.winner_id && pid !== b.winner_id">
-                        <span class="mono n">{{ pid ? (info(pid).start_number ?? '—') : '' }}</span>
-                        <span class="nm">{{ pid ? info(pid).nickname : (b.result === 'bye' && $index === 1 ? 'bye' : '…') }}</span>
-                      </span>
-                    }
-                    @if (b.omt_count && b.status !== 'done') { <span class="omt-dot mono">OMT {{ b.omt_count }}</span> }
-                  </button>
+          <div class="scroll">
+            <!-- Дерево: пара раунда i занимает 2^(i+1) строк сетки — и встаёт ровно между своими «кормильцами» -->
+            <div class="tree" [style.--cols]="tree().length" [style.--rows]="treeRows()">
+              @for (r of tree(); track r.round; let i = $index) {
+                <h3 class="rtitle" [style.grid-column]="i + 1">{{ roundLabel[r.round] }}</h3>
+                @for (b of r.battles; track b.id) {
+                  <div
+                    class="cell"
+                    [class.out]="r.round !== 'final'"
+                    [class.in]="i > 0"
+                    [class.even]="b.slot % 2 === 0"
+                    [class.lit]="b.status === 'done' && b.winner_id"
+                    [style.grid-column]="i + 1"
+                    [style.grid-row]="2 + b.slot * r.span + ' / span ' + r.span"
+                  >
+                    <ng-container [ngTemplateOutlet]="match" [ngTemplateOutletContext]="{ $implicit: b }" />
+                  </div>
                 }
-              </div>
-            }
+              }
+            </div>
           </div>
+          @if (third(); as t) {
+            <div class="third">
+              <h3 class="rtitle">{{ roundLabel.third }}</h3>
+              <ng-container [ngTemplateOutlet]="match" [ngTemplateOutletContext]="{ $implicit: t }" />
+            </div>
+          }
+
+          <ng-template #match let-b>
+            <button class="match" [class.cur]="b.id === current()?.id" [class.done]="b.status === 'done'" [class.bye]="b.result === 'bye'" (click)="selected.set(b.id)">
+              @for (pid of [b.leader_id, b.chaser_id]; track $index) {
+                <span class="slotp" [class.win]="pid && pid === b.winner_id" [class.lose]="b.winner_id && pid !== b.winner_id">
+                  <span class="mono n">{{ pid ? (info(pid).start_number ?? '—') : '' }}</span>
+                  <span class="nm">{{ pid ? info(pid).nickname : (b.result === 'bye' && $index === 1 ? 'bye' : '…') }}</span>
+                </span>
+              }
+              @if (b.omt_count && b.status !== 'done') { <span class="omt-dot mono">OMT {{ b.omt_count }}</span> }
+            </button>
+          </ng-template>
         </section>
       </div>
     }
@@ -193,15 +216,40 @@ const RESULT_LABEL: Record<string, string> = { normal: '', tech_loss: 'техп�
     .bad { color: var(--error); margin: 0; }
 
     .bhead { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-    .bracket { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 8px; }
-    .col { display: flex; flex-direction: column; justify-content: space-around; gap: 6px; min-width: 150px; }
-    .col h3 { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--ink-subtle); font-weight: 500; margin: 0 0 4px; }
+    .scroll { overflow-x: auto; padding-bottom: 8px; }
+    /* Колонки по 168px, между ними 40px под линии: 20px «выход» + 20px «вход» */
+    .tree {
+      --line: var(--hairline-strong);
+      display: grid;
+      grid-template-columns: repeat(var(--cols), 168px);
+      grid-template-rows: 28px repeat(var(--rows), 34px);
+      column-gap: 40px;
+      width: max-content;
+    }
+    .rtitle { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--ink-subtle); font-weight: 500; margin: 0; grid-row: 1; }
+    .cell { position: relative; display: flex; align-items: center; }
+    .cell > .match { width: 100%; }
+    /* выход вправо из центра пары */
+    .cell.out::after { content: ''; position: absolute; left: 100%; top: 50%; width: 20px; border-top: 1px solid var(--line); }
+    /* вертикаль, сводящая пару «кормильцев» к центру следующей пары */
+    .cell.out::before { content: ''; position: absolute; left: calc(100% + 20px); border-left: 1px solid var(--line); }
+    .cell.out.even::before { top: 50%; height: 50%; }
+    .cell.out:not(.even)::before { top: 0; height: 50%; }
+    /* вход слева в пару следующего раунда */
+    .cell.in > .match::before { content: ''; position: absolute; right: 100%; top: 50%; width: 21px; border-top: 1px solid var(--line); }
+    /* путь победителя — бирюзой */
+    .cell.lit::after, .cell.lit::before { border-color: var(--primary); }
+    .third { display: grid; gap: 8px; width: 168px; margin: 24px 0 0 auto; }
+
     .match {
       position: relative; display: grid; gap: 1px; padding: 0; border: 1px solid var(--hairline-strong); border-radius: var(--r-sm);
-      background: var(--hairline); overflow: hidden; cursor: pointer; text-align: left;
+      background: var(--hairline); cursor: pointer; text-align: left;
       &.cur { border-color: var(--primary); box-shadow: 0 0 16px -4px var(--primary-glow); }
       &:hover { border-color: var(--primary); }
+      &.bye { opacity: 0.6; }
     }
+    .match > .slotp:first-of-type { border-radius: 3px 3px 0 0; }
+    .match > .slotp:last-of-type { border-radius: 0 0 3px 3px; }
     .slotp { display: flex; gap: 6px; padding: 5px 8px; background: var(--surface-1); color: var(--ink); font-size: 12px; }
     .slotp .n { color: var(--primary); min-width: 24px; }
     .slotp .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -235,10 +283,15 @@ export class AdminBattles implements OnInit, OnDestroy {
   protected readonly qualPlace = computed(() => new Map(this.standings().map((r) => [r.id, r.place])));
   protected readonly size = computed(() => bracketSize(this.standings().length, this.bracketSetting()));
   protected readonly byes = computed(() => Math.max(0, this.size() - this.standings().length));
-  protected readonly rounds = computed(() => {
-    const present = new Set(this.battles().map((b) => b.round));
-    return ORDER.filter((r) => present.has(r)).map((round) => ({ round }));
-  });
+  /** Раунды дерева (без дуэли за 3-е); span — сколько строк сетки занимает пара: 2, 4, 8… */
+  protected readonly tree = computed(() =>
+    ORDER.filter((r) => r !== 'third')
+      .map((round) => this.byRound(round))
+      .filter((battles) => battles.length)
+      .map((battles, i) => ({ round: battles[0].round, battles, span: 2 ** (i + 1) })),
+  );
+  protected readonly treeRows = computed(() => (this.tree()[0]?.battles.length ?? 0) * 2);
+  protected readonly third = computed(() => this.battles().find((b) => b.round === 'third') ?? null);
   private readonly sorted = computed(() => [...this.battles()].sort((a, b) => ORDER.indexOf(a.round) - ORDER.indexOf(b.round) || a.slot - b.slot));
   protected readonly current = computed(() => {
     const sel = this.selected();
