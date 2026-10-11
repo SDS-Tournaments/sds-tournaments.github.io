@@ -282,6 +282,27 @@ export function stagePoints(qualPlace: number, finish: Finish | null, t: PointsT
   return { qual, battle, total: qual + battle };
 }
 
+export interface SkillRun {
+  attempt: number;
+  angle: number | null;
+  style: number | null;
+  line: number | null;
+  spin: boolean;
+  weights: { angle: number; style: number; line: number };
+}
+
+/**
+ * Навыки пилота для «паутинки» и FIFA-карточки: средний % от максимума по каждому критерию
+ * и общий рейтинг — средний итог зачётной попытки (0–100). Прогрев и спины не учитываются.
+ */
+export function skills(runs: SkillRun[]): { angle: number; style: number; line: number; overall: number; runs: number } | null {
+  const ok = runs.filter((r) => r.attempt > 0 && !r.spin && r.angle !== null && r.style !== null && r.line !== null);
+  if (!ok.length) return null;
+  const pct = (k: 'angle' | 'style' | 'line') => Math.round((ok.reduce((s, r) => s + r[k]! / (r.weights[k] || 1), 0) / ok.length) * 100);
+  const overall = Math.round(ok.reduce((s, r) => s + r.angle! + r.style! + r.line!, 0) / ok.length);
+  return { angle: pct('angle'), style: pct('style'), line: pct('line'), overall, runs: ok.length };
+}
+
 export interface TeamStageInput {
   teamId: string | null;
   total: number;

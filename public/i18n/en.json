@@ -131,6 +131,39 @@
     "dupTeam": "This name is taken or you already captain another team",
     "dupMember": "This driver is already in a team or has a pending request this season"
   },
+  "pilots": {
+    "search": "Nickname or number…",
+    "none": "Nobody found."
+  },
+  "pilot": {
+    "download": "Download card",
+    "skills": "Skills",
+    "skillsNote": "Average % of max across {{n}} scored runs",
+    "noRuns": "Skills appear after the first qualifying.",
+    "card": "Driver card",
+    "achievements": "Achievements",
+    "history": "Round history",
+    "stage": "Round",
+    "qual": "Qual.",
+    "place": "Place",
+    "noHistory": "This driver hasn't finished a round yet.",
+    "notFound": "Driver not found.",
+    "stages": "Rounds",
+    "wins": "Wins",
+    "podiums": "Podiums",
+    "best": "Best finish",
+    "points": "Total points",
+    "crit": { "angle": "Angle", "style": "Style", "line": "Line" }
+  },
+  "ach": {
+    "win": { "icon": "🏆", "name": "Round win" },
+    "first_win": { "icon": "⭐", "name": "First win" },
+    "hat_trick": { "icon": "🎩", "name": "Hat-trick" },
+    "podium": { "icon": "🥉", "name": "Podium" },
+    "qual_king": { "icon": "👑", "name": "Qualifying king" },
+    "perfect_100": { "icon": "💯", "name": "Perfect 100" },
+    "omt2": { "icon": "🔥", "name": "Survived 2 OMTs" }
+  },
   "standings": {
     "pilot": "Driver",
     "team": "Team",

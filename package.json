@@ -20,6 +20,7 @@
     "@angular/router": "^22.2.0",
     "@jsverse/transloco": "^8.4.0",
     "@supabase/supabase-js": "^2.117.3",
+    "html-to-image": "^1.11.13",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0"
   },

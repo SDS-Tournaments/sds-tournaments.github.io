@@ -14,6 +14,7 @@ import {
   roundsFor,
   seasonStandings,
   seatInto,
+  skills,
   seedOrder,
   stagePlaces,
   stagePoints,
@@ -220,6 +221,22 @@ describe('итоги этапа', () => {
       { id: 'c', code: 'omt2' },
     ]);
     expect(stageAchievements([rows[0]], [], new Set(), new Set()).map((x) => x.code)).toContain('first_win');
+  });
+});
+
+describe('навыки пилота', () => {
+  const w = { angle: 40, style: 30, line: 30 };
+  it('средний % по критериям и общий рейтинг; прогрев и спины не считаются', () => {
+    const s = skills([
+      { attempt: 0, angle: null, style: null, line: null, spin: false, weights: w },
+      { attempt: 1, angle: 40, style: 15, line: 30, spin: false, weights: w },
+      { attempt: 2, angle: 20, style: 30, line: 15, spin: false, weights: w },
+      { attempt: 2, angle: null, style: null, line: null, spin: true, weights: w },
+    ]);
+    expect(s).toEqual({ angle: 75, style: 75, line: 75, overall: 75, runs: 2 });
+  });
+  it('нет зачётных попыток — нет навыков', () => {
+    expect(skills([])).toBeNull();
   });
 });
 
