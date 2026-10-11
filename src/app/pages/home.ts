@@ -8,21 +8,14 @@ import { RoadStage, SeasonRoad } from '../components/season-road';
 import { currentSeason, loadStandings, PilotStanding, TeamStanding } from '../data/standings';
 import { Reveal } from '../reveal';
 
-// Шум fractalNoise → полупрозрачный светлый «дым»; stitchTiles даёт бесшовный повтор по ширине тайла
-const smoke = (seed: number, w: number, h: number) =>
-  `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${w}' height='${h}'%3E%3Cfilter id='f' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='${(3 / w).toFixed(4)} ${(2 / h).toFixed(4)}' numOctaves='4' seed='${seed}' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.82 0 0 0 0 0.96 0 0 0 0 0.95 1.9 0 0 0 -0.78'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E")`;
-
 // Главная: ближайший/идущий этап, LIVE с Twitch, лидеры сезона, спонсоры
 @Component({
   selector: 'app-home',
   imports: [RouterLink, TranslocoPipe, Reveal, NextStage, LiveStage, SeasonRoad],
   template: `
     <section class="hero">
-      <div class="glow" aria-hidden="true"><i></i><i></i></div>
+      <div class="glow" aria-hidden="true"><i></i></div>
       <span class="kanji" aria-hidden="true">ドリフト</span>
-      <div class="smoke back" aria-hidden="true" [style.background-image]="smokeBack"></div>
-      <div class="smoke front" aria-hidden="true" [style.background-image]="smokeFront"></div>
-      <div class="grain" aria-hidden="true"></div>
 
       <div class="container inner">
         <div class="text">
@@ -166,64 +159,26 @@ const smoke = (seed: number, w: number, h: number) =>
       width: 50vw; height: 50vw; right: -8vw; top: -12vw;
       background: radial-gradient(circle, rgba(10, 186, 181, 0.3), transparent 65%);
     }
-    .glow i:nth-child(2) {
-      width: 36vw; height: 36vw; left: -10vw; bottom: -6vw;
-      background: radial-gradient(circle, rgba(10, 186, 181, 0.14), transparent 65%);
-      animation-delay: -7s;
-    }
     @keyframes breathe {
       from { transform: scale(1); opacity: 0.8; }
       to { transform: scale(1.12) translate(-3vw, 2vw); opacity: 1; }
     }
 
-    /* Дым от шин: два слоя бесшовной текстуры плывут с разной скоростью */
-    .smoke {
-      position: absolute;
-      left: 0;
-      bottom: 0;
-      z-index: -1;
-      background-repeat: repeat-x;
-      background-position: left bottom;
-      mask-image: linear-gradient(to top, #000 0%, rgba(0, 0, 0, 0.8) 30%, transparent 100%);
-      pointer-events: none;
-      will-change: transform;
+    /* Во время этапа надпись загорается неоном и пульсирует; на событие эфира — вспышка */
+    :host-context(html.live) .kanji {
+      -webkit-text-stroke: 1.5px rgba(10, 186, 181, 0.8);
+      animation: kanji-live 2.4s var(--ease-in-out) infinite;
     }
-    .smoke.back {
-      width: calc(100% + 900px);
-      height: 75%;
-      background-size: 900px 100%;
-      opacity: 0.35;
-      animation: roll 90s linear infinite;
-      --tile: -900px;
+    :host-context(html.pulse) .kanji {
+      -webkit-text-stroke-color: #ff5c5c;
+      filter: drop-shadow(0 0 24px rgba(255, 92, 92, 0.8));
     }
-    .smoke.front {
-      width: calc(100% + 1400px);
-      height: 55%;
-      background-size: 1400px 100%;
-      opacity: 0.55;
-      animation: roll 60s linear infinite reverse;
-      --tile: -1400px;
+    @keyframes kanji-live {
+      0%, 100% { opacity: 0.55; filter: drop-shadow(0 0 6px rgba(10, 186, 181, 0.3)); }
+      50% { opacity: 1; filter: drop-shadow(0 0 22px rgba(10, 186, 181, 0.9)) drop-shadow(0 0 60px rgba(255, 92, 92, 0.35)); }
     }
-    @keyframes roll {
-      to { transform: translateX(var(--tile)); }
-    }
-    /* Низ героя растворяется в фоне — без жёсткого края */
-    .hero::after {
-      content: '';
-      position: absolute;
-      inset: auto 0 0;
-      height: 120px;
-      z-index: -1;
-      background: linear-gradient(to bottom, transparent, var(--canvas));
-    }
-
-    .grain {
-      position: absolute;
-      inset: 0;
-      z-index: -1;
-      opacity: 0.06;
-      pointer-events: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    @media (prefers-reduced-motion: reduce) {
+      :host-context(html.live) .kanji { animation: none; }
     }
 
     .kanji {
@@ -364,8 +319,6 @@ const smoke = (seed: number, w: number, h: number) =>
 })
 export class Home implements OnInit {
   protected readonly steps = ['qual', 'bracket', 'final'];
-  protected readonly smokeBack = smoke(7, 900, 500);
-  protected readonly smokeFront = smoke(21, 1400, 450);
 
   /** идущий этап, иначе ближайший с открытой регистрацией */
   protected readonly next = signal<StageCard | null>(null);
