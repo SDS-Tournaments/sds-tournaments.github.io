@@ -1,3 +1,4 @@
+@if (!bare) {
 <header class="header">
   <div class="container bar">
     <a routerLink="/" class="logo" (click)="menuOpen.set(false)">
@@ -39,11 +40,13 @@
     </div>
   </div>
 </header>
+}
 
 <main>
   <router-outlet />
 </main>
 
+@if (!bare) {
 <footer class="footer">
   <div class="container foot">
     <span class="logo-mark">SDS</span>
@@ -52,3 +55,4 @@
     <a routerLink="/archive">{{ 'nav.archive' | transloco }}</a>
   </div>
 </footer>
+}

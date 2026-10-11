@@ -19,6 +19,8 @@ export class App {
   protected readonly menuOpen = signal(false);
   protected readonly nav = ['standings', 'stages', 'pilots', 'teams', 'rules'];
   protected readonly year = new Date().getFullYear();
+  // shortcut: проверяем адрес при загрузке — /overlay открывают напрямую в OBS, переходом изнутри сайта туда не попадают
+  protected readonly bare = location.pathname.startsWith('/overlay');
 
   constructor() {
     this.transloco.langChanges$.subscribe((l) => (document.documentElement.lang = l));

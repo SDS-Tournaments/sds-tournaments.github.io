@@ -13,6 +13,7 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
         <a routerLink="/admin/teams" routerLinkActive="active">Команды</a>
         <a routerLink="/admin/protests" routerLinkActive="active">Протесты</a>
         <a routerLink="/admin/settings" routerLinkActive="active">Настройки</a>
+        <a routerLink="/broadcast" class="ext">Пульт трансляции ↗</a>
       </nav>
       <div class="body"><router-outlet /></div>
     </div>
@@ -38,6 +39,7 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
         font-size: 14px;
         &:hover { background: var(--surface-1); color: var(--ink); }
         &.active { background: var(--primary-soft); color: var(--primary); }
+        &.ext { margin-top: 12px; color: var(--primary); border: 1px solid var(--hairline-strong); }
       }
     }
     .body { min-width: 0; }
