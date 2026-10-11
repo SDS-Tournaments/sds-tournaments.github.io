@@ -64,6 +64,7 @@ const smoke = (seed: number, w: number, h: number) =>
         <h2 class="display-lg" reveal>{{ 'home.leaders' | transloco }}</h2>
         <div class="leaders">
           <ol class="card board" reveal>
+            <li class="bhead"><span>{{ 'home.pilots' | transloco }}</span><span class="subtle">{{ 'home.points' | transloco }}</span></li>
             @for (p of pilots(); track p.id; let i = $index) {
               <li [class.first]="i === 0">
                 <span class="mono place">{{ p.place }}</span>
@@ -75,10 +76,13 @@ const smoke = (seed: number, w: number, h: number) =>
           </ol>
           @if (teams().length) {
             <ol class="card board" reveal style="--i: 1">
+              <li class="bhead"><span>{{ 'home.teams' | transloco }}</span><span class="subtle">{{ 'home.points' | transloco }}</span></li>
               @for (t of teams(); track t.id; let i = $index) {
                 <li [class.first]="i === 0">
                   <span class="mono place">{{ t.place }}</span>
-                  <span class="tlogo" [style.background-image]="t.logo_url ? 'url(' + t.logo_url + ')' : null"></span>
+                  <span class="tlogo" [style.background-image]="t.logo_url ? 'url(' + t.logo_url + ')' : null">
+                    @if (!t.logo_url) { {{ initials(t.name) }} }
+                  </span>
                   <span class="who"><b>{{ t.name }}</b></span>
                   <span class="mono pts">{{ t.points }}</span>
                 </li>
@@ -315,7 +319,13 @@ const smoke = (seed: number, w: number, h: number) =>
     .board li:hover { background: var(--surface-2); }
     .board li.first { background: linear-gradient(90deg, var(--primary-soft), transparent); }
     .board img, .ph, .tlogo { width: 36px; height: 36px; border-radius: 50%; background: var(--surface-3) center / cover no-repeat; }
-    .tlogo { border-radius: var(--r-sm); }
+    .tlogo { border-radius: var(--r-sm); display: grid; place-items: center; font: 600 13px var(--mono); color: var(--primary); background-color: var(--primary-soft); }
+    .board li.bhead {
+      display: flex; justify-content: space-between; padding: 8px 12px 12px; margin-bottom: 4px;
+      border-bottom: 1px solid var(--hairline); border-radius: 0;
+      font-size: 12px; font-weight: 500; letter-spacing: 1.2px; text-transform: uppercase; color: var(--primary);
+    }
+    .board li.bhead:hover { background: none; }
     .place { color: var(--ink-subtle); }
     .first .place { color: var(--primary); }
     .who { display: grid; min-width: 0; b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } span { font-size: 12px; } }
@@ -387,6 +397,10 @@ export class Home implements OnInit {
   protected stageTitle(s: StageCard) {
     const t = this.lang() === 'en' && s.title_en ? s.title_en : s.title_ru;
     return s.track ? `${t} · ${s.track}` : t;
+  }
+
+  protected initials(name: string) {
+    return name.split(/\s+/).map((w) => w[0]).join('').slice(0, 2).toUpperCase();
   }
 
   protected toDate(iso: string) {
