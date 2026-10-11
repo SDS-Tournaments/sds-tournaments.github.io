@@ -95,7 +95,6 @@ img {
   }
   .glow {
     border-radius: 50%;
-    filter: blur(80px);
     transition: background 1.2s ease;
   }
   .glow.a {
@@ -137,7 +136,6 @@ img {
     translate: -50% 0;
     border-radius: 50%;
     background: radial-gradient(ellipse, rgba(10, 186, 181, 0.35), rgba(255, 92, 92, 0.12) 40%, transparent 70%);
-    filter: blur(40px);
     opacity: 0;
   }
 }

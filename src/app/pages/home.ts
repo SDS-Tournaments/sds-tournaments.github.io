@@ -152,7 +152,6 @@ import { Reveal } from '../reveal';
       position: absolute;
       z-index: -2;
       border-radius: 50%;
-      filter: blur(70px);
       animation: breathe 14s var(--ease-in-out) infinite alternate;
     }
     .glow i:nth-child(1) {
