@@ -1,5 +1,5 @@
 import { CdkDrag, CdkDragDrop, CdkDragHandle, CdkDropList, CdkDropListGroup, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
-import { Component, input, OnInit, signal } from '@angular/core';
+import { Component, input, isDevMode, OnInit, signal } from '@angular/core';
 import { supabase } from '../auth';
 import { assignGroups } from '../scoring/scoring';
 
@@ -71,6 +71,12 @@ interface Reg {
       <div class="row">
         <button class="btn btn-primary" (click)="save()" [disabled]="busy() || !dirty()">Сохранить очередь</button>
         @if (msg()) { <span [class]="ok() ? 'ok' : 'bad'">{{ msg() }}</span> }
+        @if (dev) {
+          <span class="testzone">
+            <button class="btn btn-ghost" (click)="testPilots('create')" [disabled]="busy()">+ 24 тестовых пилота</button>
+            <button class="btn btn-ghost" (click)="testPilots('delete')" [disabled]="busy()">Удалить тестовых</button>
+          </span>
+        }
       </div>
     </section>
   `,
@@ -109,6 +115,8 @@ interface Reg {
     .cdk-drag-preview { box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 0 1px var(--primary); }
     .cdk-drag-placeholder { opacity: 0.3; }
     .cdk-drag-animating, .cdk-drop-list-dragging .pilot:not(.cdk-drag-placeholder) { transition: transform 250ms var(--ease-out); }
+    .testzone { margin-left: auto; display: flex; gap: 4px; padding-left: 12px; border-left: 1px dashed var(--warning); }
+    .testzone .btn { color: var(--warning); }
     .ok { color: var(--primary); }
     .bad { color: var(--error); }
   `,
@@ -122,6 +130,8 @@ export class AdminParticipants implements OnInit {
   protected readonly dirty = signal(false);
   protected readonly msg = signal<string | null>(null);
   protected readonly ok = signal(true);
+  // shortcut: кнопки тестовых пилотов только на локальном сайте; для пробного этапа на проде — включить там же
+  protected readonly dev = isDevMode();
 
   ngOnInit() {
     this.load();
@@ -197,6 +207,16 @@ export class AdminParticipants implements OnInit {
       .eq('profile_id', r.profile_id);
     if (error) return this.note(error.message, false);
     await this.load();
+  }
+
+  async testPilots(action: 'create' | 'delete') {
+    if (action === 'delete' && !confirm('Удалить всех тестовых пилотов (test-…) со всеми их заездами?')) return;
+    this.busy.set(true);
+    const { data, error } = await supabase.functions.invoke('test-pilots', { body: { action, stageId: this.stageId() } });
+    this.busy.set(false);
+    if (error) return this.note(error.message, false);
+    await this.load();
+    this.note(action === 'create' ? `Тестовых пилотов на этапе: ${data.total}` : `Удалено: ${data.deleted}`, true);
   }
 
   private note(text: string, ok: boolean) {
