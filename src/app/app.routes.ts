@@ -23,6 +23,7 @@ export const routes: Routes = [
       { path: 'seasons/:id', loadComponent: () => import('./admin/season').then((m) => m.AdminSeason) },
       { path: 'stages/:id', loadComponent: () => import('./admin/stage').then((m) => m.AdminStage) },
       { path: 'teams', loadComponent: () => import('./admin/teams').then((m) => m.AdminTeams) },
+      { path: 'protests', loadComponent: () => import('./admin/protests').then((m) => m.AdminProtests) },
     ],
   },
   // Пульты — на всю ширину, без бокового меню админки

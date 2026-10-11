@@ -20,6 +20,7 @@
         <button type="button" [class.on]="lang() === 'en'" [attr.aria-pressed]="lang() === 'en'" (click)="setLang('en')">EN</button>
       </div>
       @if (auth.profile(); as me) {
+        @if (me.role !== 'pilot') { <app-protest-bell /> }
         <a routerLink="/me" class="me" [title]="me.nickname">
           @if (me.avatar_url) {
             <img [src]="me.avatar_url" alt="" width="36" height="36" />

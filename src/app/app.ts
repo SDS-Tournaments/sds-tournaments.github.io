@@ -3,10 +3,11 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { Auth } from './auth';
+import { ProtestBell } from './components/protest-bell';
 import { Lang, saveLang } from './i18n';
 
 @Component({
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, TranslocoPipe],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, TranslocoPipe, ProtestBell],
   selector: 'app-root',
   styleUrl: './app.scss',
   templateUrl: './app.html',

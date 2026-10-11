@@ -62,5 +62,30 @@ Deno.serve(async (req) => {
     return json({ created, total: NAMES.length });
   }
 
+  // Протест от проигравшего последней решённой дуэли (тестовые пилоты не могут войти сами).
+  // Триггер guard_protest проверяет всё как для настоящего пилота: 5 минут, лимит 2, только проигравший.
+  if (action === 'protest') {
+    const { data: b } = await db
+      .from('battles')
+      .select('id, stage_id, leader_id, chaser_id, winner_id')
+      .eq('stage_id', stageId)
+      .eq('status', 'done')
+      .neq('result', 'bye')
+      .order('decided_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!b) return json({ error: 'Нет решённых дуэлей' }, 400);
+    const loser = b.winner_id === b.leader_id ? b.chaser_id : b.leader_id;
+    const { error } = await db.from('protests').insert({
+      battle_id: b.id,
+      stage_id: b.stage_id,
+      profile_id: loser,
+      video_url: 'https://www.twitch.tv/videos/test',
+      reason: 'Тестовый протест: судьи не заметили касание лидером внутренней бровки.',
+    });
+    if (error) return json({ error: error.message }, 400);
+    return json({ ok: true });
+  }
+
   return json({ error: 'unknown action' }, 400);
 });

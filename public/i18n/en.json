@@ -120,6 +120,27 @@
     "dupTeam": "This name is taken or you already captain another team",
     "dupMember": "This driver is already in a team or has a pending request this season"
   },
+  "round": {
+    "r32": "Top 32",
+    "r16": "Top 16",
+    "qf": "Top 8",
+    "sf": "semi-final",
+    "third": "3rd place battle",
+    "final": "final"
+  },
+  "protest": {
+    "title": "Protests",
+    "lost": "You lost ({{round}}) to {{name}}. Disagree with the judges? File a protest.",
+    "video": "Link to video evidence",
+    "reason": "What the judges missed (10+ characters)",
+    "submit": "File protest",
+    "status": {
+      "pending": "Under review",
+      "rejected": "Rejected",
+      "reversed": "Upheld — the win is yours",
+      "rerun": "Upheld — re-run"
+    }
+  },
   "picker": {
     "random": "Random",
     "free": "free",

@@ -1,8 +1,9 @@
 import { NgTemplateOutlet } from '@angular/common';
-import { Component, computed, input, OnDestroy, OnInit, output, signal } from '@angular/core';
+import { Component, computed, input, isDevMode, OnDestroy, OnInit, output, signal } from '@angular/core';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '../auth';
-import { battleOutcome, bracketSize, buildBracket, nextSlot, QualRow, Round, seatInto, Vote } from '../scoring/scoring';
+import { battleOutcome, bracketSize, buildBracket, QualRow, Round, Vote } from '../scoring/scoring';
+import { canChange, reseat, targetsOf } from './bracket-ops';
 
 interface Battle {
   id: number;
@@ -79,6 +80,9 @@ const RESULT_LABEL: Record<string, string> = { normal: '', tech_loss: 'техп�
                 <button class="btn btn-secondary" (click)="selected.set(null)">К текущей дуэли →</button>
               </div>
             } @else {
+              @if (blocked().has(b.id)) {
+                <p class="protest-warn">⚠ По предыдущей дуэли одного из пилотов подан протест. Дуэль начнётся после решения организатора.</p>
+              }
               <p class="muted small">Два заезда со сменой ролей. После обоих — голос каждого судьи. При дисконнекте — перезаезд, затем голосование.</p>
               <div class="votes">
                 @for (c of crits; track c.key) {
@@ -100,7 +104,7 @@ const RESULT_LABEL: Record<string, string> = { normal: '', tech_loss: 'техп�
               </div>
               <div class="commit">
                 <span class="preview">{{ preview(b) }}</span>
-                <button class="btn btn-primary big" (click)="submit(b)" [disabled]="busy() || !allVoted()">Зафиксировать решение</button>
+                <button class="btn btn-primary big" (click)="submit(b)" [disabled]="busy() || !allVoted() || blocked().has(b.id)">Зафиксировать решение</button>
               </div>
               <div class="incidents">
                 <button class="btn btn-ghost danger" (click)="techLoss(b, 'leader')" [disabled]="busy()">Техпоражение: {{ info(b.leader_id).nickname }}</button>
@@ -121,6 +125,9 @@ const RESULT_LABEL: Record<string, string> = { normal: '', tech_loss: 'техп�
         <section class="card bracket-card">
           <header class="bhead">
             <h2 class="h">Сетка</h2>
+            @if (dev) {
+              <button class="btn btn-ghost small test" (click)="testProtest()" [disabled]="busy()">Тест: протест от проигравшего последней дуэли</button>
+            }
             <button class="btn btn-ghost danger small" (click)="wipe()" [disabled]="busy()">Удалить сетку</button>
           </header>
           <div class="scroll">
@@ -160,6 +167,8 @@ const RESULT_LABEL: Record<string, string> = { normal: '', tech_loss: 'техп�
                 </span>
               }
               @if (b.omt_count && b.status !== 'done') { <span class="omt-dot mono">OMT {{ b.omt_count }}</span> }
+              @if (protested().includes(b.id)) { <span class="flag mono">протест</span> }
+              @else if (blocked().has(b.id)) { <span class="flag mono">ждёт</span> }
             </button>
           </ng-template>
         </section>
@@ -215,7 +224,9 @@ const RESULT_LABEL: Record<string, string> = { normal: '', tech_loss: 'техп�
     .ok { color: var(--primary); margin: 0; }
     .bad { color: var(--error); margin: 0; }
 
-    .bhead { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .bhead { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .bhead .h { flex: 1; }
+    .test { color: var(--warning); }
     .scroll { overflow-x: auto; padding-bottom: 8px; }
     /* Колонки по 168px, между ними 40px под линии: 20px «выход» + 20px «вход» */
     .tree {
@@ -256,6 +267,8 @@ const RESULT_LABEL: Record<string, string> = { normal: '', tech_loss: 'техп�
     .slotp.win { background: var(--primary-soft); font-weight: 600; }
     .slotp.lose { color: var(--ink-tertiary); }
     .omt-dot { position: absolute; right: 4px; top: 4px; font-size: 9px; color: var(--warning); }
+    .flag { position: absolute; right: 4px; bottom: 4px; font-size: 9px; padding: 0 4px; border-radius: 3px; background: var(--warning); color: #000; }
+    .protest-warn { margin: 0; padding: 10px 12px; border-radius: var(--r-sm); background: rgba(245, 185, 66, 0.12); color: var(--warning); font-size: 14px; }
   `,
 })
 export class AdminBattles implements OnInit, OnDestroy {
@@ -269,6 +282,9 @@ export class AdminBattles implements OnInit, OnDestroy {
   readonly started = output<void>();
 
   protected readonly battles = signal<Battle[]>([]);
+  /** id дуэлей с протестом на рассмотрении */
+  protected readonly protested = signal<number[]>([]);
+  protected readonly dev = isDevMode();
   protected readonly selected = signal<number | null>(null);
   protected readonly votes = signal<Partial<Record<Crit, Vote>>>({});
   protected readonly busy = signal(false);
@@ -293,10 +309,22 @@ export class AdminBattles implements OnInit, OnDestroy {
   protected readonly treeRows = computed(() => (this.tree()[0]?.battles.length ?? 0) * 2);
   protected readonly third = computed(() => this.battles().find((b) => b.round === 'third') ?? null);
   private readonly sorted = computed(() => [...this.battles()].sort((a, b) => ORDER.indexOf(a.round) - ORDER.indexOf(b.round) || a.slot - b.slot));
+  /** Пары, которые ждут решения по протесту (туда ушли участники оспоренной дуэли) */
+  protected readonly blocked = computed(() => {
+    const ids = new Set<number>();
+    for (const pid of this.protested()) {
+      const b = this.battles().find((x) => x.id === pid);
+      if (!b) continue;
+      const { next, third } = targetsOf(b, this.battles());
+      if (next) ids.add(next.id);
+      if (third) ids.add(third.id);
+    }
+    return ids;
+  });
   protected readonly current = computed(() => {
     const sel = this.selected();
     if (sel) return this.battles().find((b) => b.id === sel) ?? null;
-    return this.sorted().find((b) => b.status !== 'done' && b.leader_id && b.chaser_id) ?? null;
+    return this.sorted().find((b) => b.status !== 'done' && b.leader_id && b.chaser_id && !this.blocked().has(b.id)) ?? null;
   });
   protected readonly champion = computed(() => this.battles().find((b) => b.round === 'final')?.winner_id ?? null);
   protected readonly allVoted = computed(() => CRITS.every((c) => this.votes()[c.key]));
@@ -306,6 +334,7 @@ export class AdminBattles implements OnInit, OnDestroy {
     this.channel = supabase
       .channel(`battles-${this.stageId()}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'battles', filter: `stage_id=eq.${this.stageId()}` }, () => this.load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'protests', filter: `stage_id=eq.${this.stageId()}` }, () => this.load())
       .subscribe();
   }
 
@@ -314,11 +343,12 @@ export class AdminBattles implements OnInit, OnDestroy {
   }
 
   private async load() {
-    const { data } = await supabase
-      .from('battles')
-      .select('id, round, slot, leader_id, chaser_id, winner_id, omt_count, status, result')
-      .eq('stage_id', this.stageId());
-    this.battles.set((data ?? []) as Battle[]);
+    const [battles, protests] = await Promise.all([
+      supabase.from('battles').select('id, round, slot, leader_id, chaser_id, winner_id, omt_count, status, result').eq('stage_id', this.stageId()),
+      supabase.from('protests').select('battle_id').eq('stage_id', this.stageId()).eq('status', 'pending'),
+    ]);
+    this.battles.set((battles.data ?? []) as Battle[]);
+    this.protested.set((protests.data ?? []).map((p) => p.battle_id));
   }
 
   protected info(pid: string | null): PilotInfo {
@@ -402,19 +432,13 @@ export class AdminBattles implements OnInit, OnDestroy {
   private async decide(b: Battle, side: 'leader' | 'chaser', result: Battle['result']) {
     const winner = side === 'leader' ? b.leader_id! : b.chaser_id!;
     const loser = side === 'leader' ? b.chaser_id! : b.leader_id!;
-    const ops: PromiseLike<{ error: { message: string } | null }>[] = [
+    const { next, third } = targetsOf(b, this.battles());
+    const q = this.qualPlace();
+    const results = await Promise.all([
       supabase.from('battles').update({ winner_id: winner, status: 'done', result, decided_at: new Date().toISOString() }).eq('id', b.id),
-    ];
-    const seat = (round: Round, slot: number, pid: string) => {
-      const t = this.battles().find((x) => x.round === round && x.slot === slot);
-      if (!t) return;
-      const s = seatInto({ leader: t.leader_id, chaser: t.chaser_id }, pid, this.qualPlace());
-      ops.push(supabase.from('battles').update({ leader_id: s.leader, chaser_id: s.chaser }).eq('id', t.id));
-    };
-    const next = nextSlot(b.round, b.slot);
-    if (next) seat(next.round, next.slot, winner);
-    if (b.round === 'sf') seat('third', 0, loser);
-    const results = await Promise.all(ops);
+      ...(next ? [reseat(next, winner, winner, q)] : []),
+      ...(third ? [reseat(third, loser, loser, q)] : []),
+    ]);
     this.busy.set(false);
     const err = results.find((r) => r.error)?.error;
     if (err) return this.note(err.message, false);
@@ -424,37 +448,38 @@ export class AdminBattles implements OnInit, OnDestroy {
     this.note(`Победа: ${this.info(winner).nickname}`, true);
   }
 
-  /** Отменить можно, пока пары, куда ушли победитель/проигравший, ещё не решены */
+  /** Отменить можно, пока пары, куда ушли победитель/проигравший, ещё не начались */
   protected canUndo(b: Battle) {
-    if (b.result === 'bye') return false;
-    const next = nextSlot(b.round, b.slot);
-    const targets = [next && this.battles().find((x) => x.round === next.round && x.slot === next.slot), b.round === 'sf' ? this.battles().find((x) => x.round === 'third') : null];
-    return targets.every((t) => !t || t.status === 'pending');
+    return b.result !== 'bye' && canChange(b, this.battles());
   }
 
   async undo(b: Battle) {
     if (!confirm('Отменить решение по этой дуэли? Голоса будут удалены.')) return;
     this.busy.set(true);
-    const remove = (t: Battle | undefined, pid: string | null) => {
-      if (!t || !pid) return null;
-      const left = [t.leader_id, t.chaser_id].filter((x) => x && x !== pid);
-      return supabase.from('battles').update({ leader_id: left[0] ?? null, chaser_id: null }).eq('id', t.id);
-    };
-    const next = nextSlot(b.round, b.slot);
+    const { next, third } = targetsOf(b, this.battles());
+    const q = this.qualPlace();
     const loser = b.winner_id === b.leader_id ? b.chaser_id : b.leader_id;
-    const ops = [
-      remove(next ? this.battles().find((x) => x.round === next.round && x.slot === next.slot) : undefined, b.winner_id),
-      b.round === 'sf' ? remove(this.battles().find((x) => x.round === 'third'), loser) : null,
+    const results = await Promise.all([
+      ...(next ? [reseat(next, b.winner_id, null, q)] : []),
+      ...(third ? [reseat(third, loser, null, q)] : []),
       supabase.from('battle_votes').delete().eq('battle_id', b.id),
       supabase.from('battles').update({ winner_id: null, status: 'pending', result: null, decided_at: null, omt_count: 0 }).eq('id', b.id),
-    ].filter(Boolean);
-    const results = await Promise.all(ops);
+    ]);
     this.busy.set(false);
-    const err = results.find((r) => r!.error)?.error;
+    const err = results.find((r) => r.error)?.error;
     if (err) return this.note(err.message, false);
     this.votes.set({});
     await this.load();
     this.note('Решение отменено', true);
+  }
+
+  async testProtest() {
+    this.busy.set(true);
+    const { data, error } = await supabase.functions.invoke('test-pilots', { body: { action: 'protest', stageId: this.stageId() } });
+    this.busy.set(false);
+    // ошибка функции приходит телом ответа (например «Время на протест истекло»)
+    const text = error ? ((await (error as { context?: Response }).context?.json?.())?.error ?? error.message) : data?.error;
+    this.note(text ?? 'Тестовый протест подан', !text);
   }
 
   async wipe() {
