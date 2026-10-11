@@ -5,8 +5,9 @@ import { Placeholder } from './pages/placeholder';
 
 export const routes: Routes = [
   { path: '', component: Home },
-  { path: 'standings', component: Placeholder, data: { key: 'nav.standings' } },
-  { path: 'stages', component: Placeholder, data: { key: 'nav.stages' } },
+  { path: 'standings', loadComponent: () => import('./pages/standings').then((m) => m.Standings) },
+  { path: 'stages', loadComponent: () => import('./pages/stages').then((m) => m.Stages) },
+  { path: 'stages/:id', loadComponent: () => import('./pages/stage').then((m) => m.StagePage) },
   { path: 'pilots', component: Placeholder, data: { key: 'nav.pilots' } },
   { path: 'teams', component: Placeholder, data: { key: 'nav.teams' } },
   { path: 'archive', component: Placeholder, data: { key: 'nav.archive' } },

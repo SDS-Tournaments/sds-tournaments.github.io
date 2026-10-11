@@ -9,6 +9,12 @@ export interface PilotStanding {
   start_number: number | null;
   avatar_url: string | null;
   team: string | null;
+  /** очки за каждый завершённый этап по порядку (null — не участвовал) */
+  perStage: (number | null)[];
+}
+export interface StageCol {
+  id: number;
+  ord: number;
 }
 export interface TeamStanding {
   id: string;
@@ -29,17 +35,31 @@ interface ResultRow {
   team: { name: string; logo_url: string | null } | null;
 }
 
+export interface Season {
+  id: number;
+  number: number;
+  title: string;
+  status: string;
+  team_counted: number;
+}
+
+/** Опубликованные сезоны, новые сверху */
+export async function publicSeasons(): Promise<Season[]> {
+  const { data } = await supabase.from('seasons').select('id, number, title, status, team_counted').neq('status', 'draft').order('number', { ascending: false });
+  return data ?? [];
+}
+
 /** Активный сезон (или последний, если активного нет) */
 export async function currentSeason() {
-  const { data } = await supabase.from('seasons').select('id, number, title, status, team_counted').neq('status', 'draft').order('number', { ascending: false });
-  return (data ?? []).find((s) => s.status === 'active') ?? data?.[0] ?? null;
+  const data = await publicSeasons();
+  return data.find((s) => s.status === 'active') ?? data[0] ?? null;
 }
 
 /** §5.6 Личный и командный зачёт сезона по итогам завершённых этапов */
-export async function loadStandings(seasonId: number, teamCounted = 3): Promise<{ pilots: PilotStanding[]; teams: TeamStanding[]; stages: number }> {
-  const { data: stages } = await supabase.from('stages').select('id').eq('season_id', seasonId).eq('status', 'finished').order('ord');
+export async function loadStandings(seasonId: number, teamCounted = 3): Promise<{ pilots: PilotStanding[]; teams: TeamStanding[]; stages: StageCol[] }> {
+  const { data: stages } = await supabase.from('stages').select('id, ord').eq('season_id', seasonId).eq('status', 'finished').order('ord');
   const ids = (stages ?? []).map((s) => s.id);
-  if (!ids.length) return { pilots: [], teams: [], stages: 0 };
+  if (!ids.length) return { pilots: [], teams: [], stages: [] };
   const { data } = await supabase
     .from('stage_results')
     .select('stage_id, profile_id, team_id, qual_place, stage_place, total, pilot:profiles(nickname, start_number, avatar_url), team:teams(name, logo_url)')
@@ -53,7 +73,14 @@ export async function loadStandings(seasonId: number, teamCounted = 3): Promise<
   for (const r of rows) last.set(r.profile_id, r);
   const pilots = personal.map((p) => {
     const r = last.get(p.id)!;
-    return { ...p, nickname: r.pilot?.nickname ?? '?', start_number: r.pilot?.start_number ?? null, avatar_url: r.pilot?.avatar_url ?? null, team: r.team?.name ?? null };
+    return {
+      ...p,
+      nickname: r.pilot?.nickname ?? '?',
+      start_number: r.pilot?.start_number ?? null,
+      avatar_url: r.pilot?.avatar_url ?? null,
+      team: r.team?.name ?? null,
+      perStage: byStage.map((s) => s.find((x) => x.profile_id === p.id)?.total ?? null),
+    };
   });
 
   const stageTeams = byStage.map((s) => teamStage(s.map((r) => ({ teamId: r.team_id ? String(r.team_id) : null, total: r.total, stagePlace: r.stage_place })), teamCounted));
@@ -66,5 +93,5 @@ export async function loadStandings(seasonId: number, teamCounted = 3): Promise<
     if (r.team) teamInfo.set(t, r.team);
   }
   const teams = teamSeason(stageTeams, members, personal).map((t) => ({ ...t, name: teamInfo.get(t.id)?.name ?? '?', logo_url: teamInfo.get(t.id)?.logo_url ?? null }));
-  return { pilots, teams, stages: ids.length };
+  return { pilots, teams, stages: stages ?? [] };
 }

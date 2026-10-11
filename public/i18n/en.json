@@ -131,6 +131,37 @@
     "dupTeam": "This name is taken or you already captain another team",
     "dupMember": "This driver is already in a team or has a pending request this season"
   },
+  "standings": {
+    "pilot": "Driver",
+    "team": "Team",
+    "stageShort": "R{{n}}",
+    "empty": "Standings appear after the first finished round of the season.",
+    "noTeams": "No team results yet.",
+    "note": "Points follow the RDS GP tables: qualifying + battles. A team scores the sum of its 3 best drivers each round."
+  },
+  "stages": {
+    "empty": "The season's rounds haven't been announced yet."
+  },
+  "stage": {
+    "status": {
+      "draft": "Planned",
+      "registration": "Registration",
+      "qualifying": "Qualifying",
+      "battles": "Battles",
+      "finished": "Finished"
+    },
+    "tab": {
+      "results": "Results",
+      "bracket": "Bracket",
+      "qual": "Qualifying"
+    },
+    "qualPts": "Qual.",
+    "battlePts": "Battles",
+    "run": "Run {{n}}",
+    "best": "Best",
+    "spin": "spin",
+    "notFound": "Round not found."
+  },
   "road": {
     "title": "Season road",
     "done": "DONE",
