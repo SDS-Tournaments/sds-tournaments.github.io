@@ -4,6 +4,7 @@ import { Router, RouterLink } from '@angular/router';
 import { supabase } from '../auth';
 import { fromLocalInput, STAGE_FLOW, STAGE_STATUS, toLocalInput } from './labels';
 import { AdminParticipants } from './participants';
+import { AdminStageResults } from './stage-results';
 
 type Crit = 'angle' | 'style' | 'line';
 interface Stage {
@@ -31,7 +32,7 @@ const CRITS: { key: Crit; label: string }[] = [
 
 @Component({
   selector: 'app-admin-stage',
-  imports: [FormsModule, RouterLink, AdminParticipants],
+  imports: [FormsModule, RouterLink, AdminParticipants, AdminStageResults],
   template: `
     @if (st(); as st) {
       <a [routerLink]="['/admin/seasons', st.season_id]" class="back">← К сезону</a>
@@ -102,6 +103,9 @@ const CRITS: { key: Crit; label: string }[] = [
         </div>
       </form>
 
+      @if (st.status === 'battles' || st.status === 'finished') {
+        <app-admin-stage-results class="participants" [stageId]="st.id" />
+      }
       @if (st.status !== 'draft') {
         <app-admin-participants class="participants" [stageId]="st.id" />
       }

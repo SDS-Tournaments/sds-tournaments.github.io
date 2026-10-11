@@ -4,6 +4,7 @@ import { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '../auth';
 import { battleOutcome, bracketSize, buildBracket, QualRow, Round, Vote } from '../scoring/scoring';
 import { canChange, reseat, targetsOf } from './bracket-ops';
+import { finishStage } from './finish';
 
 interface Battle {
   id: number;
@@ -116,7 +117,9 @@ const RESULT_LABEL: Record<string, string> = { normal: '', tech_loss: 'техп�
             <div class="champ">
               <p class="eyebrow">Этап завершён</p>
               <h2>🏆 {{ info(champion()).nickname }}</h2>
-              <p class="muted">Все дуэли проведены. Подведение итогов этапа — следующий шаг.</p>
+              <p class="muted">Все дуэли проведены.</p>
+              <button class="btn btn-primary big" (click)="finish()" [disabled]="busy()">Подвести итоги и завершить этап</button>
+              @if (msg()) { <p [class]="ok() ? 'ok' : 'bad'">{{ msg() }}</p> }
             </div>
           }
         </section>
@@ -471,6 +474,14 @@ export class AdminBattles implements OnInit, OnDestroy {
     this.votes.set({});
     await this.load();
     this.note('Решение отменено', true);
+  }
+
+  async finish() {
+    if (this.protested().length && !confirm('Есть протесты на рассмотрении. Всё равно подвести итоги?')) return;
+    this.busy.set(true);
+    const err = await finishStage(this.stageId());
+    this.busy.set(false);
+    this.note(err ?? 'Итоги посчитаны, этап завершён — таблица на странице этапа', !err);
   }
 
   async testProtest() {

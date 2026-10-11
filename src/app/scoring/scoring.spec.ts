@@ -4,7 +4,10 @@ import {
   bracketSize,
   buildBracket,
   Finish,
+  finishesFrom,
   firstRound,
+  Round,
+  stageAchievements,
   nextSlot,
   orderPair,
   qualStandings,
@@ -183,6 +186,40 @@ describe('места и очки этапа', () => {
     expect(stagePoints(20, 'r16').total).toBe(2 + 30);
     expect(stagePoints(25, 'r32').total).toBe(2);
     expect(stagePoints(40, null).total).toBe(1);
+  });
+});
+
+describe('итоги этапа', () => {
+  const B = (round: Round, leader: string, chaser: string | null, winner: string, bye = false) => ({ round, leader, chaser, winner, bye });
+
+  it('стадия вылета из решённых дуэлей, баи пропускаются', () => {
+    const f = finishesFrom([
+      B('qf', 'a', null, 'a', true),
+      B('qf', 'b', 'c', 'b'),
+      B('sf', 'a', 'b', 'a'),
+      B('third', 'b', 'd', 'd'),
+      B('final', 'a', 'e', 'e'),
+    ]);
+    expect(Object.fromEntries(f)).toEqual({ c: 'qf', d: 'third-win', b: 'third-loss', e: 'win', a: 'final' });
+  });
+
+  it('достижения: победа, первая победа, хет-трик, подиум, король квалификации, 100, два OMT', () => {
+    const rows = [
+      { id: 'a', stagePlace: 1, qualPlace: 3, best: 92 },
+      { id: 'b', stagePlace: 2, qualPlace: 1, best: 100 },
+      { id: 'c', stagePlace: 5, qualPlace: 2, best: 95 },
+    ];
+    const got = stageAchievements(rows, ['x', 'a', 'a'], new Set(['a']), new Set(['c']));
+    expect(got).toEqual([
+      { id: 'a', code: 'win' },
+      { id: 'a', code: 'hat_trick' },
+      { id: 'a', code: 'podium' },
+      { id: 'b', code: 'podium' },
+      { id: 'b', code: 'qual_king' },
+      { id: 'b', code: 'perfect_100' },
+      { id: 'c', code: 'omt2' },
+    ]);
+    expect(stageAchievements([rows[0]], [], new Set(), new Set()).map((x) => x.code)).toContain('first_win');
   });
 });
 

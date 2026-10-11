@@ -179,6 +179,62 @@ export const LOSER_FINISH: Record<Round, Finish | null> = {
   final: 'final',
 };
 
+export interface BattleResult {
+  round: Round;
+  leader: string | null;
+  chaser: string | null;
+  winner: string | null;
+  bye: boolean;
+}
+
+/** Стадия вылета каждого пилота по решённым дуэлям (баи не считаются) */
+export function finishesFrom(battles: BattleResult[]): Map<string, Finish> {
+  const m = new Map<string, Finish>();
+  for (const b of battles) {
+    if (!b.winner || b.bye) continue;
+    const loser = b.winner === b.leader ? b.chaser : b.leader;
+    if (b.round === 'final') {
+      m.set(b.winner, 'win');
+      if (loser) m.set(loser, 'final');
+    } else if (b.round === 'third') {
+      m.set(b.winner, 'third-win');
+      if (loser) m.set(loser, 'third-loss');
+    } else {
+      const f = LOSER_FINISH[b.round];
+      if (f && loser) m.set(loser, f);
+    }
+  }
+  return m;
+}
+
+export type Achievement = 'win' | 'first_win' | 'hat_trick' | 'podium' | 'qual_king' | 'perfect_100' | 'omt2';
+
+/**
+ * Достижения за этап. `prevWinners` — победители предыдущих этапов сезона (последний — в конце),
+ * `everWon` — кто уже побеждал на этапах раньше, `omt2Winners` — выиграл дуэль после двух OMT.
+ */
+export function stageAchievements(
+  rows: { id: string; stagePlace: number; qualPlace: number; best: number }[],
+  prevWinners: string[],
+  everWon: Set<string>,
+  omt2Winners: Set<string>,
+): { id: string; code: Achievement }[] {
+  const out: { id: string; code: Achievement }[] = [];
+  for (const r of rows) {
+    const add = (code: Achievement) => out.push({ id: r.id, code });
+    if (r.stagePlace === 1) {
+      add('win');
+      if (!everWon.has(r.id)) add('first_win');
+      if (prevWinners.length >= 2 && prevWinners.slice(-2).every((w) => w === r.id)) add('hat_trick');
+    }
+    if (r.stagePlace <= 3) add('podium');
+    if (r.qualPlace === 1) add('qual_king');
+    if (r.best >= 100) add('perfect_100');
+    if (omt2Winners.has(r.id)) add('omt2');
+  }
+  return out;
+}
+
 const FINISH_RANK: Record<Finish, number> = { win: 1, final: 2, 'third-win': 3, 'third-loss': 4, qf: 5, r16: 9, r32: 17 };
 
 export interface StageRow {
