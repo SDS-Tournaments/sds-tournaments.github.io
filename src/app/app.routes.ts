@@ -25,6 +25,8 @@ export const routes: Routes = [
       { path: 'teams', loadComponent: () => import('./admin/teams').then((m) => m.AdminTeams) },
     ],
   },
+  // Пульты — на всю ширину, без бокового меню админки
+  { path: 'judge/:id', canActivate: [staffGuard], loadComponent: () => import('./admin/judge').then((m) => m.AdminJudge) },
   { path: 'dev/ui', loadComponent: () => import('./pages/ui-showcase').then((m) => m.UiShowcase) },
   { path: '**', redirectTo: '' },
 ];

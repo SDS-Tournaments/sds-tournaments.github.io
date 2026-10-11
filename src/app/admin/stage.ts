@@ -37,6 +37,9 @@ const CRITS: { key: Crit; label: string }[] = [
       <a [routerLink]="['/admin/seasons', st.season_id]" class="back">← К сезону</a>
       <header class="top">
         <h1 class="display-md">{{ st.title_ru }}</h1>
+        @if (st.status !== 'draft') {
+          <a class="btn btn-primary" [routerLink]="['/judge', st.id]">Пульт судьи →</a>
+        }
       </header>
 
       <!-- Статус этапа: шаги по порядку -->
@@ -108,7 +111,7 @@ const CRITS: { key: Crit; label: string }[] = [
   `,
   styles: `
     .back { display: inline-block; margin-bottom: 16px; font-size: 14px; }
-    .top { margin-bottom: 24px; }
+    .top { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; margin-bottom: 24px; }
     .stack { display: grid; gap: 20px; }
     .h { font-size: 20px; }
     .cols { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); }
