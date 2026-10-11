@@ -1,7 +1,7 @@
 import { Component, isDevMode } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
-import { RegCounter } from '../components/reg-counter';
+import { NextStage } from '../components/next-stage';
 import { Reveal } from '../reveal';
 
 // Шум fractalNoise → полупрозрачный светлый «дым»; stitchTiles даёт бесшовный повтор по ширине тайла
@@ -11,7 +11,7 @@ const smoke = (seed: number, w: number, h: number) =>
 // Живой этап, лидеры и спонсоры — шаг 5.1
 @Component({
   selector: 'app-home',
-  imports: [RouterLink, TranslocoPipe, Reveal, RegCounter],
+  imports: [RouterLink, TranslocoPipe, Reveal, NextStage],
   template: `
     <section class="hero">
       <div class="glow" aria-hidden="true"><i></i><i></i></div>
@@ -29,8 +29,13 @@ const smoke = (seed: number, w: number, h: number) =>
             <a routerLink="/stages" class="btn btn-primary">{{ 'home.toStages' | transloco }} →</a>
             <a routerLink="/standings" class="btn btn-secondary">{{ 'home.toStandings' | transloco }}</a>
           </div>
+          <!-- shortcut: спонсор вписан вручную; перейдёт в таблицу sponsors на шаге 7.1 -->
+          <a class="sponsor rise" style="--i: 4" href="https://carx-online.com" target="_blank" rel="noopener">
+            <span class="sponsor-lbl">{{ 'sponsor.general' | transloco }}</span>
+            <span class="sponsor-name">CarX Technologies</span>
+          </a>
         </div>
-        <app-reg-counter class="rise" style="--i: 4" [count]="demo ? 24 : null" [stage]="demo ? 'Этап 1 · Ebisu' : null" />
+        <app-next-stage class="rise" style="--i: 4" [stage]="demo ? 'Этап 1 · Ebisu Minami' : null" [startsAt]="demoStart" [registered]="demo ? 41 : 0" />
       </div>
     </section>
 
@@ -201,6 +206,31 @@ const smoke = (seed: number, w: number, h: number) =>
     .lead { max-width: 520px; font-size: 18px; margin: 0 0 32px; }
     .cta { display: flex; flex-wrap: wrap; gap: 12px; }
 
+    /* Генеральный спонсор */
+    .sponsor {
+      display: inline-grid;
+      gap: 4px;
+      margin-top: 48px;
+      padding: 0 0 0 16px;
+      border-left: 2px solid var(--primary);
+      background: none;
+      color: var(--ink);
+      &:hover { color: var(--primary-hover); }
+    }
+    .sponsor-lbl {
+      font-size: 11px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--ink-subtle);
+    }
+    .sponsor-name {
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      transition: color var(--fast);
+    }
+
     h2 { margin: 12px 0 48px; max-width: 640px; }
     .steps {
       display: grid;
@@ -225,4 +255,5 @@ export class Home {
   protected readonly smokeFront = smoke(21, 1400, 450);
   // shortcut: демо-цифры счётчика только в dev, пока нет базы; заменить данными этапа на шаге 5.1
   protected readonly demo = isDevMode();
+  protected readonly demoStart = this.demo ? new Date(Date.now() + (3 * 24 + 5) * 3600_000) : null;
 }

@@ -17,10 +17,15 @@
     "lead": "Qualifying, Top 32 tandem battles and season standings — all in one place, live.",
     "toStages": "Season rounds",
     "toStandings": "Standings",
-    "reg": {
-      "label": "Drivers registered",
+    "next": {
+      "eyebrow": "Next round",
+      "d": "days",
+      "h": "hrs",
+      "m": "min",
+      "s": "sec",
+      "registered": "drivers already signed up",
       "cta": "Register",
-      "soon": "Round registration opens soon"
+      "soon": "Next round date coming soon"
     },
     "how": {
       "eyebrow": "Format",
@@ -38,6 +43,9 @@
         "text": "Two runs with swapped roles, judges' votes, up to two OMTs. The winner takes 250 season points."
       }
     }
+  },
+  "sponsor": {
+    "general": "General sponsor"
   },
   "common": {
     "soon": "Coming soon."

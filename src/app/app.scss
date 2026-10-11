@@ -183,7 +183,12 @@ main {
   flex-wrap: wrap;
   align-items: center;
   gap: 16px;
-  a {
+  .sponsor {
     margin-left: auto;
+    color: var(--ink-subtle);
+    b {
+      color: var(--ink);
+      font-weight: 600;
+    }
   }
 }
