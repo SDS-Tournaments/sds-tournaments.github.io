@@ -32,9 +32,17 @@
       "m": "min",
       "s": "sec",
       "registered": "drivers already signed up",
+      "racing": "drivers on track",
       "cta": "Register",
+      "watch": "Watch live",
+      "qualifying": "Qualifying",
+      "battles": "Battles",
+      "registration": "Registration",
       "soon": "Next round date coming soon"
     },
+    "leaders": "Season leaders",
+    "fullStandings": "Full standings",
+    "partners": "Partners",
     "how": {
       "eyebrow": "Format",
       "title": "How a round works",
@@ -119,6 +127,14 @@
     "send": "Send request",
     "dupTeam": "This name is taken or you already captain another team",
     "dupMember": "This driver is already in a team or has a pending request this season"
+  },
+  "live": {
+    "noStream": "The stream is about to start",
+    "battle": "On track now",
+    "waiting": "Next pair coming up…",
+    "lastWin": "Last win: {{name}}",
+    "qual": "Qualifying · top 8",
+    "noScores": "No scores yet"
   },
   "round": {
     "r32": "Top 32",

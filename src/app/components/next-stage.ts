@@ -10,23 +10,33 @@ const pad = (n: number) => String(n).padStart(2, '0');
   imports: [RouterLink, TranslocoPipe],
   template: `
     @if (stage(); as s) {
-      <p class="eyebrow">{{ 'home.next.eyebrow' | transloco }}</p>
+      @if (live()) {
+        <p class="eyebrow live"><span class="dot"></span>LIVE · {{ 'home.next.' + status() | transloco }}</p>
+      } @else {
+        <p class="eyebrow">{{ 'home.next.eyebrow' | transloco }}</p>
+      }
       <h2 class="title">{{ s }}</h2>
 
-      <div class="timer mono" role="timer">
-        @for (part of parts(); track part.key) {
-          <div class="cell">
-            <span class="val">{{ part.val }}</span>
-            <span class="unit">{{ 'home.next.' + part.key | transloco }}</span>
-          </div>
-        }
-      </div>
+      @if (!live() && startsAt()) {
+        <div class="timer mono" role="timer">
+          @for (part of parts(); track part.key) {
+            <div class="cell">
+              <span class="val">{{ part.val }}</span>
+              <span class="unit">{{ 'home.next.' + part.key | transloco }}</span>
+            </div>
+          }
+        </div>
+      }
 
       <div class="reg">
         <span class="num mono">{{ shown() }}</span>
-        <span class="lbl">{{ 'home.next.registered' | transloco }}</span>
+        <span class="lbl">{{ (live() ? 'home.next.racing' : 'home.next.registered') | transloco }}</span>
       </div>
-      <a routerLink="/me" class="btn btn-primary">{{ 'home.next.cta' | transloco }}</a>
+      @if (live()) {
+        <a href="#live" class="btn btn-primary">{{ 'home.next.watch' | transloco }}</a>
+      } @else if (status() === 'registration') {
+        <a routerLink="/me" class="btn btn-primary">{{ 'home.next.cta' | transloco }}</a>
+      }
     } @else {
       <p class="eyebrow">{{ 'home.next.eyebrow' | transloco }}</p>
       <p class="soon">{{ 'home.next.soon' | transloco }}</p>
@@ -83,12 +93,17 @@ const pad = (n: number) => String(n).padStart(2, '0');
     }
     .lbl { color: var(--ink-muted); font-size: 14px; }
     .soon { margin: 0; color: var(--ink-muted); }
+    .live { display: flex; align-items: center; gap: 8px; color: var(--error); }
+    .live .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--error); animation: pulse 1.6s ease-out infinite; }
+    @keyframes pulse { from { box-shadow: 0 0 0 0 rgba(255, 92, 92, 0.6); } to { box-shadow: 0 0 0 10px transparent; } }
   `,
 })
 export class NextStage {
   stage = input<string | null>(null);
   startsAt = input<Date | null>(null);
   registered = input(0);
+  status = input<string>('registration');
+  protected readonly live = computed(() => this.status() === 'qualifying' || this.status() === 'battles');
 
   private readonly now = signal(Date.now());
   protected readonly shown = signal(0);

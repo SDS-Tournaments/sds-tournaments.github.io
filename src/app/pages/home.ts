@@ -1,17 +1,20 @@
-import { Component, isDevMode } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { TranslocoPipe } from '@jsverse/transloco';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
+import { supabase } from '../auth';
+import { LiveStage } from '../components/live-stage';
 import { NextStage } from '../components/next-stage';
+import { currentSeason, loadStandings, PilotStanding, TeamStanding } from '../data/standings';
 import { Reveal } from '../reveal';
 
 // Шум fractalNoise → полупрозрачный светлый «дым»; stitchTiles даёт бесшовный повтор по ширине тайла
 const smoke = (seed: number, w: number, h: number) =>
   `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${w}' height='${h}'%3E%3Cfilter id='f' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='${(3 / w).toFixed(4)} ${(2 / h).toFixed(4)}' numOctaves='4' seed='${seed}' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.82 0 0 0 0 0.96 0 0 0 0 0.95 1.9 0 0 0 -0.78'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E")`;
 
-// Живой этап, лидеры и спонсоры — шаг 5.1
+// Главная: ближайший/идущий этап, LIVE с Twitch, лидеры сезона, спонсоры
 @Component({
   selector: 'app-home',
-  imports: [RouterLink, TranslocoPipe, Reveal, NextStage],
+  imports: [RouterLink, TranslocoPipe, Reveal, NextStage, LiveStage],
   template: `
     <section class="hero">
       <div class="glow" aria-hidden="true"><i></i><i></i></div>
@@ -29,15 +32,63 @@ const smoke = (seed: number, w: number, h: number) =>
             <a routerLink="/stages" class="btn btn-primary">{{ 'home.toStages' | transloco }} →</a>
             <a routerLink="/standings" class="btn btn-secondary">{{ 'home.toStandings' | transloco }}</a>
           </div>
-          <!-- shortcut: спонсор вписан вручную; перейдёт в таблицу sponsors на шаге 7.1 -->
-          <a class="sponsor rise" style="--i: 4" href="https://carx-online.com" target="_blank" rel="noopener">
-            <span class="sponsor-lbl">{{ 'sponsor.general' | transloco }}</span>
-            <span class="sponsor-name">CarX Technologies</span>
-          </a>
+          @if (general(); as g) {
+            <a class="sponsor rise" style="--i: 4" [href]="g.url" target="_blank" rel="noopener">
+              <span class="sponsor-lbl">{{ 'sponsor.general' | transloco }}</span>
+              @if (g.logo_url) { <img [src]="g.logo_url" [alt]="g.name" height="32" /> } @else { <span class="sponsor-name">{{ g.name }}</span> }
+            </a>
+          }
         </div>
-        <app-next-stage class="rise" style="--i: 4" [stage]="demo ? 'Этап 1 · Ebisu Minami' : null" [startsAt]="demoStart" [registered]="demo ? 41 : 0" />
+        <app-next-stage
+          class="rise"
+          style="--i: 4"
+          [stage]="next() ? stageTitle(next()!) : null"
+          [startsAt]="next()?.starts_at ? toDate(next()!.starts_at!) : null"
+          [registered]="nextCount()"
+          [status]="next()?.status ?? 'registration'"
+        />
       </div>
     </section>
+
+    @if (live(); as l) {
+      <section id="live" class="section container live">
+        <p class="eyebrow" reveal>LIVE</p>
+        <h2 class="display-lg" reveal>{{ stageTitle(l) }}</h2>
+        <app-live-stage [stageId]="l.id" [status]="l.status" [channel]="l.twitch_channel || twitch()" />
+      </section>
+    }
+
+    @if (pilots().length) {
+      <section class="section container">
+        <p class="eyebrow" reveal>{{ seasonTitle() }}</p>
+        <h2 class="display-lg" reveal>{{ 'home.leaders' | transloco }}</h2>
+        <div class="leaders">
+          <ol class="card board" reveal>
+            @for (p of pilots(); track p.id; let i = $index) {
+              <li [class.first]="i === 0">
+                <span class="mono place">{{ p.place }}</span>
+                @if (p.avatar_url) { <img [src]="p.avatar_url" alt="" width="36" height="36" /> } @else { <span class="ph"></span> }
+                <span class="who"><b>{{ p.nickname }}</b><span class="subtle">{{ p.team ?? '' }}</span></span>
+                <span class="mono pts">{{ p.points }}</span>
+              </li>
+            }
+          </ol>
+          @if (teams().length) {
+            <ol class="card board" reveal style="--i: 1">
+              @for (t of teams(); track t.id; let i = $index) {
+                <li [class.first]="i === 0">
+                  <span class="mono place">{{ t.place }}</span>
+                  <span class="tlogo" [style.background-image]="t.logo_url ? 'url(' + t.logo_url + ')' : null"></span>
+                  <span class="who"><b>{{ t.name }}</b></span>
+                  <span class="mono pts">{{ t.points }}</span>
+                </li>
+              }
+            </ol>
+          }
+        </div>
+        <a routerLink="/standings" class="more" reveal>{{ 'home.fullStandings' | transloco }} →</a>
+      </section>
+    }
 
     <section class="section container">
       <p class="eyebrow" reveal>{{ 'home.how.eyebrow' | transloco }}</p>
@@ -52,6 +103,19 @@ const smoke = (seed: number, w: number, h: number) =>
         }
       </div>
     </section>
+
+    @if (sponsors().length) {
+      <section class="sponsors container" reveal>
+        <p class="eyebrow">{{ 'home.partners' | transloco }}</p>
+        <div class="logos">
+          @for (s of sponsors(); track s.id) {
+            <a [href]="s.url" target="_blank" rel="noopener" [class.gen]="s.tier === 'general'" [title]="s.name">
+              @if (s.logo_url) { <img [src]="s.logo_url" [alt]="s.name" /> } @else { {{ s.name }} }
+            </a>
+          }
+        </div>
+      </section>
+    }
   `,
   styles: `
     .hero {
@@ -241,6 +305,32 @@ const smoke = (seed: number, w: number, h: number) =>
       h3 { font-size: 20px; margin: 16px 0 8px; }
       p { margin: 0; }
     }
+    .live { padding-bottom: 0; }
+    .live h2 { margin: 12px 0 32px; }
+
+    .leaders { display: grid; gap: 24px; grid-template-columns: 1.4fr 1fr; align-items: start; }
+    @media (max-width: 900px) { .leaders { grid-template-columns: 1fr; } }
+    .board { list-style: none; margin: 0; padding: 8px; display: grid; gap: 2px; }
+    .board li { display: grid; grid-template-columns: 28px 36px 1fr auto; gap: 12px; align-items: center; padding: 10px 12px; border-radius: var(--r-md); transition: background-color var(--fast); }
+    .board li:hover { background: var(--surface-2); }
+    .board li.first { background: linear-gradient(90deg, var(--primary-soft), transparent); }
+    .board img, .ph, .tlogo { width: 36px; height: 36px; border-radius: 50%; background: var(--surface-3) center / cover no-repeat; }
+    .tlogo { border-radius: var(--r-sm); }
+    .place { color: var(--ink-subtle); }
+    .first .place { color: var(--primary); }
+    .who { display: grid; min-width: 0; b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } span { font-size: 12px; } }
+    .pts { font-size: 18px; color: var(--primary); }
+    .more { display: inline-block; margin-top: 24px; }
+
+    .sponsors { padding-block: 32px 96px; text-align: center; }
+    .logos { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 24px 48px; margin-top: 16px; }
+    .logos a { color: var(--ink-subtle); background: none; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; transition: color var(--fast), opacity var(--fast); }
+    .logos a:hover { color: var(--ink); }
+    .logos a.gen { color: var(--ink); font-size: 20px; }
+    .logos img { height: 36px; width: auto; opacity: 0.7; filter: grayscale(1) brightness(1.6); transition: opacity var(--fast), filter var(--fast); }
+    .logos a:hover img, .logos a.gen img { opacity: 1; filter: none; }
+    .sponsor img { height: 32px; width: auto; }
+
     .step-no {
       font-size: 48px;
       line-height: 1;
@@ -249,11 +339,74 @@ const smoke = (seed: number, w: number, h: number) =>
     }
   `,
 })
-export class Home {
+export class Home implements OnInit {
   protected readonly steps = ['qual', 'bracket', 'final'];
   protected readonly smokeBack = smoke(7, 900, 500);
   protected readonly smokeFront = smoke(21, 1400, 450);
-  // shortcut: демо-цифры счётчика только в dev, пока нет базы; заменить данными этапа на шаге 5.1
-  protected readonly demo = isDevMode();
-  protected readonly demoStart = this.demo ? new Date(Date.now() + (3 * 24 + 5) * 3600_000) : null;
+
+  /** идущий этап, иначе ближайший с открытой регистрацией */
+  protected readonly next = signal<StageCard | null>(null);
+  protected readonly nextCount = signal(0);
+  protected readonly live = computed(() => (this.next()?.status === 'qualifying' || this.next()?.status === 'battles' ? this.next() : null));
+  protected readonly twitch = signal<string | null>(null);
+  protected readonly pilots = signal<PilotStanding[]>([]);
+  protected readonly teams = signal<TeamStanding[]>([]);
+  protected readonly seasonTitle = signal('');
+  protected readonly sponsors = signal<Sponsor[]>([]);
+  protected readonly general = computed(() => this.sponsors().find((s) => s.tier === 'general') ?? null);
+  private readonly lang = signal(inject(TranslocoService).getActiveLang());
+
+  constructor() {
+    inject(TranslocoService).langChanges$.subscribe((l) => this.lang.set(l));
+  }
+
+  async ngOnInit() {
+    const [stages, settings, sponsors, season] = await Promise.all([
+      supabase.from('stages').select('id, title_ru, title_en, track, starts_at, status, twitch_channel').in('status', ['registration', 'qualifying', 'battles']).order('starts_at'),
+      supabase.from('app_settings').select('twitch_channel').single(),
+      supabase.from('sponsors').select('id, name, logo_url, url, tier').order('tier').order('sort'),
+      currentSeason(),
+    ]);
+    const list = (stages.data ?? []) as StageCard[];
+    const next = list.find((s) => s.status !== 'registration') ?? list[0] ?? null;
+    this.next.set(next);
+    this.twitch.set(settings.data?.twitch_channel ?? null);
+    this.sponsors.set((sponsors.data ?? []) as Sponsor[]);
+    if (next) {
+      const { count } = await supabase.from('registrations').select('profile_id', { count: 'exact', head: true }).eq('stage_id', next.id).eq('status', 'registered');
+      this.nextCount.set(count ?? 0);
+    }
+    if (season) {
+      this.seasonTitle.set(season.title);
+      const st = await loadStandings(season.id, season.team_counted);
+      this.pilots.set(st.pilots.slice(0, 5));
+      this.teams.set(st.teams.slice(0, 3));
+    }
+  }
+
+  protected stageTitle(s: StageCard) {
+    const t = this.lang() === 'en' && s.title_en ? s.title_en : s.title_ru;
+    return s.track ? `${t} · ${s.track}` : t;
+  }
+
+  protected toDate(iso: string) {
+    return new Date(iso);
+  }
+}
+
+interface StageCard {
+  id: number;
+  title_ru: string;
+  title_en: string | null;
+  track: string | null;
+  starts_at: string | null;
+  status: string;
+  twitch_channel: string | null;
+}
+interface Sponsor {
+  id: number;
+  name: string;
+  logo_url: string | null;
+  url: string | null;
+  tier: 'general' | 'partner';
 }
