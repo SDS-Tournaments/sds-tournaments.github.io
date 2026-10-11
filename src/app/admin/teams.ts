@@ -74,9 +74,16 @@ interface Member {
             </select>
           </label>
           <div class="add">
-            <input class="input" placeholder="Добавить пилота: ник…" [(ngModel)]="query[t.id]" (ngModelChange)="search(t.id)" />
+            <label class="field">
+              <span class="lbl">Добавить пилота</span>
+              <input class="input" placeholder="Начните вводить ник…" [(ngModel)]="query[t.id]" (ngModelChange)="search(t.id)" />
+            </label>
             @for (p of found()[t.id] ?? []; track p.id) {
-              <button class="found" (click)="add(t.id, p.id)"><span class="mono num">{{ p.start_number ?? '—' }}</span> {{ p.nickname }} <span class="plus">+</span></button>
+              <button type="button" class="found" (click)="add(t.id, p.id)"><span class="mono num">{{ p.start_number ?? '—' }}</span> {{ p.nickname }} <span class="plus">+</span></button>
+            } @empty {
+              @if ((query[t.id] ?? '').trim().length >= 2 && found()[t.id]) {
+                <span class="hint">Не найдено. Пилот должен хотя бы раз войти на сайт через Steam.</span>
+              }
             }
           </div>
           <button class="btn btn-ghost danger" (click)="remove(t)" [disabled]="busy()">Удалить команду</button>
@@ -107,6 +114,7 @@ interface Member {
     .tag { font: 600 11px var(--mono); padding: 1px 6px; border-radius: var(--r-sm); background: var(--primary); color: var(--on-primary); }
     .x { border: 0; background: none; color: var(--ink-tertiary); cursor: pointer; &:hover { color: var(--error); } }
     .add { display: grid; gap: 6px; }
+    .hint { font-size: 13px; color: var(--warning); }
     .found {
       display: flex; align-items: center; gap: 8px; padding: 6px 10px; text-align: left;
       border: 1px solid var(--hairline-strong); border-radius: var(--r-sm); background: var(--surface-1); color: var(--ink); cursor: pointer;
@@ -124,7 +132,8 @@ export class AdminTeams implements OnInit {
   protected readonly teams = signal<Team[]>([]);
   protected readonly members = signal<Member[]>([]);
   protected readonly pending = computed(() => this.members().filter((m) => m.status === 'pending'));
-  protected readonly found = signal<Record<number, { id: string; nickname: string; start_number: number | null }[]>>({});
+  /** результаты поиска по команде; undefined — ещё не искали (подсказку «не найдено» не показываем) */
+  protected readonly found = signal<Record<number, { id: string; nickname: string; start_number: number | null }[] | undefined>>({});
   protected query: Record<number, string> = {};
   protected readonly busy = signal(false);
   protected readonly msg = signal<string | null>(null);
@@ -185,14 +194,14 @@ export class AdminTeams implements OnInit {
 
   async search(teamId: number) {
     const q = (this.query[teamId] ?? '').trim();
-    if (q.length < 2) return this.found.update((f) => ({ ...f, [teamId]: [] }));
+    if (q.length < 2) return this.found.update((f) => ({ ...f, [teamId]: undefined }));
     const { data } = await supabase.from('profiles').select('id, nickname, start_number').ilike('nickname', `%${q}%`).limit(6);
     this.found.update((f) => ({ ...f, [teamId]: data ?? [] }));
   }
 
   async add(teamId: number, profileId: string) {
     this.query[teamId] = '';
-    this.found.update((f) => ({ ...f, [teamId]: [] }));
+    this.found.update((f) => ({ ...f, [teamId]: undefined }));
     await this.run(supabase.from('team_members').insert({ season_id: this.seasonId, profile_id: profileId, team_id: teamId, status: 'approved' }), 'Пилот добавлен');
   }
 }

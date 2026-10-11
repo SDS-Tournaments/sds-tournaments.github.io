@@ -105,6 +105,7 @@
     "limit": "{{n}} of 8 drivers. The best 3 results count per round.",
     "invite": "Invite a driver",
     "searchNick": "Start typing a nickname…",
+    "notFound": "Not found. The driver needs to sign in to the site with Steam at least once.",
     "logo": "Upload logo",
     "leave": "Leave team",
     "leaveConfirm": "Leave the team?",

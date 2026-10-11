@@ -67,6 +67,8 @@ interface Member {
           </label>
           @for (p of found(); track p.id) {
             <button class="found" (click)="invite(p.id)"><span class="mono num">{{ p.start_number ?? '—' }}</span> {{ p.nickname }} <span class="plus">+</span></button>
+          } @empty {
+            @if (searched()) { <span class="hint">{{ 'team.notFound' | transloco }}</span> }
           }
           <label class="btn btn-secondary file">
             {{ 'team.logo' | transloco }}
@@ -133,6 +135,7 @@ interface Member {
       &:hover { border-color: var(--primary); }
       .plus { margin-left: auto; color: var(--primary); }
     }
+    .hint { font-size: 13px; color: var(--warning); }
     .file { position: relative; justify-self: start; input { position: absolute; inset: 0; opacity: 0; cursor: pointer; } }
     .bad { color: var(--error); }
   `,
@@ -149,6 +152,7 @@ export class MyTeam implements OnInit {
   protected readonly ownTeam = signal<Team | null>(null);
   protected readonly allTeams = signal<Team[]>([]);
   protected readonly found = signal<{ id: string; nickname: string; start_number: number | null }[]>([]);
+  protected readonly searched = signal(false);
   protected readonly isCaptain = computed(() => this.team()?.captain_id === this.profileId() && this.myStatus() === 'approved');
   protected readonly approvedCount = computed(() => this.members().filter((m) => m.status === 'approved').length);
   protected newName = '';
@@ -229,9 +233,12 @@ export class MyTeam implements OnInit {
   async search() {
     const q = this.query.trim();
     const seq = ++this.searchSeq;
+    this.searched.set(false);
     if (q.length < 2) return this.found.set([]);
     const { data } = await supabase.from('profiles').select('id, nickname, start_number').ilike('nickname', `%${q}%`).limit(6);
-    if (seq === this.searchSeq) this.found.set((data ?? []).filter((p) => !this.members().some((m) => m.profile_id === p.id)));
+    if (seq !== this.searchSeq) return;
+    this.found.set((data ?? []).filter((p) => !this.members().some((m) => m.profile_id === p.id)));
+    this.searched.set(true);
   }
 
   async invite(profileId: string) {
