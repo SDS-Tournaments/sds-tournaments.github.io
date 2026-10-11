@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { staffGuard } from './auth';
 import { Home } from './pages/home';
 import { Placeholder } from './pages/placeholder';
 
@@ -12,6 +13,17 @@ export const routes: Routes = [
   { path: 'rules', component: Placeholder, data: { key: 'nav.rules' } },
   { path: 'me', loadComponent: () => import('./pages/me').then((m) => m.Me) },
   { path: 'auth/callback', loadComponent: () => import('./pages/auth-callback').then((m) => m.AuthCallback) },
+  {
+    path: 'admin',
+    canActivate: [staffGuard],
+    loadComponent: () => import('./admin/shell').then((m) => m.AdminShell),
+    children: [
+      { path: '', redirectTo: 'seasons', pathMatch: 'full' },
+      { path: 'seasons', loadComponent: () => import('./admin/seasons').then((m) => m.AdminSeasons) },
+      { path: 'seasons/:id', loadComponent: () => import('./admin/season').then((m) => m.AdminSeason) },
+      { path: 'stages/:id', loadComponent: () => import('./admin/stage').then((m) => m.AdminStage) },
+    ],
+  },
   { path: 'dev/ui', loadComponent: () => import('./pages/ui-showcase').then((m) => m.UiShowcase) },
   { path: '**', redirectTo: '' },
 ];

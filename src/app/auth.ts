@@ -1,5 +1,8 @@
-import { Injectable, signal } from '@angular/core';
+import { inject, Injectable, Injector, signal } from '@angular/core';
+import { toObservable } from '@angular/core/rxjs-interop';
+import { CanActivateFn, Router } from '@angular/router';
 import { createClient, Session } from '@supabase/supabase-js';
+import { filter, firstValueFrom } from 'rxjs';
 import { SUPABASE_KEY, SUPABASE_URL } from './supabase.config';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -26,6 +29,7 @@ export class Auth {
   readonly profile = signal<Profile | null>(null);
   /** true после того, как supabase-js восстановил (или не нашёл) сессию */
   readonly ready = signal(false);
+  private readonly injector = inject(Injector);
 
   constructor() {
     supabase.auth.onAuthStateChange((_event, session) => {
@@ -36,6 +40,11 @@ export class Auth {
         this.ready.set(true);
       });
     });
+  }
+
+  /** Дождаться восстановления сессии и профиля */
+  whenReady() {
+    return firstValueFrom(toObservable(this.ready, { injector: this.injector }).pipe(filter(Boolean)));
   }
 
   login() {
@@ -71,3 +80,12 @@ export class Auth {
     this.profile.set(data);
   }
 }
+
+/** Пускает только организатора и судей (настоящая защита данных — RLS в базе) */
+export const staffGuard: CanActivateFn = async () => {
+  const auth = inject(Auth);
+  const router = inject(Router); // до await — после него контекст inject() теряется
+  await auth.whenReady();
+  const role = auth.profile()?.role;
+  return role === 'admin' || role === 'staff' || router.parseUrl('/');
+};

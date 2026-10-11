@@ -9,6 +9,9 @@
       @for (item of nav; track item) {
         <a [routerLink]="'/' + item" routerLinkActive="active" (click)="menuOpen.set(false)">{{ 'nav.' + item | transloco }}</a>
       }
+      @if (auth.profile()?.role === 'admin' || auth.profile()?.role === 'staff') {
+        <a routerLink="/admin" routerLinkActive="active" class="admin-link" (click)="menuOpen.set(false)">{{ 'nav.admin' | transloco }}</a>
+      }
     </nav>
 
     <div class="actions">

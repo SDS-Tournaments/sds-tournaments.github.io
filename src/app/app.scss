@@ -161,6 +161,10 @@ main {
     }
   }
 }
+.nav a.admin-link {
+  color: var(--primary);
+}
+
 .me {
   display: flex;
   align-items: center;
