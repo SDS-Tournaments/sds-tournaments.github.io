@@ -62,10 +62,15 @@
   "me": {
     "profile": "Profile",
     "number": "Race number",
-    "numberHint": "1 to 999. The number is yours for the whole championship.",
-    "numberFree": "Number is available",
-    "numberTaken": "This number is already taken",
-    "numberInvalid": "Number must be between 1 and 999",
+    "numberHint": "1 to 999. The number is yours for the whole championship — it goes on your rear window.",
+    "numberTaken": "Someone just took this number — pick another one",
+    "car": "Car",
+    "carModel": "Car",
+    "engine": "Engine",
+    "gearbox": "Gearbox",
+    "power": "Power, hp",
+    "powerShort": "hp",
+    "about": "About me",
     "bioRu": "About me (RU)",
     "bioEn": "About me (EN, optional)",
     "save": "Save",
@@ -77,6 +82,13 @@
     "upload": "Upload livery",
     "uploading": "Uploading…",
     "guest": "Sign in with Steam to pick a race number, upload your livery and register for rounds."
+  },
+  "picker": {
+    "random": "Random",
+    "free": "free",
+    "taken": "taken",
+    "selected": "your pick",
+    "takenBy": "Taken by {{name}}"
   },
   "common": {
     "soon": "Coming soon.",

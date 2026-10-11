@@ -12,6 +12,10 @@ export interface Profile {
   role: 'admin' | 'staff' | 'pilot';
   start_number: number | null;
   livery_url: string | null;
+  car: string | null;
+  engine: string | null;
+  gearbox: string | null;
+  power_hp: number | null;
   bio_ru: string | null;
   bio_en: string | null;
 }
@@ -61,7 +65,7 @@ export class Auth {
     if (!id) return this.profile.set(null);
     const { data } = await supabase
       .from('profiles')
-      .select('id, steam_id, nickname, avatar_url, role, start_number, livery_url, bio_ru, bio_en')
+      .select('id, steam_id, nickname, avatar_url, role, start_number, livery_url, car, engine, gearbox, power_hp, bio_ru, bio_en')
       .eq('id', id)
       .single();
     this.profile.set(data);

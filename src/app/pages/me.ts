@@ -1,14 +1,15 @@
 import { Component, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { TranslocoPipe } from '@jsverse/transloco';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { Auth, supabase } from '../auth';
+import { NumberPicker } from '../components/number-picker';
 import { compressImage } from '../image';
 
 // Личный кабинет пилота (шаг 2.2). Регистрация на этап и команда — шаги 3.3–3.4.
 @Component({
   selector: 'app-me',
-  imports: [FormsModule, TranslocoPipe],
+  imports: [FormsModule, TranslocoPipe, NumberPicker],
   template: `
     <section class="section container">
       @if (!auth.ready()) {
@@ -29,26 +30,50 @@ import { compressImage } from '../image';
                 {{ me.nickname }}
               </h1>
               <p class="subtle mono steam">Steam ID {{ me.steam_id }}</p>
+              @if (me.car || me.power_hp) {
+                <dl class="spec mono">
+                  @if (me.car) { <div><dt>{{ 'me.carModel' | transloco }}</dt><dd>{{ me.car }}</dd></div> }
+                  @if (me.engine) { <div><dt>{{ 'me.engine' | transloco }}</dt><dd>{{ me.engine }}</dd></div> }
+                  @if (me.gearbox) { <div><dt>{{ 'me.gearbox' | transloco }}</dt><dd>{{ me.gearbox }}</dd></div> }
+                  @if (me.power_hp) { <div><dt>{{ 'me.powerShort' | transloco }}</dt><dd>{{ me.power_hp }}</dd></div> }
+                </dl>
+              }
             </div>
             <button class="btn btn-ghost out" (click)="logout()">{{ 'auth.logout' | transloco }}</button>
           </div>
         </header>
 
-        <div class="grid">
-          <form class="card stack" (ngSubmit)="save()">
-            <h2 class="h">{{ 'me.profile' | transloco }}</h2>
+        <form class="grid" (ngSubmit)="save()">
+          <div class="card stack wide">
+            <h2 class="h">{{ 'me.number' | transloco }}</h2>
+            <p class="muted small">{{ 'me.numberHint' | transloco }}</p>
+            <app-number-picker [(value)]="number" [taken]="taken()" [nickname]="me.nickname" />
+          </div>
 
+          <div class="card stack">
+            <h2 class="h">{{ 'me.car' | transloco }}</h2>
             <label>
-              <span class="lbl">{{ 'me.number' | transloco }}</span>
-              <input class="input mono" type="number" min="1" max="999" name="num" [(ngModel)]="number" (ngModelChange)="checkNumber()" />
-              @switch (numberState()) {
-                @case ('free') { <span class="hint ok">{{ 'me.numberFree' | transloco }}</span> }
-                @case ('taken') { <span class="hint bad">{{ 'me.numberTaken' | transloco }}</span> }
-                @case ('invalid') { <span class="hint bad">{{ 'me.numberInvalid' | transloco }}</span> }
-                @default { <span class="hint subtle">{{ 'me.numberHint' | transloco }}</span> }
-              }
+              <span class="lbl">{{ 'me.carModel' | transloco }}</span>
+              <input class="input" name="car" maxlength="60" [(ngModel)]="car" />
             </label>
+            <label>
+              <span class="lbl">{{ 'me.engine' | transloco }}</span>
+              <input class="input" name="engine" maxlength="60" [(ngModel)]="engine" />
+            </label>
+            <div class="two">
+              <label>
+                <span class="lbl">{{ 'me.gearbox' | transloco }}</span>
+                <input class="input" name="gearbox" maxlength="60" [(ngModel)]="gearbox" />
+              </label>
+              <label>
+                <span class="lbl">{{ 'me.power' | transloco }}</span>
+                <input class="input mono" type="number" name="power" min="1" max="5000" [(ngModel)]="power" />
+              </label>
+            </div>
+          </div>
 
+          <div class="card stack">
+            <h2 class="h">{{ 'me.about' | transloco }}</h2>
             <label>
               <span class="lbl">{{ 'me.bioRu' | transloco }}</span>
               <textarea class="input" name="bioRu" rows="3" maxlength="500" [(ngModel)]="bioRu"></textarea>
@@ -57,16 +82,18 @@ import { compressImage } from '../image';
               <span class="lbl">{{ 'me.bioEn' | transloco }}</span>
               <textarea class="input" name="bioEn" rows="3" maxlength="500" [(ngModel)]="bioEn"></textarea>
             </label>
+          </div>
 
-            <div class="row">
-              <button class="btn btn-primary" type="submit" [disabled]="saving() || numberState() === 'taken' || numberState() === 'invalid'">
-                {{ (saving() ? 'me.saving' : 'me.save') | transloco }}
-              </button>
-              @if (saved()) { <span class="hint ok">{{ 'me.saved' | transloco }}</span> }
-              @if (error()) { <span class="hint bad">{{ error() }}</span> }
-            </div>
-          </form>
+          <div class="savebar wide">
+            <button class="btn btn-primary" type="submit" [disabled]="saving()">
+              {{ (saving() ? 'me.saving' : 'me.save') | transloco }}
+            </button>
+            @if (saved()) { <span class="hint ok">✓ {{ 'me.saved' | transloco }}</span> }
+            @if (error()) { <span class="hint bad">{{ error() }}</span> }
+          </div>
+        </form>
 
+        <div class="grid livery-row">
           <div class="card stack">
             <h2 class="h">{{ 'me.livery' | transloco }}</h2>
             <p class="muted small">{{ 'me.liveryHint' | transloco }}</p>
@@ -125,12 +152,38 @@ import { compressImage } from '../image';
     .num { color: var(--primary); margin-right: 8px; }
     .steam { margin: 0; font-size: 12px; }
     .out { margin-left: auto; }
+    .spec {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 20px;
+      margin: 12px 0 0;
+      div { display: grid; }
+      dt { font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--ink-subtle); }
+      dd { margin: 0; font-size: 14px; color: var(--ink); }
+    }
 
     .grid {
       display: grid;
       gap: 24px;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
       align-items: start;
+    }
+    .wide { grid-column: 1 / -1; }
+    .livery-row { margin-top: 24px; }
+    .two { display: grid; grid-template-columns: 1fr 120px; gap: 12px; }
+    .savebar {
+      position: sticky;
+      bottom: 16px;
+      z-index: 5;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      border: 1px solid var(--hairline-strong);
+      border-radius: var(--r-lg);
+      background: rgba(10, 10, 10, 0.8);
+      backdrop-filter: blur(10px);
     }
     .stack { display: grid; gap: 18px; }
     .h { font-size: 20px; }
@@ -166,58 +219,72 @@ export class Me {
   protected auth = inject(Auth);
   private router = inject(Router);
 
-  protected number: number | null = null;
+  protected readonly number = signal<number | null>(null);
+  protected car = '';
+  protected engine = '';
+  protected gearbox = '';
+  protected power: number | null = null;
   protected bioRu = '';
   protected bioEn = '';
-  protected readonly numberState = signal<'idle' | 'free' | 'taken' | 'invalid'>('idle');
+  /** занятые номера: номер → ник (кроме своего) */
+  protected readonly taken = signal(new Map<number, string>());
   protected readonly saving = signal(false);
   protected readonly saved = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly uploading = signal(false);
   protected readonly uploadError = signal<string | null>(null);
-  private checkSeq = 0;
+  private readonly transloco = inject(TranslocoService);
 
   constructor() {
     // Заполнить форму, когда профиль загрузился
     effect(() => {
       const p = this.auth.profile();
       if (!p) return;
-      this.number = p.start_number;
+      this.number.set(p.start_number);
+      this.car = p.car ?? '';
+      this.engine = p.engine ?? '';
+      this.gearbox = p.gearbox ?? '';
+      this.power = p.power_hp;
       this.bioRu = p.bio_ru ?? '';
       this.bioEn = p.bio_en ?? '';
+      this.loadTaken(p.id);
     });
   }
 
-  async checkNumber() {
-    this.saved.set(false);
-    const n = this.number;
-    const me = this.auth.profile();
-    if (n === null || (n as unknown) === '') return this.numberState.set('idle');
-    if (!Number.isInteger(n) || n < 1 || n > 999) return this.numberState.set('invalid');
-    if (n === me?.start_number) return this.numberState.set('idle');
-    const seq = ++this.checkSeq;
-    const { count } = await supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('start_number', n);
-    if (seq === this.checkSeq) this.numberState.set(count ? 'taken' : 'free');
+  private async loadTaken(myId: string) {
+    const { data } = await supabase.from('profiles').select('id, start_number, nickname').not('start_number', 'is', null);
+    this.taken.set(new Map((data ?? []).filter((r) => r.id !== myId).map((r) => [r.start_number, r.nickname])));
   }
 
   async save() {
     const me = this.auth.profile();
     if (!me) return;
     this.saving.set(true);
+    this.saved.set(false);
     this.error.set(null);
-    const n = this.number === null || (this.number as unknown) === '' ? null : this.number;
+    const text = (s: string) => s.trim() || null;
     const { error } = await supabase
       .from('profiles')
-      .update({ start_number: n, bio_ru: this.bioRu.trim() || null, bio_en: this.bioEn.trim() || null })
+      .update({
+        start_number: this.number(),
+        car: text(this.car),
+        engine: text(this.engine),
+        gearbox: text(this.gearbox),
+        power_hp: this.power || null,
+        bio_ru: text(this.bioRu),
+        bio_en: text(this.bioEn),
+      })
       .eq('id', me.id);
     this.saving.set(false);
     if (error) {
-      // 23505 — номер успели занять между проверкой и сохранением
-      if (error.code === '23505') this.numberState.set('taken');
-      return this.error.set(error.code === '23505' ? '' : error.message);
+      // 23505 — номер успели занять, пока пилот выбирал
+      if (error.code === '23505') {
+        this.loadTaken(me.id);
+        return this.error.set(this.transloco.translate('me.numberTaken'));
+      }
+      return this.error.set(error.message);
     }
     await this.auth.reload();
-    this.numberState.set('idle');
     this.saved.set(true);
   }
 

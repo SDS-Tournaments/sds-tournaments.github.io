@@ -1,11 +1,15 @@
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
+import { NumberPicker } from '../components/number-picker';
 
 // Витрина базовых стилей для проверки дизайна (/dev/ui), не в меню
 @Component({
   selector: 'app-ui-showcase',
+  imports: [NumberPicker],
   template: `
     <section class="section container stack">
       <h1 class="display-lg">UI kit</h1>
+
+      <div class="card"><app-number-picker [(value)]="num" [taken]="taken" nickname="Sadlerk" /></div>
 
       <div class="row">
         <button class="btn btn-primary">Зарегистрироваться</button>
@@ -52,4 +56,7 @@ import { Component } from '@angular/core';
     h3 { margin: 8px 0; font-size: 20px; }
   `,
 })
-export class UiShowcase {}
+export class UiShowcase {
+  protected readonly num = signal<number | null>(77);
+  protected readonly taken = new Map([7, 13, 21, 69, 88, 99, 101].map((n) => [n, `Pilot ${n}`] as [number, string]));
+}
