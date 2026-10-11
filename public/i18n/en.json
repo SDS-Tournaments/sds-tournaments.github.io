@@ -131,6 +131,25 @@
     "dupTeam": "This name is taken or you already captain another team",
     "dupMember": "This driver is already in a team or has a pending request this season"
   },
+  "teams": {
+    "members": "Drivers on roster: {{n}}",
+    "none": "No teams yet — drivers create them in their account.",
+    "roster": "Season roster",
+    "noRoster": "This team isn't entered for the current season yet.",
+    "byStage": "Points by round",
+    "notFound": "Team not found."
+  },
+  "archive": {
+    "stages": "Rounds: {{n}}",
+    "champion": "Champion",
+    "teamChampion": "Team champion",
+    "empty": "No finished seasons yet. Every season's champions will appear here."
+  },
+  "rules": {
+    "version": "version {{v}}",
+    "toc": "Contents",
+    "empty": "The rulebook will be published soon."
+  },
   "pilots": {
     "search": "Nickname or number…",
     "none": "Nobody found."

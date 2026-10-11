@@ -1,7 +1,6 @@
 import { Routes } from '@angular/router';
 import { staffGuard } from './auth';
 import { Home } from './pages/home';
-import { Placeholder } from './pages/placeholder';
 
 export const routes: Routes = [
   { path: '', component: Home },
@@ -10,9 +9,10 @@ export const routes: Routes = [
   { path: 'stages/:id', loadComponent: () => import('./pages/stage').then((m) => m.StagePage) },
   { path: 'pilots', loadComponent: () => import('./pages/pilots').then((m) => m.Pilots) },
   { path: 'pilots/:steamId', loadComponent: () => import('./pages/pilot').then((m) => m.PilotPage) },
-  { path: 'teams', component: Placeholder, data: { key: 'nav.teams' } },
-  { path: 'archive', component: Placeholder, data: { key: 'nav.archive' } },
-  { path: 'rules', component: Placeholder, data: { key: 'nav.rules' } },
+  { path: 'teams', loadComponent: () => import('./pages/teams').then((m) => m.Teams) },
+  { path: 'teams/:id', loadComponent: () => import('./pages/team').then((m) => m.TeamPage) },
+  { path: 'archive', loadComponent: () => import('./pages/archive').then((m) => m.Archive) },
+  { path: 'rules', loadComponent: () => import('./pages/rules').then((m) => m.Rules) },
   { path: 'me', loadComponent: () => import('./pages/me').then((m) => m.Me) },
   { path: 'auth/callback', loadComponent: () => import('./pages/auth-callback').then((m) => m.AuthCallback) },
   {
@@ -26,6 +26,7 @@ export const routes: Routes = [
       { path: 'stages/:id', loadComponent: () => import('./admin/stage').then((m) => m.AdminStage) },
       { path: 'teams', loadComponent: () => import('./admin/teams').then((m) => m.AdminTeams) },
       { path: 'protests', loadComponent: () => import('./admin/protests').then((m) => m.AdminProtests) },
+      { path: 'settings', loadComponent: () => import('./admin/settings').then((m) => m.AdminSettings) },
     ],
   },
   // Пульты — на всю ширину, без бокового меню админки

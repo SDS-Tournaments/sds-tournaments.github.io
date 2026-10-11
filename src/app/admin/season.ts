@@ -2,6 +2,7 @@ import { Component, inject, input, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { supabase } from '../auth';
+import { loadStandings } from '../data/standings';
 import { PointsTable } from '../scoring/scoring';
 import { SEASON_STATUS, STAGE_STATUS } from './labels';
 
@@ -81,6 +82,9 @@ const BATTLE_KEYS = [
         <div class="row">
           <button class="btn btn-primary" type="submit" [disabled]="busy()">Сохранить</button>
           @if (msg()) { <span [class]="msgOk() ? 'ok' : 'bad'">{{ msg() }}</span> }
+          @if (s.status === 'active') {
+            <button type="button" class="btn btn-secondary finish" (click)="finishSeason()" [disabled]="busy()">🏁 Завершить сезон</button>
+          }
         </div>
       </form>
 
@@ -122,6 +126,7 @@ const BATTLE_KEYS = [
     .points h3 { font-size: 14px; margin: 20px 0 10px; color: var(--ink-muted); font-weight: 500; }
     .pgrid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); }
     .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .finish { margin-left: auto; }
     .flush { padding: 0; overflow: hidden; }
     .link { cursor: pointer; }
     .badge.off { background: var(--surface-3); color: var(--ink-muted); }
@@ -165,6 +170,27 @@ export class AdminSeason implements OnInit {
     if (error) return this.note(error.code === '23505' ? 'Уже есть активный сезон — сначала завершите его.' : error.message, false);
     this.s.set({ ...s });
     this.note('Сохранено', true);
+  }
+
+  /** §5.6 Итоговый зачёт → чемпионы, статус «Завершён», сезон уходит в архив */
+  async finishSeason() {
+    const s = this.s();
+    if (!s) return;
+    const open = this.stages().filter((x) => x.status !== 'finished' && x.status !== 'draft');
+    if (open.length && !confirm(`Не завершены этапы: ${open.map((x) => x.title_ru).join(', ')}. Всё равно завершить сезон?`)) return;
+    this.busy.set(true);
+    const st = await loadStandings(s.id, s.team_counted);
+    const pilot = st.pilots[0];
+    const team = st.teams[0];
+    if (!confirm(`Завершить «${s.title}»?\nЧемпион: ${pilot?.nickname ?? '—'}\nКоманда-чемпион: ${team?.name ?? '—'}`)) return this.busy.set(false);
+    const { error } = await supabase
+      .from('seasons')
+      .update({ status: 'finished', champion_pilot_id: pilot?.id ?? null, champion_team_id: team ? Number(team.id) : null })
+      .eq('id', s.id);
+    this.busy.set(false);
+    if (error) return this.note(error.message, false);
+    this.s.set({ ...s, status: 'finished' });
+    this.note('Сезон завершён и отправлен в архив', true);
   }
 
   async addStage() {

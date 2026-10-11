@@ -1,5 +1,6 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { Loader } from '../components/loader';
 import { loadStandings, PilotStanding, publicSeasons, Season, StageCol, TeamStanding } from '../data/standings';
@@ -127,11 +128,14 @@ export class Standings implements OnInit {
   protected readonly loading = signal(true);
   /** первая загрузка — страница целиком скрыта до готовности данных */
   protected readonly ready = signal(false);
+  private readonly route = inject(ActivatedRoute);
 
   async ngOnInit() {
     const list = await publicSeasons();
     this.seasons.set(list);
-    const cur = list.find((s) => s.status === 'active') ?? list[0];
+    // ?season=ID — ссылка из архива
+    const asked = Number(this.route.snapshot.queryParamMap.get('season'));
+    const cur = list.find((s) => s.id === asked) ?? list.find((s) => s.status === 'active') ?? list[0];
     if (cur) await this.pick(cur.id);
     this.loading.set(false);
     this.ready.set(true);
