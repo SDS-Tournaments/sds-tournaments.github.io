@@ -4,7 +4,6 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const STEAM = 'https://steamcommunity.com/openid/login';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
-const SELF = `${SUPABASE_URL}/functions/v1/steam-auth`;
 const ALLOWED = (Deno.env.get('SITE_URLS') ?? '').split(',').map((s) => s.trim()).filter(Boolean);
 
 const db = createClient(SUPABASE_URL, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, {
@@ -18,6 +17,10 @@ Deno.serve(async (req) => {
   if (!ALLOWED.some((origin) => redirect.startsWith(origin + '/'))) {
     return new Response('Bad redirect', { status: 400 });
   }
+  // Steam возвращает пилота на сайт (/auth/steam), а сайт пересылает ответ сюда:
+  // так на странице входа Steam показан адрес сайта, а не supabase.co
+  const site = new URL(redirect).origin;
+  const back = `${site}/auth/steam`;
   const fail = (why: string) => Response.redirect(`${redirect}#error=${encodeURIComponent(why)}`, 302);
 
   // Шаг 1: отправляем на страницу входа Steam
@@ -25,8 +28,8 @@ Deno.serve(async (req) => {
     const p = new URLSearchParams({
       'openid.ns': 'http://specs.openid.net/auth/2.0',
       'openid.mode': 'checkid_setup',
-      'openid.return_to': `${SELF}?redirect=${encodeURIComponent(redirect)}`,
-      'openid.realm': new URL(SUPABASE_URL).origin,
+      'openid.return_to': `${back}?redirect=${encodeURIComponent(redirect)}`,
+      'openid.realm': site,
       'openid.identity': 'http://specs.openid.net/auth/2.0/identifier_select',
       'openid.claimed_id': 'http://specs.openid.net/auth/2.0/identifier_select',
     });
@@ -34,7 +37,8 @@ Deno.serve(async (req) => {
   }
 
   // Шаг 2: Steam вернул пользователя — проверяем ответ у самого Steam
-  if (!url.searchParams.get('openid.return_to')?.startsWith(SELF)) return fail('return_to');
+  // return_to подписан Steam — он должен совпасть с тем, куда пилот реально вернулся
+  if (url.searchParams.get('openid.return_to') !== `${back}?redirect=${encodeURIComponent(redirect)}`) return fail('return_to');
   const check = new URLSearchParams();
   for (const [k, v] of url.searchParams) if (k.startsWith('openid.')) check.set(k, v);
   check.set('openid.mode', 'check_authentication');

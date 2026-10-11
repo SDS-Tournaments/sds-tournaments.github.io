@@ -15,6 +15,7 @@ export const routes: Routes = [
   { path: 'rules', loadComponent: () => import('./pages/rules').then((m) => m.Rules) },
   { path: 'me', loadComponent: () => import('./pages/me').then((m) => m.Me) },
   { path: 'auth/callback', loadComponent: () => import('./pages/auth-callback').then((m) => m.AuthCallback) },
+  { path: 'auth/steam', loadComponent: () => import('./pages/auth-callback').then((m) => m.SteamReturn) },
   {
     path: 'admin',
     canActivate: [staffGuard],
