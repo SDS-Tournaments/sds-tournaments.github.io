@@ -15,6 +15,72 @@ main {
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--hairline);
 }
+/* Во время этапа нижняя граница шапки — бегущая неоновая линия */
+:host-context(html.live) .header {
+  border-bottom-color: transparent;
+}
+:host-context(html.live) .header::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 -1px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--primary), #ff5c5c, var(--primary), transparent) 0 0 / 200% 100%;
+  animation: line-run 3s linear infinite;
+  box-shadow: 0 0 12px var(--primary-glow);
+}
+:host-context(html.pulse) .header::after {
+  height: 3px;
+  box-shadow: 0 0 24px var(--primary), 0 0 48px rgba(255, 92, 92, 0.5);
+}
+@keyframes line-run {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.livebar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 8px var(--gutter);
+  background: linear-gradient(90deg, rgba(255, 92, 92, 0.08), rgba(10, 186, 181, 0.1), rgba(255, 92, 92, 0.08));
+  border-top: 1px solid rgba(255, 92, 92, 0.2);
+  color: var(--ink);
+  font-size: 14px;
+  background-size: 100% 100%;
+  animation: rise 500ms var(--ease-out) both;
+  b {
+    color: var(--error);
+    letter-spacing: 2px;
+  }
+  .go {
+    color: var(--primary);
+  }
+  &:hover {
+    color: var(--ink);
+    background-color: rgba(10, 186, 181, 0.08);
+  }
+}
+.ldot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--error);
+  box-shadow: 0 0 0 0 rgba(255, 92, 92, 0.6);
+  animation: ldot 1.4s ease-out infinite;
+}
+@keyframes ldot {
+  to {
+    box-shadow: 0 0 0 10px transparent;
+  }
+}
+@media (max-width: 560px) {
+  .livebar .go {
+    display: none;
+  }
+}
+
 .bar {
   display: flex;
   align-items: center;

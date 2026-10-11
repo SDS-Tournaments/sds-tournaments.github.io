@@ -63,7 +63,6 @@
 html,
 body {
   margin: 0;
-  background: var(--canvas);
   color: var(--ink);
   font-family: var(--font);
   font-size: 16px;
@@ -71,9 +70,118 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* холст — на <html>; body прозрачный, чтобы фон .backdrop был виден под контентом */
+html {
+  background: var(--canvas);
+}
+
 img {
   max-width: 100%;
   display: block;
+}
+
+/* ───────── Фон всех страниц ───────── */
+.backdrop {
+  --g1: rgba(10, 186, 181, 0.2);
+  --g2: rgba(220, 245, 244, 0.07);
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  i {
+    position: absolute;
+    display: block;
+  }
+  .glow {
+    border-radius: 50%;
+    filter: blur(80px);
+    transition: background 1.2s ease;
+  }
+  .glow.a {
+    width: 70vw;
+    height: 70vw;
+    right: -25vw;
+    top: -30vw;
+    background: radial-gradient(circle, var(--g1), transparent 65%);
+    animation: bd-float 26s var(--ease-in-out) infinite alternate;
+  }
+  .glow.b {
+    width: 55vw;
+    height: 55vw;
+    left: -22vw;
+    bottom: -28vw;
+    background: radial-gradient(circle, var(--g2), transparent 65%);
+    animation: bd-float 34s var(--ease-in-out) infinite alternate-reverse;
+  }
+  /* сетка-телеметрия, растворяется к краям */
+  .grid {
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.028) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.028) 1px, transparent 1px);
+    background-size: 72px 72px;
+    mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, #000 20%, transparent 75%);
+  }
+  .grain {
+    inset: 0;
+    opacity: 0.05;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  /* вспышка события эфира — снизу вверх */
+  .flash {
+    left: 50%;
+    bottom: -40vh;
+    width: 120vw;
+    height: 80vh;
+    translate: -50% 0;
+    border-radius: 50%;
+    background: radial-gradient(ellipse, rgba(10, 186, 181, 0.35), rgba(255, 92, 92, 0.12) 40%, transparent 70%);
+    filter: blur(40px);
+    opacity: 0;
+  }
+}
+@keyframes bd-float {
+  to {
+    transform: translate(-6vw, 5vw) scale(1.12);
+  }
+}
+
+/* ───────── Этап идёт: сайт «разгорается» ───────── */
+html.live .backdrop {
+  --g1: rgba(10, 186, 181, 0.3);
+  --g2: rgba(255, 92, 92, 0.16);
+  .glow.a {
+    animation:
+      bd-float 26s var(--ease-in-out) infinite alternate,
+      bd-pulse 3s ease-in-out infinite;
+  }
+  .glow.b {
+    animation:
+      bd-float 34s var(--ease-in-out) infinite alternate-reverse,
+      bd-pulse 3s ease-in-out 1.5s infinite;
+  }
+}
+@keyframes bd-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+html.pulse .backdrop .flash {
+  animation: bd-flash 1.6s var(--ease-out);
+}
+@keyframes bd-flash {
+  0% {
+    opacity: 0;
+    transform: translateY(20%) scale(0.8);
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-10%) scale(1.15);
+  }
 }
 
 a {

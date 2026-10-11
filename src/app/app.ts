@@ -5,6 +5,7 @@ import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { Auth, supabase } from './auth';
 import { ProtestBell } from './components/protest-bell';
 import { Lang, saveLang } from './i18n';
+import { Live } from './live';
 
 @Component({
   imports: [RouterOutlet, RouterLink, RouterLinkActive, TranslocoPipe, ProtestBell],
@@ -15,6 +16,7 @@ import { Lang, saveLang } from './i18n';
 export class App {
   private transloco = inject(TranslocoService);
   protected readonly auth = inject(Auth);
+  protected readonly live = inject(Live);
   protected readonly lang = toSignal(this.transloco.langChanges$, { initialValue: this.transloco.getActiveLang() });
   protected readonly menuOpen = signal(false);
   protected readonly nav = ['standings', 'stages', 'pilots', 'teams', 'rules'];
@@ -27,6 +29,7 @@ export class App {
 
   constructor() {
     this.transloco.langChanges$.subscribe((l) => (document.documentElement.lang = l));
+    if (!this.bare) this.live.start();
     if (!this.bare)
       supabase
         .from('sponsors')

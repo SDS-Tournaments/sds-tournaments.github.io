@@ -1,4 +1,8 @@
 @if (!bare) {
+<!-- Фон всех страниц: неоновые свечения, сетка-телеметрия, зерно; во время этапа — разгорается -->
+<div class="backdrop" aria-hidden="true">
+  <i class="glow a"></i><i class="glow b"></i><i class="grid"></i><i class="grain"></i><i class="flash"></i>
+</div>
 <header class="header">
   <div class="container bar">
     <a routerLink="/" class="logo" (click)="menuOpen.set(false)">
@@ -39,6 +43,14 @@
       </button>
     </div>
   </div>
+  @if (live.stage(); as ls) {
+    <a class="livebar" [routerLink]="['/stages', ls.id]">
+      <span class="ldot"></span>
+      <b>LIVE</b>
+      <span>{{ lang() === 'en' && ls.title_en ? ls.title_en : ls.title_ru }} · {{ 'home.next.' + ls.status | transloco }}</span>
+      <span class="go">{{ 'home.next.watch' | transloco }} →</span>
+    </a>
+  }
 </header>
 }
 
