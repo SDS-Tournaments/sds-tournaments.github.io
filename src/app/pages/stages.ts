@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { supabase } from '../auth';
-import { Skeleton } from '../components/skeleton';
+import { Loader } from '../components/loader';
 import { publicSeasons, Season } from '../data/standings';
 
 interface StageRow {
@@ -20,13 +20,16 @@ interface StageRow {
 // Этапы сезона: карточки со статусом и победителем
 @Component({
   selector: 'app-stages',
-  imports: [FormsModule, RouterLink, TranslocoPipe, DatePipe, Skeleton],
+  imports: [FormsModule, RouterLink, TranslocoPipe, DatePipe, Loader],
   template: `
-    <section class="section container">
+    @if (!ready()) {
+      <app-loader />
+    } @else {
+    <section class="section container page-in">
       <header class="top">
         <div>
-          <p class="eyebrow rise">{{ season()?.title }}</p>
-          <h1 class="display-lg rise" style="--i: 1">{{ 'nav.stages' | transloco }}</h1>
+          <p class="eyebrow">{{ season()?.title }}</p>
+          <h1 class="display-lg">{{ 'nav.stages' | transloco }}</h1>
         </div>
         @if (seasons().length > 1) {
           <select class="input season" [ngModel]="season()?.id" (ngModelChange)="pick($event)">
@@ -36,11 +39,11 @@ interface StageRow {
       </header>
 
       @if (loading()) {
-        <app-skeleton variant="cards" [count]="4" />
+        <app-loader [inline]="true" />
       } @else {
-      <div class="grid">
-        @for (s of stages(); track s.id; let i = $index) {
-          <a class="card card-hover stage rise" [class]="s.status" [routerLink]="['/stages', s.id]" [style.--i]="i">
+      <div class="grid page-in">
+        @for (s of stages(); track s.id) {
+          <a class="card card-hover stage" [class]="s.status" [routerLink]="['/stages', s.id]">
             <span class="num mono">{{ s.ord < 10 ? '0' + s.ord : s.ord }}</span>
             <span class="badge" [class]="'st-' + s.status">
               @if (s.status === 'qualifying' || s.status === 'battles') { ● }
@@ -57,6 +60,7 @@ interface StageRow {
       </div>
       }
     </section>
+    }
   `,
   styles: `
     .top { display: flex; flex-wrap: wrap; gap: 16px; align-items: end; justify-content: space-between; margin-bottom: 32px; }
@@ -82,6 +86,8 @@ export class Stages implements OnInit {
   protected readonly stages = signal<StageRow[]>([]);
   protected readonly winners = signal<Record<number, string>>({});
   protected readonly loading = signal(true);
+  /** первая загрузка — страница целиком скрыта до готовности данных */
+  protected readonly ready = signal(false);
   private readonly lang = signal(inject(TranslocoService).getActiveLang());
   protected readonly title = (s: StageRow) => (this.lang() === 'en' && s.title_en ? s.title_en : s.title_ru);
 
@@ -94,7 +100,8 @@ export class Stages implements OnInit {
     this.seasons.set(list);
     const cur = list.find((s) => s.status === 'active') ?? list[0];
     if (cur) await this.pick(cur.id);
-    else this.loading.set(false);
+    this.loading.set(false);
+    this.ready.set(true);
   }
 
   async pick(id: number) {

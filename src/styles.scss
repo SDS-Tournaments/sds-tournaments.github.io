@@ -341,6 +341,17 @@ h3 {
   animation: rise var(--reveal) var(--ease-out) both;
   animation-delay: calc(var(--i, 0) * 80ms);
 }
+/* Плавное появление страницы после загрузки данных */
+.page-in {
+  animation: page-in 350ms var(--ease-out) both;
+}
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
 .reveal {
   opacity: 0;
   transform: translateY(16px);

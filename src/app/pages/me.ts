@@ -7,18 +7,18 @@ import { CARS, ENGINES, GEARBOXES } from '../catalog';
 import { NumberPicker } from '../components/number-picker';
 import { MyProtests } from '../components/my-protests';
 import { MyTeam } from '../components/my-team';
-import { Skeleton } from '../components/skeleton';
+import { Loader } from '../components/loader';
 import { StageSignup } from '../components/stage-signup';
 import { compressImage } from '../image';
 
 // Личный кабинет пилота (шаг 2.2). Регистрация на этап и команда — шаги 3.3–3.4.
 @Component({
   selector: 'app-me',
-  imports: [FormsModule, TranslocoPipe, NumberPicker, StageSignup, MyTeam, MyProtests, Skeleton],
+  imports: [FormsModule, TranslocoPipe, NumberPicker, StageSignup, MyTeam, MyProtests, Loader],
   template: `
     <section class="section container">
       @if (!auth.ready()) {
-        <app-skeleton variant="block" [count]="1" />
+        <app-loader />
       } @else if (auth.profile(); as me) {
         <header class="head">
           <div class="cover" [style.background-image]="me.livery_url ? 'url(' + me.livery_url + ')' : null"></div>

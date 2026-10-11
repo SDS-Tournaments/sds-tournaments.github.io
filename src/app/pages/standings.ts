@@ -1,19 +1,22 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { TranslocoPipe } from '@jsverse/transloco';
-import { Skeleton } from '../components/skeleton';
+import { Loader } from '../components/loader';
 import { loadStandings, PilotStanding, publicSeasons, Season, StageCol, TeamStanding } from '../data/standings';
 
 // Зачёт сезона: личный (с очками по этапам) и командный
 @Component({
   selector: 'app-standings',
-  imports: [FormsModule, TranslocoPipe, Skeleton],
+  imports: [FormsModule, TranslocoPipe, Loader],
   template: `
-    <section class="section container">
+    @if (!ready()) {
+      <app-loader />
+    } @else {
+    <section class="section container page-in">
       <header class="top">
         <div>
-          <p class="eyebrow rise">{{ season()?.title }}</p>
-          <h1 class="display-lg rise" style="--i: 1">{{ 'nav.standings' | transloco }}</h1>
+          <p class="eyebrow">{{ season()?.title }}</p>
+          <h1 class="display-lg">{{ 'nav.standings' | transloco }}</h1>
         </div>
         @if (seasons().length > 1) {
           <select class="input season" [ngModel]="season()?.id" (ngModelChange)="pick($event)">
@@ -22,17 +25,17 @@ import { loadStandings, PilotStanding, publicSeasons, Season, StageCol, TeamStan
         }
       </header>
 
-      <div class="tabs rise" style="--i: 2" role="tablist">
+      <div class="tabs" role="tablist">
         <button role="tab" [class.on]="tab() === 'pilots'" [attr.aria-selected]="tab() === 'pilots'" (click)="tab.set('pilots')">{{ 'home.pilots' | transloco }}</button>
         <button role="tab" [class.on]="tab() === 'teams'" [attr.aria-selected]="tab() === 'teams'" (click)="tab.set('teams')">{{ 'home.teams' | transloco }}</button>
       </div>
 
       @if (loading()) {
-        <app-skeleton variant="rows" [count]="8" />
+        <app-loader [inline]="true" />
       } @else if (!pilots().length) {
         <p class="subtle empty">{{ 'standings.empty' | transloco }}</p>
       } @else if (tab() === 'pilots') {
-        <div class="table-wrap card flush rise" style="--i: 3">
+        <div class="table-wrap card flush page-in">
           <table class="table">
             <thead>
               <tr>
@@ -62,7 +65,7 @@ import { loadStandings, PilotStanding, publicSeasons, Season, StageCol, TeamStan
           </table>
         </div>
       } @else {
-        <div class="table-wrap card flush rise" style="--i: 3">
+        <div class="table-wrap card flush page-in">
           <table class="table">
             <thead><tr><th>#</th><th>{{ 'standings.team' | transloco }}</th><th class="num">{{ 'home.points' | transloco }}</th></tr></thead>
             <tbody>
@@ -86,6 +89,7 @@ import { loadStandings, PilotStanding, publicSeasons, Season, StageCol, TeamStan
       }
       <p class="note subtle">{{ 'standings.note' | transloco }}</p>
     </section>
+    }
   `,
   styles: `
     .top { display: flex; flex-wrap: wrap; gap: 16px; align-items: end; justify-content: space-between; margin-bottom: 32px; }
@@ -121,13 +125,16 @@ export class Standings implements OnInit {
   protected readonly teams = signal<TeamStanding[]>([]);
   protected readonly stages = signal<StageCol[]>([]);
   protected readonly loading = signal(true);
+  /** первая загрузка — страница целиком скрыта до готовности данных */
+  protected readonly ready = signal(false);
 
   async ngOnInit() {
     const list = await publicSeasons();
     this.seasons.set(list);
     const cur = list.find((s) => s.status === 'active') ?? list[0];
     if (cur) await this.pick(cur.id);
-    else this.loading.set(false);
+    this.loading.set(false);
+    this.ready.set(true);
   }
 
   async pick(id: number) {

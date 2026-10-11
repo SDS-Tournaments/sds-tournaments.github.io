@@ -2,7 +2,7 @@ import { DatePipe } from '@angular/common';
 import { Component, inject, input, OnInit, signal } from '@angular/core';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { supabase } from '../auth';
-import { Skeleton } from './skeleton';
+import { Loader } from './loader';
 
 interface OpenStage {
   id: number;
@@ -16,7 +16,7 @@ interface OpenStage {
 // Регистрация пилота на этапы с открытой регистрацией
 @Component({
   selector: 'app-stage-signup',
-  imports: [TranslocoPipe, DatePipe, Skeleton],
+  imports: [TranslocoPipe, DatePipe, Loader],
   template: `
     <h2 class="h">{{ 'signup.title' | transloco }}</h2>
     @for (s of stages(); track s.id) {
@@ -38,7 +38,7 @@ interface OpenStage {
         }
       </article>
     } @empty {
-      @if (loading()) { <app-skeleton variant="rows" [count]="1" /> } @else { <p class="subtle">{{ 'signup.none' | transloco }}</p> }
+      @if (loading()) { <app-loader [inline]="true" /> } @else { <p class="subtle">{{ 'signup.none' | transloco }}</p> }
     }
     @if (!hasNumber() && stages().length) { <p class="hint">{{ 'signup.needNumber' | transloco }}</p> }
     @if (error()) { <p class="bad">{{ error() }}</p> }

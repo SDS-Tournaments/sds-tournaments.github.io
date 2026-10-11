@@ -6,7 +6,7 @@ import { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '../auth';
 import { BracketTree, TreeBattle, TreePilot } from '../components/bracket-tree';
 import { LiveStage } from '../components/live-stage';
-import { Skeleton } from '../components/skeleton';
+import { Loader } from '../components/loader';
 import { qualStandings, Round } from '../scoring/scoring';
 
 interface Stage {
@@ -41,19 +41,19 @@ type Tab = 'results' | 'bracket' | 'qual';
 // Страница этапа для зрителей: итоги, живая сетка, квалификация
 @Component({
   selector: 'app-stage',
-  imports: [RouterLink, TranslocoPipe, DatePipe, BracketTree, LiveStage, Skeleton],
+  imports: [RouterLink, TranslocoPipe, DatePipe, BracketTree, LiveStage, Loader],
   template: `
     @if (stage(); as s) {
-      <section class="section container">
+      <section class="section container page-in">
         <a routerLink="/stages" class="back">← {{ 'nav.stages' | transloco }}</a>
-        <p class="eyebrow rise">{{ s.season?.title }} · {{ 'road.stage' | transloco: { n: s.ord } }}</p>
-        <h1 class="display-lg rise" style="--i: 1">{{ lang() === 'en' && s.title_en ? s.title_en : s.title_ru }}</h1>
-        <p class="meta rise" style="--i: 2">
+        <p class="eyebrow">{{ s.season?.title }} · {{ 'road.stage' | transloco: { n: s.ord } }}</p>
+        <h1 class="display-lg">{{ lang() === 'en' && s.title_en ? s.title_en : s.title_ru }}</h1>
+        <p class="meta">
           <span class="badge" [class]="'st-' + s.status">{{ 'stage.status.' + s.status | transloco }}</span>
           @if (s.track) { <span>{{ s.track }}</span> }
           @if (s.starts_at) { <span class="mono">{{ s.starts_at | date: 'dd.MM.yyyy · HH:mm' }}</span> }
         </p>
-        @if (description(); as d) { <p class="desc muted rise" style="--i: 3">{{ d }}</p> }
+        @if (description(); as d) { <p class="desc muted">{{ d }}</p> }
 
         @if (live()) {
           <div class="live-wrap"><app-live-stage [stageId]="s.id" [status]="s.status" [channel]="s.twitch_channel || twitch()" /></div>
@@ -121,7 +121,7 @@ type Tab = 'results' | 'bracket' | 'qual';
     } @else if (missing()) {
       <section class="section container"><p class="subtle">{{ 'stage.notFound' | transloco }}</p></section>
     } @else {
-      <section class="section container"><app-skeleton variant="block" [count]="1" /></section>
+      <app-loader />
     }
   `,
   styles: `
