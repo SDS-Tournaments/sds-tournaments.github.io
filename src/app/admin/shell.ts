@@ -10,6 +10,7 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
       <nav class="side" aria-label="Админка">
         <p class="eyebrow">Админка</p>
         <a routerLink="/admin/seasons" routerLinkActive="active">Сезоны и этапы</a>
+        <a routerLink="/admin/teams" routerLinkActive="active">Команды</a>
       </nav>
       <div class="body"><router-outlet /></div>
     </div>

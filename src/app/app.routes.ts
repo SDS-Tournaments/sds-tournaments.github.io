@@ -22,6 +22,7 @@ export const routes: Routes = [
       { path: 'seasons', loadComponent: () => import('./admin/seasons').then((m) => m.AdminSeasons) },
       { path: 'seasons/:id', loadComponent: () => import('./admin/season').then((m) => m.AdminSeason) },
       { path: 'stages/:id', loadComponent: () => import('./admin/stage').then((m) => m.AdminStage) },
+      { path: 'teams', loadComponent: () => import('./admin/teams').then((m) => m.AdminTeams) },
     ],
   },
   { path: 'dev/ui', loadComponent: () => import('./pages/ui-showcase').then((m) => m.UiShowcase) },
