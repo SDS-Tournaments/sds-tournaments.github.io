@@ -4,6 +4,7 @@ import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { supabase } from '../auth';
 import { LiveStage } from '../components/live-stage';
 import { NextStage } from '../components/next-stage';
+import { RoadStage, SeasonRoad } from '../components/season-road';
 import { currentSeason, loadStandings, PilotStanding, TeamStanding } from '../data/standings';
 import { Reveal } from '../reveal';
 
@@ -14,7 +15,7 @@ const smoke = (seed: number, w: number, h: number) =>
 // Главная: ближайший/идущий этап, LIVE с Twitch, лидеры сезона, спонсоры
 @Component({
   selector: 'app-home',
-  imports: [RouterLink, TranslocoPipe, Reveal, NextStage, LiveStage],
+  imports: [RouterLink, TranslocoPipe, Reveal, NextStage, LiveStage, SeasonRoad],
   template: `
     <section class="hero">
       <div class="glow" aria-hidden="true"><i></i><i></i></div>
@@ -55,6 +56,16 @@ const smoke = (seed: number, w: number, h: number) =>
         <p class="eyebrow" reveal>LIVE</p>
         <h2 class="display-lg" reveal>{{ stageTitle(l) }}</h2>
         <app-live-stage [stageId]="l.id" [status]="l.status" [channel]="l.twitch_channel || twitch()" />
+      </section>
+    }
+
+    @if (road().length) {
+      <section class="section road-sec">
+        <div class="container">
+          <p class="eyebrow" reveal>{{ seasonTitle() }}</p>
+          <h2 class="display-lg" reveal>{{ 'road.title' | transloco }}</h2>
+        </div>
+        <app-season-road [stages]="road()" />
       </section>
     }
 
@@ -309,6 +320,8 @@ const smoke = (seed: number, w: number, h: number) =>
       h3 { font-size: 20px; margin: 16px 0 8px; }
       p { margin: 0; }
     }
+    .road-sec { padding-bottom: 32px; }
+    .road-sec h2 { margin: 12px 0 24px; }
     .live { padding-bottom: 0; }
     .live h2 { margin: 12px 0 32px; }
 
@@ -365,6 +378,10 @@ export class Home implements OnInit {
   protected readonly sponsors = signal<Sponsor[]>([]);
   protected readonly general = computed(() => this.sponsors().find((s) => s.tier === 'general') ?? null);
   private readonly lang = signal(inject(TranslocoService).getActiveLang());
+  private readonly rawRoad = signal<(Omit<RoadStage, 'title'> & { title_ru: string; title_en: string | null })[]>([]);
+  protected readonly road = computed<RoadStage[]>(() =>
+    this.rawRoad().map((s) => ({ ...s, title: this.lang() === 'en' && s.title_en ? s.title_en : s.title_ru })),
+  );
 
   constructor() {
     inject(TranslocoService).langChanges$.subscribe((l) => this.lang.set(l));
@@ -388,6 +405,7 @@ export class Home implements OnInit {
     }
     if (season) {
       this.seasonTitle.set(season.title);
+      this.loadRoad(season.id);
       const st = await loadStandings(season.id, season.team_counted);
       this.pilots.set(st.pilots.slice(0, 5));
       this.teams.set(st.teams.slice(0, 3));
@@ -397,6 +415,20 @@ export class Home implements OnInit {
   protected stageTitle(s: StageCard) {
     const t = this.lang() === 'en' && s.title_en ? s.title_en : s.title_ru;
     return s.track ? `${t} · ${s.track}` : t;
+  }
+
+  private async loadRoad(seasonId: number) {
+    const { data: stages } = await supabase
+      .from('stages')
+      .select('id, ord, title_ru, title_en, track, starts_at, status')
+      .eq('season_id', seasonId)
+      .order('ord');
+    const ids = (stages ?? []).map((s) => s.id);
+    const { data: wins } = ids.length
+      ? await supabase.from('stage_results').select('stage_id, pilot:profiles(nickname)').in('stage_id', ids).eq('stage_place', 1)
+      : { data: [] };
+    const winner = new Map(((wins ?? []) as unknown as { stage_id: number; pilot: { nickname: string } | null }[]).map((w) => [w.stage_id, w.pilot?.nickname ?? null]));
+    this.rawRoad.set((stages ?? []).map((s) => ({ ...s, winner: winner.get(s.id) ?? null })));
   }
 
   protected initials(name: string) {

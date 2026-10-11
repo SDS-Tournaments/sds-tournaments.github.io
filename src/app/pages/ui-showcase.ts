@@ -1,15 +1,17 @@
 import { Component, signal } from '@angular/core';
 import { NumberPicker } from '../components/number-picker';
+import { RoadStage, SeasonRoad } from '../components/season-road';
 
 // Витрина базовых стилей для проверки дизайна (/dev/ui), не в меню
 @Component({
   selector: 'app-ui-showcase',
-  imports: [NumberPicker],
+  imports: [NumberPicker, SeasonRoad],
   template: `
     <section class="section container stack">
       <h1 class="display-lg">UI kit</h1>
 
       <div class="card"><app-number-picker [(value)]="num" [taken]="taken" nickname="Sadlerk" /></div>
+      <app-season-road [stages]="road" />
 
       <div class="row">
         <button class="btn btn-primary">Зарегистрироваться</button>
@@ -59,5 +61,14 @@ import { NumberPicker } from '../components/number-picker';
 })
 export class UiShowcase {
   protected readonly num = signal<number | null>(77);
+  protected readonly road: RoadStage[] = ['Ebisu Minami', 'Irohazaka', 'Haruna', 'Tsukuba', 'Meihan', 'Ebisu Kita', 'Final · Akina'].map((track, i) => ({
+    id: i + 1,
+    ord: i + 1,
+    title: `Этап ${i + 1}`,
+    track,
+    starts_at: i > 3 ? null : `2026-${String(i + 8).padStart(2, '0')}-12T18:00:00Z`,
+    status: i < 3 ? 'finished' : i === 3 ? 'battles' : 'draft',
+    winner: ['Hachiroku', 'Kaido', 'Hachiroku'][i] ?? null,
+  }));
   protected readonly taken = new Map([7, 13, 21, 69, 88, 99, 101].map((n) => [n, `Pilot ${n}`] as [number, string]));
 }

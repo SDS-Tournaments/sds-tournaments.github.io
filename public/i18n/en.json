@@ -131,6 +131,14 @@
     "dupTeam": "This name is taken or you already captain another team",
     "dupMember": "This driver is already in a team or has a pending request this season"
   },
+  "road": {
+    "title": "Season road",
+    "done": "DONE",
+    "next": "Next round",
+    "live": "Live now",
+    "stage": "Round {{n}}",
+    "soon": "Date TBA"
+  },
   "live": {
     "noStream": "The stream is about to start",
     "battle": "On track now",
