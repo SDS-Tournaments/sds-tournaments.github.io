@@ -30,7 +30,10 @@ const TYPE: Record<Sanction['type'], string> = { warning: 'Предупрежд�
   template: `
     <header class="top">
       <h1 class="display-md">Пилоты и санкции</h1>
-      <input class="input search" type="search" placeholder="Ник или номер…" [(ngModel)]="query" (ngModelChange)="q.set($event)" />
+      <div class="tools">
+        <input class="input search" type="search" placeholder="Ник или номер…" [(ngModel)]="query" (ngModelChange)="q.set($event)" />
+        @if (isAdmin()) { <button class="btn btn-ghost danger" (click)="removeAll()" [disabled]="busy()">Удалить всех пилотов</button> }
+      </div>
     </header>
     @if (msg()) { <p [class]="ok() ? 'ok' : 'bad'">{{ msg() }}</p> }
 
@@ -50,6 +53,7 @@ const TYPE: Record<Sanction['type'], string> = { warning: 'Предупрежд�
               <option value="admin">Организатор</option>
             </select>
             <button class="btn btn-ghost" (click)="open.set(open() === p.id ? null : p.id)">{{ open() === p.id ? 'Скрыть' : 'Санкции' }}</button>
+            @if (isAdmin() && p.role === 'pilot') { <button class="btn btn-ghost danger" (click)="remove(p)" [disabled]="busy()" title="Удалить пилота">Удалить</button> }
           </div>
 
           @if (open() === p.id) {
@@ -86,7 +90,9 @@ const TYPE: Record<Sanction['type'], string> = { warning: 'Предупрежд�
   `,
   styles: `
     .top { display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .tools { display: flex; flex-wrap: wrap; gap: 8px; }
     .search { width: min(100%, 300px); }
+    .danger { color: var(--error); }
     .list { display: grid; gap: 8px; }
     .pilot { padding: 12px 16px; }
     .pilot.banned { border-color: var(--error); }
@@ -181,6 +187,31 @@ export class AdminPilots implements OnInit {
       `${p.nickname}: ${TYPE[this.form.type].toLowerCase()}`,
     );
     if (ok) this.form = { type: 'warning', stageId: null, reason: '' };
+  }
+
+  /** Удаление аккаунта (edge-функция test-pilots): уходят профиль, заявки, оценки, результаты и санкции */
+  private async invoke(body: object, done: (d: { deleted: number }) => string) {
+    this.busy.set(true);
+    const { data, error } = await supabase.functions.invoke('test-pilots', { body });
+    this.busy.set(false);
+    // текст ошибки функции лежит в теле ответа
+    const msg = error ? ((await error.context?.json?.().catch(() => null))?.error ?? error.message) : done(data);
+    this.msg.set(msg);
+    this.ok.set(!error);
+    await this.load();
+  }
+
+  remove(p: Pilot) {
+    const banned = this.isBanned(p.id) ? '\nВнимание: у пилота бан — после удаления он сможет зайти заново уже без бана.' : '';
+    if (!confirm(`Удалить пилота ${p.nickname} навсегда?\nПропадут его профиль, номер, заявки, оценки, результаты и санкции. Отменить нельзя.${banned}`)) return;
+    return this.invoke({ action: 'remove', profileId: p.id }, () => `${p.nickname} удалён`);
+  }
+
+  removeAll() {
+    const n = this.pilots().filter((p) => p.role === 'pilot').length;
+    const typed = prompt(`Удалить ВСЕХ пилотов (${n})? Штаб и организаторы останутся.\nПропадут профили, номера, заявки, оценки, результаты и санкции. Отменить нельзя.\n\nЧтобы подтвердить, введите УДАЛИТЬ`);
+    if (typed?.trim().toUpperCase() !== 'УДАЛИТЬ') return;
+    return this.invoke({ action: 'remove-all' }, (d) => `Удалено пилотов: ${d.deleted}`);
   }
 
   removeSanction(s: Sanction) {

@@ -1,4 +1,5 @@
-// Тестовые пилоты для проверки этапа: создать 24 и записать на этап / удалить всех. Только для admin.
+// Управление пилотами, только для admin: тестовые пилоты (создать 24 / удалить всех)
+// и удаление настоящих пилотов — по одному или всех сразу между сезонами (штаб и организаторы не удаляются).
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, {
@@ -28,7 +29,21 @@ Deno.serve(async (req) => {
   const { data: me } = await db.from('profiles').select('role').eq('id', who.user?.id ?? '').maybeSingle();
   if (me?.role !== 'admin') return json({ error: 'Только для организатора' }, 403);
 
-  const { action, stageId } = await req.json();
+  const { action, stageId, profileId } = await req.json();
+
+  // Удаление аккаунта каскадом убирает профиль и все его записи (заявки, оценки, результаты, санкции)
+  if (action === 'remove') {
+    const { data: p } = await db.from('profiles').select('role').eq('id', profileId ?? '').maybeSingle();
+    if (!p) return json({ error: 'Пилот не найден' }, 404);
+    if (p.role !== 'pilot') return json({ error: 'Штаб и организаторов удалить нельзя — сначала смените роль' }, 400);
+    const { error } = await db.auth.admin.deleteUser(profileId);
+    return error ? json({ error: error.message }, 500) : json({ deleted: 1 });
+  }
+  if (action === 'remove-all') {
+    const { data } = await db.from('profiles').select('id').eq('role', 'pilot');
+    for (const p of data ?? []) await db.auth.admin.deleteUser(p.id);
+    return json({ deleted: data?.length ?? 0 });
+  }
 
   if (action === 'delete') {
     const { data } = await db.from('profiles').select('id').like('steam_id', 'test-%');

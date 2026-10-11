@@ -85,6 +85,7 @@ const BATTLE_KEYS = [
           @if (s.status === 'active') {
             <button type="button" class="btn btn-secondary finish" (click)="finishSeason()" [disabled]="busy()">🏁 Завершить сезон</button>
           }
+          <button type="button" class="btn btn-ghost danger" (click)="remove()" [disabled]="busy()">Удалить сезон</button>
         </div>
       </form>
 
@@ -118,6 +119,7 @@ const BATTLE_KEYS = [
     .back { display: inline-block; margin-bottom: 16px; font-size: 14px; }
     .top { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; margin-bottom: 24px; }
     .stages-top { margin-top: 48px; }
+    .danger { color: var(--error); }
     .stack { display: grid; gap: 20px; }
     .cols { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
     .field { display: grid; gap: 6px; }
@@ -126,7 +128,7 @@ const BATTLE_KEYS = [
     .points h3 { font-size: 14px; margin: 20px 0 10px; color: var(--ink-muted); font-weight: 500; }
     .pgrid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); }
     .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-    .finish { margin-left: auto; }
+    .danger { margin-left: auto; }
     .flush { padding: 0; overflow: hidden; }
     .link { cursor: pointer; }
     .badge.off { background: var(--surface-3); color: var(--ink-muted); }
@@ -191,6 +193,21 @@ export class AdminSeason implements OnInit {
     if (error) return this.note(error.message, false);
     this.s.set({ ...s, status: 'finished' });
     this.note('Сезон завершён и отправлен в архив', true);
+  }
+
+  /** Каскадом уходят этапы, заявки, оценки, сетки, протесты, результаты и составы команд этого сезона */
+  async remove() {
+    const s = this.s();
+    if (!s) return;
+    const typed = prompt(
+      `Удалить «${s.title}» навсегда?\nВместе с ним пропадут все его этапы (${this.stages().length}), заявки, оценки, сетки, протесты, результаты, очки и составы команд. Пилоты и сами команды останутся.\nОтменить нельзя.\n\nЧтобы подтвердить, введите УДАЛИТЬ`,
+    );
+    if (typed?.trim().toUpperCase() !== 'УДАЛИТЬ') return;
+    this.busy.set(true);
+    const { error } = await supabase.from('seasons').delete().eq('id', s.id);
+    this.busy.set(false);
+    if (error) return this.note(error.message, false);
+    this.router.navigate(['/admin/seasons']);
   }
 
   async addStage() {
