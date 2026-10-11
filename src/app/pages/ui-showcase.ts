@@ -1,17 +1,21 @@
 import { Component, signal } from '@angular/core';
 import { NumberPicker } from '../components/number-picker';
 import { RoadStage, SeasonRoad } from '../components/season-road';
+import { CardData, PilotCard } from '../components/pilot-card';
 
 // Витрина базовых стилей для проверки дизайна (/dev/ui), не в меню
 @Component({
   selector: 'app-ui-showcase',
-  imports: [NumberPicker, SeasonRoad],
+  imports: [NumberPicker, SeasonRoad, PilotCard],
   template: `
     <section class="section container stack">
       <h1 class="display-lg">UI kit</h1>
 
       <div class="card"><app-number-picker [(value)]="num" [taken]="taken" nickname="Sadlerk" /></div>
       <app-season-road [stages]="road" />
+      <div class="tiers">
+        @for (c of cards; track c.overall) { <app-pilot-card [d]="c" [downloadable]="false" /> }
+      </div>
 
       <div class="row">
         <button class="btn btn-primary">Зарегистрироваться</button>
@@ -54,6 +58,7 @@ import { RoadStage, SeasonRoad } from '../components/season-road';
   `,
   styles: `
     .stack { display: grid; gap: 40px; }
+    .tiers { display: flex; flex-wrap: wrap; gap: 24px; justify-content: center; }
     .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
     .grid { display: grid; gap: 24px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
     h3 { margin: 8px 0; font-size: 20px; }
@@ -61,6 +66,20 @@ import { RoadStage, SeasonRoad } from '../components/season-road';
 })
 export class UiShowcase {
   protected readonly num = signal<number | null>(77);
+  // по одной карточке каждого уровня
+  protected readonly cards: CardData[] = [68, 79, 86, 92, 97].map((overall, i) => ({
+    nickname: ['Kaido', 'NightOwl', 'Hachiroku', 'Touge_Ghost', 'Sadlerk'][i],
+    start_number: [101, 103, 105, 102, 21][i],
+    avatar_url: null,
+    livery_url: null,
+    team: i > 2 ? '21 Project' : null,
+    car: 'Kami S15',
+    overall,
+    angle: overall + 2,
+    style: overall - 3,
+    line: overall,
+    wins: i,
+  }));
   protected readonly road: RoadStage[] = ['Ebisu Minami', 'Irohazaka', 'Haruna', 'Tsukuba', 'Meihan', 'Ebisu Kita', 'Final · Akina'].map((track, i) => ({
     id: i + 1,
     ord: i + 1,
