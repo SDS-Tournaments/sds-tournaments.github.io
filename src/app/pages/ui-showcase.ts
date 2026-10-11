@@ -32,6 +32,7 @@ import { NumberPicker } from '../components/number-picker';
         </div>
         <div class="card">
           <input class="input" placeholder="Ник пилота" />
+          <select class="input" style="margin-top: 12px"><option>— выберите —</option><option>Kami S15</option></select>
         </div>
       </div>
 

@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { Auth, supabase } from '../auth';
+import { CARS, ENGINES, GEARBOXES } from '../catalog';
 import { NumberPicker } from '../components/number-picker';
 import { compressImage } from '../image';
 
@@ -54,16 +55,25 @@ import { compressImage } from '../image';
             <h2 class="h">{{ 'me.car' | transloco }}</h2>
             <label>
               <span class="lbl">{{ 'me.carModel' | transloco }}</span>
-              <input class="input" name="car" maxlength="60" [(ngModel)]="car" />
+              <select class="input" name="car" [(ngModel)]="car">
+                <option value="">{{ 'me.choose' | transloco }}</option>
+                @for (o of cars; track o) { <option [value]="o">{{ o }}</option> }
+              </select>
             </label>
             <label>
               <span class="lbl">{{ 'me.engine' | transloco }}</span>
-              <input class="input" name="engine" maxlength="60" [(ngModel)]="engine" />
+              <select class="input" name="engine" [(ngModel)]="engine">
+                <option value="">{{ 'me.choose' | transloco }}</option>
+                @for (o of engines; track o) { <option [value]="o">{{ o }}</option> }
+              </select>
             </label>
             <div class="two">
               <label>
                 <span class="lbl">{{ 'me.gearbox' | transloco }}</span>
-                <input class="input" name="gearbox" maxlength="60" [(ngModel)]="gearbox" />
+                <select class="input" name="gearbox" [(ngModel)]="gearbox">
+                  <option value="">{{ 'me.choose' | transloco }}</option>
+                  @for (o of gearboxes; track o) { <option [value]="o">{{ o }}</option> }
+                </select>
               </label>
               <label>
                 <span class="lbl">{{ 'me.power' | transloco }}</span>
@@ -219,6 +229,9 @@ export class Me {
   protected auth = inject(Auth);
   private router = inject(Router);
 
+  protected readonly cars = CARS;
+  protected readonly engines = ENGINES;
+  protected readonly gearboxes = GEARBOXES;
   protected readonly number = signal<number | null>(null);
   protected car = '';
   protected engine = '';
