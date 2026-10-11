@@ -1,1 +1,323 @@
-/* You can add global styles to this file, and also import other style files */
+/* Tiffany Noir — токены из DESIGN.md */
+:root {
+  --primary: #0abab5;
+  --on-primary: #000;
+  --primary-hover: #2fd3ce;
+  --primary-pressed: #08938f;
+  --primary-soft: rgba(10, 186, 181, 0.12);
+  --primary-glow: rgba(10, 186, 181, 0.35);
+
+  --ink: #f5f5f5;
+  --ink-muted: #b3b3b3;
+  --ink-subtle: #808080;
+  --ink-tertiary: #595959;
+
+  --canvas: #000;
+  --surface-1: #0a0a0a;
+  --surface-2: #121212;
+  --surface-3: #1a1a1a;
+  --hairline: #1f1f1f;
+  --hairline-strong: #2e2e2e;
+
+  --error: #ff5c5c;
+  --warning: #f5b942;
+  --overlay: rgba(0, 0, 0, 0.7);
+
+  --font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, Consolas, monospace;
+
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --r-xl: 20px;
+  --r-pill: 9999px;
+
+  --fast: 150ms;
+  --base: 250ms;
+  --slow: 450ms;
+  --reveal: 700ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  --container: 1200px;
+  --gutter: 24px;
+  --section: 128px;
+
+  color-scheme: dark;
+}
+
+@media (max-width: 767px) {
+  :root {
+    --gutter: 16px;
+    --section: 64px;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+a {
+  color: var(--primary);
+  text-decoration: none;
+  background: linear-gradient(currentColor, currentColor) left bottom / 0 1px no-repeat;
+  transition: background-size var(--base) var(--ease-out), color var(--fast);
+  &:hover {
+    color: var(--primary-hover);
+    background-size: 100% 1px;
+  }
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--primary-glow);
+  border-radius: var(--r-sm);
+}
+
+::selection {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+/* Типографика */
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-weight: 600;
+  line-height: 1.1;
+}
+.display-xl {
+  font-size: clamp(40px, 7vw, 72px);
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+}
+.display-lg {
+  font-size: clamp(32px, 5vw, 52px);
+  letter-spacing: -0.03em;
+}
+.display-md {
+  font-size: clamp(26px, 3.5vw, 36px);
+  letter-spacing: -0.025em;
+}
+.eyebrow {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--primary);
+}
+.muted {
+  color: var(--ink-muted);
+}
+.subtle {
+  color: var(--ink-subtle);
+}
+.mono {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.container {
+  max-width: var(--container);
+  margin: 0 auto;
+  padding: 0 var(--gutter);
+}
+.section {
+  padding-block: var(--section);
+}
+
+/* Кнопки */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 18px;
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  font: 500 14px/1.2 var(--font);
+  white-space: nowrap;
+  cursor: pointer;
+  background-image: none;
+  transition:
+    background-color var(--fast),
+    border-color var(--fast),
+    color var(--fast),
+    transform var(--base) var(--ease-out),
+    box-shadow var(--base) var(--ease-out);
+  &:hover {
+    transform: translateY(-2px);
+  }
+  &:active {
+    transform: scale(0.97);
+    transition-duration: 100ms;
+  }
+  &:disabled {
+    opacity: 0.4;
+    pointer-events: none;
+  }
+}
+.btn-primary {
+  background-color: var(--primary);
+  color: var(--on-primary);
+  &:hover {
+    background-color: var(--primary-hover);
+    color: var(--on-primary);
+    box-shadow: 0 8px 24px -8px var(--primary-glow);
+  }
+  &:active {
+    background-color: var(--primary-pressed);
+  }
+}
+.btn-secondary {
+  background-color: var(--surface-1);
+  border-color: var(--hairline);
+  color: var(--ink);
+  &:hover {
+    border-color: var(--hairline-strong);
+    color: var(--ink);
+  }
+}
+.btn-ghost {
+  background-color: transparent;
+  color: var(--ink-muted);
+  &:hover {
+    background-color: var(--surface-1);
+    color: var(--ink);
+  }
+}
+
+/* Карточки */
+.card {
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+  padding: 28px;
+  transition:
+    background-color var(--base),
+    border-color var(--base),
+    transform var(--base) var(--ease-out);
+}
+.card-hover:hover {
+  background: var(--surface-2);
+  border-color: var(--hairline-strong);
+  transform: translateY(-2px);
+}
+.card-featured {
+  background: var(--surface-2);
+  border-color: var(--hairline-strong);
+  border-top-color: var(--primary);
+}
+
+.badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: var(--r-pill);
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Поля ввода */
+.input {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 14px;
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-md);
+  color: var(--ink);
+  font: 400 16px/1.4 var(--font);
+  transition: border-color var(--fast), box-shadow var(--fast);
+  &::placeholder {
+    color: var(--ink-subtle);
+  }
+  &:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-glow);
+  }
+}
+
+/* Таблицы «телеметрия» */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  th {
+    text-align: left;
+    padding: 10px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--ink-subtle);
+    border-bottom: 1px solid var(--hairline-strong);
+  }
+  td {
+    padding: 12px;
+    border-bottom: 1px solid var(--hairline);
+  }
+  tbody tr {
+    transition: background-color var(--fast);
+    &:hover {
+      background: var(--surface-1);
+    }
+  }
+  .num {
+    font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+}
+.table-wrap {
+  overflow-x: auto;
+}
+
+/* Появление */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.rise {
+  animation: rise var(--reveal) var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 80ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

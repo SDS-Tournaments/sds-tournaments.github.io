@@ -1,0 +1,24 @@
+{
+  "nav": {
+    "menu": "Menu",
+    "standings": "Standings",
+    "stages": "Rounds",
+    "pilots": "Drivers",
+    "teams": "Teams",
+    "archive": "Archive",
+    "rules": "Rules"
+  },
+  "auth": {
+    "login": "Sign in with Steam",
+    "loginShort": "Sign in"
+  },
+  "home": {
+    "eyebrow": "Online drift championship · CarX Drift Racing Online 2",
+    "lead": "Qualifying, Top 32 tandem battles and season standings — all in one place, live.",
+    "toStages": "Season rounds",
+    "toStandings": "Standings"
+  },
+  "common": {
+    "soon": "Coming soon."
+  }
+}
