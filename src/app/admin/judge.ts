@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '../auth';
 import { qualStandings } from '../scoring/scoring';
+import { AdminBattles } from './battles';
 import { STAGE_STATUS } from './labels';
 
 type Crit = 'angle' | 'style' | 'line';
@@ -13,6 +14,7 @@ interface Stage {
   status: string;
   weights: Record<Crit, number>;
   judges: Record<Crit, string>;
+  bracket_size: 'auto' | '32' | '16' | '8';
 }
 interface Reg {
   profile_id: string;
@@ -45,15 +47,31 @@ const ATTEMPTS = [
 // Пульт судьи — квалификация (spec §5.1). Только RU.
 @Component({
   selector: 'app-admin-judge',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, AdminBattles],
   template: `
     @if (stage(); as st) {
       <header class="bar">
         <a [routerLink]="['/admin/stages', st.id]" class="back">← Этап</a>
-        <h1>{{ st.title_ru }} <span class="subtle">· квалификация</span></h1>
-        <span class="badge" [class.off]="st.status !== 'qualifying'">{{ statusLabel[st.status] }}</span>
+        <h1>{{ st.title_ru }}</h1>
+        <div class="modes" role="tablist">
+          <button role="tab" [class.on]="mode() === 'qual'" [attr.aria-selected]="mode() === 'qual'" (click)="mode.set('qual')">Квалификация</button>
+          <button role="tab" [class.on]="mode() === 'battles'" [attr.aria-selected]="mode() === 'battles'" (click)="mode.set('battles')">Парные заезды</button>
+        </div>
+        <span class="badge" [class.off]="st.status !== 'qualifying' && st.status !== 'battles'">{{ statusLabel[st.status] }}</span>
         <span class="live"><i></i>онлайн</span>
       </header>
+
+      @if (mode() === 'battles') {
+        <app-admin-battles
+          [stageId]="st.id"
+          [standings]="standings()"
+          [pilots]="pilotInfo()"
+          [bracketSetting]="st.bracket_size"
+          [judges]="st.judges"
+          [qualDone]="doneCount() === queue().length"
+          (started)="st.status = 'battles'"
+        />
+      } @else {
       @if (st.status !== 'qualifying') {
         <p class="warn">Этап не в статусе «Квалификация» — оценки сохранятся, но зрители увидят их только когда этап начнётся.</p>
       }
@@ -164,6 +182,7 @@ const ATTEMPTS = [
           </table>
         </aside>
       </div>
+      }
     }
   `,
   styles: `
@@ -172,6 +191,12 @@ const ATTEMPTS = [
     .back { font-size: 14px; }
     h1 { font-size: 22px; flex: 1; }
     .badge.off { background: var(--surface-3); color: var(--ink-muted); }
+    .modes { display: flex; padding: 3px; border: 1px solid var(--hairline-strong); border-radius: var(--r-pill); background: var(--surface-1); }
+    .modes button {
+      padding: 8px 16px; border: 0; border-radius: var(--r-pill); background: none; color: var(--ink-muted);
+      font: 500 14px var(--font); cursor: pointer; transition: background-color var(--base), color var(--fast);
+      &.on { background: var(--primary); color: var(--on-primary); }
+    }
     .live { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--primary); text-transform: uppercase; letter-spacing: 1px; }
     .live i { width: 8px; height: 8px; border-radius: 50%; background: var(--primary); animation: pulse 2s ease-out infinite; }
     @keyframes pulse { from { box-shadow: 0 0 0 0 var(--primary-glow); } to { box-shadow: 0 0 0 8px transparent; } }
@@ -245,6 +270,8 @@ export class AdminJudge implements OnInit, OnDestroy {
   protected readonly stage = signal<Stage | null>(null);
   protected readonly regs = signal<Reg[]>([]);
   protected readonly runs = signal<Run[]>([]);
+  protected readonly mode = signal<'qual' | 'battles'>('qual');
+  protected readonly pilotInfo = computed(() => new Map(this.regs().map((r) => [r.profile_id, { nickname: r.profile?.nickname ?? '?', start_number: r.profile?.start_number ?? null }])));
   protected readonly selected = signal<string | null>(null);
   protected readonly selectedAttempt = signal<number | null>(null);
   protected readonly busy = signal(false);
@@ -312,8 +339,9 @@ export class AdminJudge implements OnInit, OnDestroy {
 
   async ngOnInit() {
     const id = Number(this.id());
-    const { data } = await supabase.from('stages').select('id, title_ru, status, weights, judges').eq('id', id).single();
+    const { data } = await supabase.from('stages').select('id, title_ru, status, weights, judges, bracket_size').eq('id', id).single();
     this.stage.set(data);
+    if (data?.status === 'battles' || data?.status === 'finished') this.mode.set('battles');
     await this.load();
     // Несколько пультов одновременно: любое изменение → перезагрузка
     this.channel = supabase

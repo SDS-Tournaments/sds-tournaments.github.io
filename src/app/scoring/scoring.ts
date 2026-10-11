@@ -85,6 +85,72 @@ export function nextSlot(round: Round, slot: number): { round: Round; slot: numb
   return next ? { round: next, slot: slot >> 1 } : null;
 }
 
+/** Раунды сетки по порядку проведения (дуэль за 3-е — перед финалом) и число пар в каждом */
+export function roundsFor(size: 32 | 16 | 8): { round: Round; slots: number }[] {
+  const all: { round: Round; slots: number }[] = [
+    { round: 'r32', slots: 16 },
+    { round: 'r16', slots: 8 },
+    { round: 'qf', slots: 4 },
+    { round: 'sf', slots: 2 },
+    { round: 'third', slots: 1 },
+    { round: 'final', slots: 1 },
+  ];
+  return all.filter((r) => r.slots < size);
+}
+
+/** Поставить пилота в пару следующего раунда: свободное место, лидер — лучший по квалификации */
+export function seatInto(
+  pair: { leader: string | null; chaser: string | null },
+  pilot: string,
+  qualPlace: Map<string, number>,
+): { leader: string | null; chaser: string | null } {
+  const other = pair.leader && pair.leader !== pilot ? pair.leader : pair.chaser && pair.chaser !== pilot ? pair.chaser : null;
+  if (!other) return { leader: pilot, chaser: null };
+  const [leader, chaser] = orderPair(pilot, other, qualPlace);
+  return { leader, chaser };
+}
+
+export interface BracketRow {
+  round: Round;
+  slot: number;
+  leader: string | null;
+  chaser: string | null;
+  winner: string | null;
+  done: boolean;
+  bye: boolean;
+}
+
+/**
+ * §5.2 Вся сетка сразу: первый раунд по посеву, остальные пустые.
+ * Пара без соперника закрывается баем (пустая — без победителя) раунд за раундом,
+ * пока обе пары, из которых она собирается, решены — иначе ручной Top 32 на 10 пилотов застрянет.
+ */
+export function buildBracket(ids: string[], size: 32 | 16 | 8, qualPlace: Map<string, number>): BracketRow[] {
+  const rows: BracketRow[] = roundsFor(size).flatMap(({ round, slots }) =>
+    Array.from({ length: slots }, (_, slot) => ({ round, slot, leader: null, chaser: null, winner: null, done: false, bye: false })),
+  );
+  const find = (round: Round, slot: number) => rows.find((r) => r.round === round && r.slot === slot)!;
+  for (const p of firstRound(ids, size)) Object.assign(find(p.round, p.slot), { leader: p.leader, chaser: p.chaser });
+
+  const order = roundsFor(size)
+    .map((r) => r.round)
+    .filter((r) => r !== 'third');
+  order.forEach((round, i) => {
+    for (const row of rows.filter((r) => r.round === round)) {
+      const fed = i === 0 || [2 * row.slot, 2 * row.slot + 1].every((s) => find(order[i - 1], s).done);
+      if (!fed || (row.leader && row.chaser)) continue;
+      row.done = true;
+      if (!row.leader) continue;
+      Object.assign(row, { winner: row.leader, bye: true });
+      const next = nextSlot(round, row.slot);
+      if (!next) continue;
+      const target = find(next.round, next.slot);
+      Object.assign(target, seatInto(target, row.leader, qualPlace));
+    }
+  });
+  return rows;
+}
+
 /** Лидер пары в следующих раундах — у кого лучше место квалификации */
 export function orderPair(a: string, b: string, qualPlace: Map<string, number>): [leader: string, chaser: string] {
   return (qualPlace.get(a) ?? Infinity) <= (qualPlace.get(b) ?? Infinity) ? [a, b] : [b, a];

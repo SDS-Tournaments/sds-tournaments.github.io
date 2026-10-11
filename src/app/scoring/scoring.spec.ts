@@ -2,12 +2,15 @@ import {
   assignGroups,
   battleOutcome,
   bracketSize,
+  buildBracket,
   Finish,
   firstRound,
   nextSlot,
   orderPair,
   qualStandings,
+  roundsFor,
   seasonStandings,
+  seatInto,
   seedOrder,
   stagePlaces,
   stagePoints,
@@ -69,6 +72,59 @@ describe('сетка', () => {
     const byes = pairs.filter((p) => p.chaser === null).map((p) => p.leader);
     expect(byes.sort()).toEqual(['p1', 'p10', 'p11', 'p12', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8', 'p9'].sort());
     expect(pairs.find((p) => p.leader === 'p16')?.chaser).toBe('p17');
+  });
+
+  const pilots = (n: number) => Array.from({ length: n }, (_, i) => `p${i + 1}`);
+  const places = (ids: string[]) => new Map(ids.map((id, i) => [id, i + 1]));
+
+  it('Top 32 на 20 пилотов: 4 настоящие дуэли, 12 лидеров уже в Top 16', () => {
+    const ids = pilots(20);
+    const rows = buildBracket(ids, 32, places(ids));
+    const r32 = rows.filter((r) => r.round === 'r32');
+    expect(r32.filter((r) => !r.done)).toHaveLength(4);
+    expect(r32.filter((r) => r.bye)).toHaveLength(12);
+    const r16 = rows.filter((r) => r.round === 'r16');
+    expect(r16.flatMap((r) => [r.leader, r.chaser]).filter(Boolean)).toHaveLength(12);
+    // p1 ждёт победителя пары 16–17
+    expect(r16[0]).toMatchObject({ leader: 'p1', chaser: null, done: false });
+  });
+
+  it('ручной Top 32 на 10 пилотов не застревает: пустые пары закрываются', () => {
+    const ids = pilots(10);
+    const rows = buildBracket(ids, 32, places(ids));
+    expect(rows.filter((r) => r.round === 'r32').every((r) => r.done)).toBe(true);
+    // Застрявших нет: каждая незакрытая неполная пара ждёт хотя бы одну ещё не решённую дуэль
+    const order = ['r32', 'r16', 'qf', 'sf', 'final'] as const;
+    const find = (round: string, slot: number) => rows.find((r) => r.round === round && r.slot === slot)!;
+    for (const r of rows.filter((x) => !x.done && x.round !== 'third' && !(x.leader && x.chaser))) {
+      const prev = order[order.indexOf(r.round as (typeof order)[number]) - 1];
+      expect([find(prev, 2 * r.slot), find(prev, 2 * r.slot + 1)].some((f) => !f.done)).toBe(true);
+    }
+    // и настоящие дуэли есть
+    expect(rows.some((r) => !r.done && r.leader && r.chaser)).toBe(true);
+  });
+
+  it('полная сетка Top 8 без баев', () => {
+    const ids = pilots(8);
+    const rows = buildBracket(ids, 8, places(ids));
+    expect(rows.filter((r) => r.round === 'qf').map((r) => [r.leader, r.chaser])).toEqual([
+      ['p1', 'p8'], ['p4', 'p5'], ['p2', 'p7'], ['p3', 'p6'],
+    ]);
+    expect(rows.some((r) => r.done)).toBe(false);
+  });
+
+  it('раунды по размеру сетки', () => {
+    expect(roundsFor(8).map((r) => r.round)).toEqual(['qf', 'sf', 'third', 'final']);
+    expect(roundsFor(32).map((r) => r.slots)).toEqual([16, 8, 4, 2, 1, 1]);
+  });
+
+  it('пилот садится в следующую пару: первый — лидером, второй — по квалификации', () => {
+    const q = new Map([['a', 5], ['b', 2]]);
+    const one = seatInto({ leader: null, chaser: null }, 'a', q);
+    expect(one).toEqual({ leader: 'a', chaser: null });
+    expect(seatInto(one, 'b', q)).toEqual({ leader: 'b', chaser: 'a' });
+    // повторная постановка того же пилота ничего не ломает
+    expect(seatInto({ leader: 'b', chaser: 'a' }, 'a', q)).toEqual({ leader: 'b', chaser: 'a' });
   });
 
   it('победитель идёт в следующий раунд, лидер — лучший по квалификации', () => {
