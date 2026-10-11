@@ -1,12 +1,14 @@
 import { Component, input } from '@angular/core';
+import { TranslocoPipe } from '@jsverse/transloco';
 
 // Индикатор загрузки: тонкая линия с бегущим бирюзовым отрезком.
 // Появляется через 200 мс — быстрые загрузки не мелькают вовсе.
 @Component({
   selector: 'app-loader',
+  imports: [TranslocoPipe],
   template: `
     <div class="wrap" [class.inline]="inline()" role="status" aria-live="polite">
-      <span class="sr">Загрузка…</span>
+      <span class="sr">{{ 'common.loading' | transloco }}</span>
       <span class="track"><span class="bar"></span></span>
     </div>
   `,
