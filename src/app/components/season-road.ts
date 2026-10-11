@@ -19,7 +19,7 @@ const isLive = (s: { status: string }) => s.status === 'qualifying' || s.status 
 /**
  * Где огонёк на линии и насколько он «горячий».
  * Между последним пройденным и следующим этапом — по доле прошедшего времени между их датами;
- * в день старта (и во время этапа) — на самом этапе, жар = 1. Нет предыдущей даты — жар по последним 14 дням.
+ * в день старта (и во время этапа) — на самом этапе, жар = 1. Нет даты у предыдущего — отсчёт за 14 дней до старта.
  * fill — % длины линии, heat — 0..1.
  */
 export function roadProgress(stages: { status: string; starts_at: string | null }[], now: number): { fill: number; heat: number } {
@@ -36,11 +36,11 @@ export function roadProgress(stages: { status: string; starts_at: string | null 
   const clamp = (x: number) => Math.min(1, Math.max(0, x));
   if (Number.isNaN(nextAt)) return { fill: pct(Math.max(0, next - 1)), heat: 0 };
   if (now >= nextAt) return { fill: pct(next), heat: 1 };
-  if (next === 0 || Number.isNaN(prevAt) || prevAt >= nextAt) {
-    // не от чего отсчитывать — стоим у предыдущего этапа, краснеем за 2 недели до старта
-    return { fill: pct(Math.max(0, next - 1)), heat: clamp(1 - (nextAt - now) / (14 * DAY)) };
-  }
-  const t = clamp((now - prevAt) / (nextAt - prevAt));
+  // У предыдущего этапа нет даты — отсчитываем последние 2 недели до старта
+  const from = !Number.isNaN(prevAt) && prevAt < nextAt ? prevAt : nextAt - 14 * DAY;
+  const t = clamp((now - from) / (nextAt - from));
+  // первый этап сезона: до него ехать неоткуда — стоим на старте, только краснеем
+  if (next === 0) return { fill: 0, heat: t };
   return { fill: pct(next - 1 + t), heat: t };
 }
 

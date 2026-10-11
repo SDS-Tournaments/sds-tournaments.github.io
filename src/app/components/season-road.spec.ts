@@ -29,6 +29,13 @@ describe('огонёк дороги сезона', () => {
     expect(roadProgress([st('finished', T0), st('draft', null)], T0 + 3 * D)).toEqual({ fill: 0, heat: 0 });
   });
 
+  it('у пройденного этапа нет даты — едем последние 2 недели до старта', () => {
+    // до этапа 2 осталось 2 дня из 14 → 6/7 пути и почти красный
+    const r = roadProgress([st('finished', null), st('registration', T0 + 2 * D)], T0);
+    expect(r.fill).toBeCloseTo((12 / 14) * 100);
+    expect(r.heat).toBeCloseTo(12 / 14);
+  });
+
   it('первый этап сезона — краснеем за 2 недели до старта', () => {
     const r = roadProgress([st('registration', T0 + 7 * D), st('draft', null)], T0);
     expect(r.fill).toBe(0);
