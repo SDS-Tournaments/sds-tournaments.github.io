@@ -40,7 +40,9 @@
 
 ```
 profiles        id(=auth.uid) steam_id nickname avatar_url role(admin|staff|pilot)
-                start_number(unique, nullable) livery_url bio_ru bio_en created_at
+                start_number(unique, nullable) livery_url car engine gearbox power_hp bio_ru bio_en created_at
+protests        id battle_id stage_id profile_id video_url reason status(pending|rejected|reversed|rerun)
+                admin_comment resolved_by resolved_at created_at
 teams           id name logo_url captain_id created_at
 team_members    team_id profile_id season_id status(pending|approved) — пилот в 1 команде за сезон, ≤ 8 approved
 seasons         id number title status(draft|active|finished)
@@ -106,6 +108,15 @@ Storage-бакеты: `liveries`, `team-logos`, `sponsors` (публичное �
 - Личный зачёт = сумма очков за этапы. Ничья: больше 1-х мест, затем 2-х, … → больше побед в квалификации → выше место на последнем этапе.
 - Командный = сумма командных очков за этапы. Ничья — у кого лучший пилот выше в личном зачёте.
 - «Завершить сезон» (admin) → фиксирует чемпионов, статус `finished`, сезон в архиве.
+
+### 5.8 Протесты (только парные заезды)
+- Подаёт **только проигравший** пилот дуэли, **в течение 5 минут** после решения судей (`battles.decided_at`), пока этап в статусе `battles`.
+- **Не больше 2 протестов** за этап на пилота (удовлетворённые тоже считаются).
+- Обязательно: ссылка на видео-доказательство + описание (10–1000 символов).
+- Пока протест на рассмотрении, следующая дуэль победителя в пульте помечена «протест» и не запускается.
+- Решения admin: **отклонить** (с комментарием) · **отдать победу** (победитель меняется, сетка пересчитывается) · **перезаезд** (дуэль переигрывается как OMT).
+- Уведомления: значок с числом и всплывающее уведомление у admin/staff на сайте в реальном времени, сообщение в Discord, плашка «Протест на рассмотрении» на стриме (по кнопке управляющего). Пилот видит статус в личном кабинете.
+- Проверки — в базе (триггер `guard_protest`), не только на сайте.
 
 ### 5.7 Завершение этапа
 Кнопка «Завершить этап» (admin) → считает `stage_results`, выдаёт достижения, шлёт Discord-итоги, статус `finished`. Можно пересчитать повторно.
