@@ -14,16 +14,14 @@
   },
   "home": {
     "chip": "Online championship · CarX Drift Racing Online 2",
-    "gauge": "Drift angle",
     "lead": "Qualifying, Top 32 tandem battles and season standings — all in one place, live.",
     "toStages": "Season rounds",
     "toStandings": "Standings",
-    "fact": {
-      "bracket": "Drivers in bracket",
-      "judges": "Judges per run",
-      "max": "Max points"
+    "reg": {
+      "label": "Drivers registered",
+      "cta": "Register",
+      "soon": "Round registration opens soon"
     },
-    "ticker": "Qualifying  ✦  Top 32  ✦  Tandem battles  ✦  One More Time  ✦  Angle · Style · Line  ✦  Sad Drift Series  ✦  ",
     "how": {
       "eyebrow": "Format",
       "title": "How a round works",

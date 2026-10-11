@@ -1,57 +1,38 @@
-import { Component } from '@angular/core';
+import { Component, isDevMode } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
+import { RegCounter } from '../components/reg-counter';
 import { Reveal } from '../reveal';
+
+// Шум fractalNoise → полупрозрачный светлый «дым»; stitchTiles даёт бесшовный повтор по ширине тайла
+const smoke = (seed: number, w: number, h: number) =>
+  `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${w}' height='${h}'%3E%3Cfilter id='f' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='${(3 / w).toFixed(4)} ${(2 / h).toFixed(4)}' numOctaves='4' seed='${seed}' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.82 0 0 0 0 0.96 0 0 0 0 0.95 1.9 0 0 0 -0.78'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E")`;
 
 // Живой этап, лидеры и спонсоры — шаг 5.1
 @Component({
   selector: 'app-home',
-  imports: [RouterLink, TranslocoPipe, Reveal],
+  imports: [RouterLink, TranslocoPipe, Reveal, RegCounter],
   template: `
     <section class="hero">
-      <div class="smoke" aria-hidden="true"><i></i><i></i><i></i></div>
-      <div class="floor" aria-hidden="true"></div>
-      <div class="streaks" aria-hidden="true"><i></i><i></i><i></i></div>
-      <div class="grain" aria-hidden="true"></div>
+      <div class="glow" aria-hidden="true"><i></i><i></i></div>
       <span class="kanji" aria-hidden="true">ドリフト</span>
+      <div class="smoke back" aria-hidden="true" [style.background-image]="smokeBack"></div>
+      <div class="smoke front" aria-hidden="true" [style.background-image]="smokeFront"></div>
+      <div class="grain" aria-hidden="true"></div>
 
       <div class="container inner">
-        <figure class="gauge rise" style="--i: 3" aria-hidden="true">
-          <svg viewBox="0 0 240 240">
-            <circle class="ring" cx="120" cy="120" r="100" />
-            <circle class="arc" cx="120" cy="120" r="100" pathLength="100" />
-            @for (t of ticks; track t) {
-              <line class="tick" [class.major]="t % 15 === 0" x1="120" y1="24" x2="120" [attr.y2]="t % 15 === 0 ? 38 : 32" [attr.transform]="'rotate(' + (t * 4 - 120) + ' 120 120)'" />
-            }
-            <g class="needle"><line x1="120" y1="120" x2="120" y2="36" /><circle cx="120" cy="120" r="6" /></g>
-          </svg>
-          <figcaption>
-            <span class="mono val">52°</span>
-            <span class="lbl">{{ 'home.gauge' | transloco }}</span>
-          </figcaption>
-        </figure>
-        <p class="chip rise"><span class="dot"></span>{{ 'home.chip' | transloco }}</p>
-        <h1 class="display-xl rise" style="--i: 1">Sad Drift<br /><span class="accent">Series</span></h1>
-        <p class="lead muted rise" style="--i: 2">{{ 'home.lead' | transloco }}</p>
-        <div class="cta rise" style="--i: 3">
-          <a routerLink="/stages" class="btn btn-primary">{{ 'home.toStages' | transloco }} →</a>
-          <a routerLink="/standings" class="btn btn-secondary">{{ 'home.toStandings' | transloco }}</a>
+        <div class="text">
+          <p class="chip rise"><span class="dot"></span>{{ 'home.chip' | transloco }}</p>
+          <h1 class="display-xl rise" style="--i: 1">Sad Drift<br /><span class="accent">Series</span></h1>
+          <p class="lead muted rise" style="--i: 2">{{ 'home.lead' | transloco }}</p>
+          <div class="cta rise" style="--i: 3">
+            <a routerLink="/stages" class="btn btn-primary">{{ 'home.toStages' | transloco }} →</a>
+            <a routerLink="/standings" class="btn btn-secondary">{{ 'home.toStandings' | transloco }}</a>
+          </div>
         </div>
-        <dl class="facts rise" style="--i: 4">
-          <div><dt class="mono">32</dt><dd>{{ 'home.fact.bracket' | transloco }}</dd></div>
-          <div><dt class="mono">3</dt><dd>{{ 'home.fact.judges' | transloco }}</dd></div>
-          <div><dt class="mono">100</dt><dd>{{ 'home.fact.max' | transloco }}</dd></div>
-        </dl>
+        <app-reg-counter class="rise" style="--i: 4" [count]="demo ? 24 : null" [stage]="demo ? 'Этап 1 · Ebisu' : null" />
       </div>
     </section>
-
-    <div class="ticker" aria-hidden="true">
-      <div class="track">
-        @for (n of [0, 1]; track n) {
-          <span>{{ 'home.ticker' | transloco }}</span>
-        }
-      </div>
-    </div>
 
     <section class="section container">
       <p class="eyebrow" reveal>{{ 'home.how.eyebrow' | transloco }}</p>
@@ -74,116 +55,105 @@ import { Reveal } from '../reveal';
       min-height: calc(100svh - 64px);
       display: flex;
       align-items: center;
-      padding: 64px 0 96px;
+      padding: 64px 0 160px;
       isolation: isolate;
     }
-    .inner { position: relative; width: 100%; }
+    .inner {
+      position: relative;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 48px;
+    }
+    @media (max-width: 900px) {
+      .inner { flex-direction: column; align-items: flex-start; }
+    }
 
-    /* Дым от шин: размытые пятна медленно дрейфуют */
-    .smoke i {
+    /* Бирюзовое свечение, как от неона в ночи */
+    .glow i {
       position: absolute;
+      z-index: -2;
       border-radius: 50%;
-      filter: blur(60px);
-      z-index: -1;
-      animation: drift 18s var(--ease-in-out) infinite alternate;
+      filter: blur(70px);
+      animation: breathe 14s var(--ease-in-out) infinite alternate;
     }
-    .smoke i:nth-child(1) {
-      width: 55vw; height: 55vw; right: -10vw; top: -10vw;
-      background: radial-gradient(circle, rgba(10, 186, 181, 0.28), transparent 65%);
+    .glow i:nth-child(1) {
+      width: 50vw; height: 50vw; right: -8vw; top: -12vw;
+      background: radial-gradient(circle, rgba(10, 186, 181, 0.3), transparent 65%);
     }
-    .smoke i:nth-child(2) {
-      width: 40vw; height: 40vw; right: 20vw; bottom: -20vw;
-      background: radial-gradient(circle, rgba(10, 186, 181, 0.16), transparent 65%);
-      animation-duration: 24s;
-      animation-delay: -6s;
+    .glow i:nth-child(2) {
+      width: 36vw; height: 36vw; left: -10vw; bottom: -6vw;
+      background: radial-gradient(circle, rgba(10, 186, 181, 0.14), transparent 65%);
+      animation-delay: -7s;
     }
-    .smoke i:nth-child(3) {
-      width: 35vw; height: 35vw; left: -12vw; top: 20%;
-      background: radial-gradient(circle, rgba(255, 255, 255, 0.07), transparent 65%);
-      animation-duration: 30s;
-    }
-    @keyframes drift {
-      from { transform: translate(0, 0) scale(1); }
-      to { transform: translate(-6vw, 4vw) scale(1.15); }
+    @keyframes breathe {
+      from { transform: scale(1); opacity: 0.8; }
+      to { transform: scale(1.12) translate(-3vw, 2vw); opacity: 1; }
     }
 
-    /* Телеметрическая сетка-асфальт в перспективе */
-    .floor {
+    /* Дым от шин: два слоя бесшовной текстуры плывут с разной скоростью */
+    .smoke {
       position: absolute;
-      left: -50%;
-      right: -50%;
+      left: 0;
       bottom: 0;
-      height: 50%;
       z-index: -1;
-      background-image:
-        linear-gradient(rgba(10, 186, 181, 0.4) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(10, 186, 181, 0.4) 1px, transparent 1px);
-      background-size: 64px 64px;
-      transform: perspective(500px) rotateX(62deg);
-      transform-origin: bottom;
-      mask-image: linear-gradient(to top, #000 0%, transparent 85%);
-      animation: road 3s linear infinite;
+      background-repeat: repeat-x;
+      background-position: left bottom;
+      mask-image: linear-gradient(to top, #000 0%, rgba(0, 0, 0, 0.8) 30%, transparent 100%);
+      pointer-events: none;
+      will-change: transform;
     }
-    @keyframes road {
-      to { background-position: 0 64px; }
+    .smoke.back {
+      width: calc(100% + 900px);
+      height: 75%;
+      background-size: 900px 100%;
+      opacity: 0.35;
+      animation: roll 90s linear infinite;
+      --tile: -900px;
+    }
+    .smoke.front {
+      width: calc(100% + 1400px);
+      height: 55%;
+      background-size: 1400px 100%;
+      opacity: 0.55;
+      animation: roll 60s linear infinite reverse;
+      --tile: -1400px;
+    }
+    @keyframes roll {
+      to { transform: translateX(var(--tile)); }
+    }
+    /* Низ героя растворяется в фоне — без жёсткого края */
+    .hero::after {
+      content: '';
+      position: absolute;
+      inset: auto 0 0;
+      height: 120px;
+      z-index: -1;
+      background: linear-gradient(to bottom, transparent, var(--canvas));
     }
 
     .grain {
       position: absolute;
       inset: 0;
       z-index: -1;
-      opacity: 0.07;
+      opacity: 0.06;
       pointer-events: none;
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
     }
 
-    /* Датчик угла заноса */
-    .gauge {
+    .kanji {
       position: absolute;
-      right: var(--gutter);
-      top: 50%;
-      width: min(34vw, 420px);
-      margin: 0;
-      translate: 0 -50%;
-      filter: drop-shadow(0 0 24px rgba(10, 186, 181, 0.25));
-      svg { width: 100%; display: block; overflow: visible; }
-      circle { fill: none; }
-      .ring { stroke: var(--hairline-strong); stroke-width: 1; }
-      .arc {
-        stroke: var(--primary);
-        stroke-width: 3;
-        stroke-linecap: round;
-        stroke-dasharray: 0 100;
-        transform: rotate(-210deg);
-        transform-origin: center;
-        animation: arc 2s var(--ease-out) 0.8s forwards;
-      }
-      .tick { stroke: var(--ink-tertiary); stroke-width: 1; }
-      .tick.major { stroke: var(--ink-muted); stroke-width: 2; }
-      .needle {
-        transform-origin: 120px 120px;
-        rotate: -120deg;
-        animation: needle 2s var(--ease-spring) 0.8s forwards, sway 3.2s var(--ease-in-out) 2.8s infinite alternate;
-        line { stroke: var(--primary); stroke-width: 3; stroke-linecap: round; }
-        circle { fill: var(--primary); }
-      }
-      figcaption {
-        position: absolute;
-        left: 0;
-        right: 0;
-        bottom: 18%;
-        display: grid;
-        justify-items: center;
-      }
-      .val { font-size: clamp(32px, 4vw, 48px); line-height: 1; }
-      .lbl { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--ink-subtle); }
-    }
-    @keyframes arc { to { stroke-dasharray: 46 100; } }
-    /* -120° + 46% окружности = 46°: стрелка стоит на конце дуги */
-    @keyframes needle { to { rotate: 46deg; } }
-    @keyframes sway { from { rotate: 46deg; } to { rotate: 30deg; } }
-    @media (max-width: 900px) {
-      .gauge { display: none; }
+      right: -2vw;
+      bottom: 4vw;
+      z-index: -2;
+      font-size: clamp(120px, 20vw, 300px);
+      font-weight: 600;
+      line-height: 1;
+      color: transparent;
+      -webkit-text-stroke: 1px rgba(10, 186, 181, 0.25);
+      user-select: none;
+      pointer-events: none;
     }
 
     .chip {
@@ -207,10 +177,10 @@ import { Reveal } from '../reveal';
       height: 8px;
       border-radius: 50%;
       background: var(--primary);
-      box-shadow: 0 0 0 0 var(--primary-glow);
       animation: pulse 2s ease-out infinite;
     }
     @keyframes pulse {
+      from { box-shadow: 0 0 0 0 var(--primary-glow); }
       to { box-shadow: 0 0 0 10px transparent; }
     }
 
@@ -228,93 +198,8 @@ import { Reveal } from '../reveal';
       from { background-position: 100% 0; }
       to { background-position: 0 0; }
     }
-
     .lead { max-width: 520px; font-size: 18px; margin: 0 0 32px; }
     .cta { display: flex; flex-wrap: wrap; gap: 12px; }
-
-    .facts {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px 40px;
-      margin: 56px 0 0;
-      dt {
-        font-size: 28px;
-        font-weight: 500;
-        color: var(--ink);
-        line-height: 1;
-      }
-      dd {
-        margin: 6px 0 0;
-        font-size: 12px;
-        letter-spacing: 1px;
-        text-transform: uppercase;
-        color: var(--ink-subtle);
-      }
-      div {
-        padding-left: 14px;
-        border-left: 2px solid var(--primary);
-      }
-    }
-
-    .kanji {
-      position: absolute;
-      right: -2vw;
-      bottom: -3vw;
-      z-index: -1;
-      font-size: clamp(120px, 22vw, 320px);
-      font-weight: 600;
-      line-height: 1;
-      color: transparent;
-      -webkit-text-stroke: 1px rgba(10, 186, 181, 0.3);
-      user-select: none;
-      pointer-events: none;
-    }
-
-    /* Следы фар на длинной выдержке */
-    .streaks i {
-      position: absolute;
-      left: -40%;
-      height: 2px;
-      width: 50%;
-      z-index: -1;
-      background: linear-gradient(90deg, transparent, var(--primary), #fff, transparent);
-      filter: drop-shadow(0 0 6px var(--primary));
-      opacity: 0.7;
-      transform: translateX(300%);
-      animation: streak 7s var(--ease-in-out) infinite;
-    }
-    .streaks i:nth-child(1) { top: 28%; animation-delay: 0.2s; }
-    .streaks i:nth-child(2) { top: 52%; animation-delay: 2.6s; opacity: 0.45; }
-    .streaks i:nth-child(3) { top: 74%; animation-delay: 4.8s; opacity: 0.3; }
-    @keyframes streak {
-      from { transform: translateX(0); }
-      35%, to { transform: translateX(300%); }
-    }
-
-    /* Бегущая строка, как на трансляции */
-    .ticker {
-      overflow: hidden;
-      border-block: 1px solid var(--hairline-strong);
-      background: linear-gradient(90deg, rgba(10, 186, 181, 0.1), rgba(10, 186, 181, 0.02));
-      transform: skewY(-1.5deg);
-      margin: -24px 0 0;
-    }
-    .track {
-      display: flex;
-      width: max-content;
-      animation: marquee 40s linear infinite;
-      span {
-        padding: 14px 0;
-        white-space: pre;
-        font: 500 13px var(--mono);
-        letter-spacing: 3px;
-        text-transform: uppercase;
-        color: var(--primary);
-      }
-    }
-    @keyframes marquee {
-      to { transform: translateX(-50%); }
-    }
 
     h2 { margin: 12px 0 48px; max-width: 640px; }
     .steps {
@@ -323,8 +208,6 @@ import { Reveal } from '../reveal';
       grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
     }
     .step {
-      position: relative;
-      overflow: hidden;
       h3 { font-size: 20px; margin: 16px 0 8px; }
       p { margin: 0; }
     }
@@ -338,5 +221,8 @@ import { Reveal } from '../reveal';
 })
 export class Home {
   protected readonly steps = ['qual', 'bracket', 'final'];
-  protected readonly ticks = Array.from({ length: 61 }, (_, i) => i); // 0..60, шаг 4° → дуга 240°
+  protected readonly smokeBack = smoke(7, 900, 500);
+  protected readonly smokeFront = smoke(21, 1400, 450);
+  // shortcut: демо-цифры счётчика только в dev, пока нет базы; заменить данными этапа на шаге 5.1
+  protected readonly demo = isDevMode();
 }

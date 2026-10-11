@@ -285,8 +285,8 @@ Motion makes the interface feel alive but never gets in the way.
 - **Button press**: scale(0.97), 100ms.
 - **Card hover**: border → Tiffany at 45%, background → faint Tiffany diagonal tint over `{colors.surface-2}`, soft glow `0 12px 40px -16px {colors.primary-glow}`, translateY(-4px), 250ms.
 - **Primary button shine**: a white highlight sweeps across on hover (600ms).
-- **Hero atmosphere** (night touge): drifting tire-smoke blobs (blurred Tiffany radials, 18–30s alternate loop), perspective telemetry grid "road" scrolling toward viewer, film grain, headlight streaks, outlined kanji ドリフト, gradient-shine on the accent word, angle gauge with needle sweep + gentle sway.
-- **Ticker**: skewed broadcast-style marquee strip under the hero (mono, uppercase, Tiffany).
+- **Hero atmosphere** (night touge): two layers of seamless tire-smoke texture (SVG fractal noise) rolling slowly in opposite directions along the bottom (60–90s loops, masked to fade upward), breathing Tiffany neon glow, film grain, outlined kanji ドリフト, gradient-shine on the accent word. Hero bottom fades into the canvas — no hard edges.
+- **Registration ring**: glass card with a ring that fills N / 32 and counts up on load.
 - **Live dot**: pulsing Tiffany ring for live/active status chips.
 - **Links**: Tiffany underline grows from left (scaleX 0 → 1, 250ms ease-out).
 - **Focus**: Tiffany ring fades in over 150ms.
@@ -295,7 +295,7 @@ Motion makes the interface feel alive but never gets in the way.
 
 ### Rules
 - Animate only `transform` and `opacity` (and colors) — never width/height/top/left.
-- Looping ambient motion is allowed only in the hero, the ticker and live indicators — slow, low-contrast, never behind body text or data tables. No parallax overload, no bounce on large elements.
+- Looping ambient motion is allowed only in the hero and live indicators — slow, low-contrast, never behind body text or data tables. No parallax overload, no bounce on large elements.
 - Always honour reduced motion:
   ```css
   @media (prefers-reduced-motion: reduce) {
