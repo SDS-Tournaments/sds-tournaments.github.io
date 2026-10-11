@@ -226,7 +226,11 @@
     "noStream": "The stream is about to start",
     "battle": "On track now",
     "waiting": "Next pair coming up…",
-    "lastWin": "Last win: {{name}}",
+    "lastWin": "Last battle",
+    "beat": "def.",
+    "next": "Up next",
+    "leader": "Leader",
+    "chaser": "Chaser",
     "qual": "Qualifying · top 8",
     "noScores": "No scores yet"
   },

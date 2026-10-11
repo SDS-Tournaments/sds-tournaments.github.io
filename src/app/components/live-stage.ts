@@ -8,6 +8,7 @@ import { qualStandings } from '../scoring/scoring';
 interface Pilot {
   nickname: string;
   start_number: number | null;
+  avatar_url?: string | null;
 }
 interface Battle {
   round: string;
@@ -36,25 +37,41 @@ const ORDER = ['r32', 'r16', 'qf', 'sf', 'third', 'final'];
 
       <aside class="card side">
         @if (status() === 'battles') {
-          <p class="eyebrow">{{ 'live.battle' | transloco }}</p>
+          <div class="head">
+            <p class="eyebrow">{{ 'live.battle' | transloco }}</p>
+            @if (current(); as b) {
+              <span class="pill">{{ 'round.' + b.round | transloco }}</span>
+              @if (b.omt_count) { <span class="pill omt">OMT {{ b.omt_count }}</span> }
+            }
+          </div>
           @if (current(); as b) {
-            <p class="round subtle">{{ 'round.' + b.round | transloco }}
-              @if (b.omt_count) { · OMT {{ b.omt_count }} }
-            </p>
             <div class="vs">
               @for (pid of [b.leader_id, b.chaser_id]; track $index) {
                 <div class="pl">
-                  <span class="plate mono">{{ p(pid).start_number ?? '—' }}</span>
-                  <span class="nick">{{ p(pid).nickname }}</span>
+                  <span class="role">{{ ($index === 0 ? 'live.leader' : 'live.chaser') | transloco }}</span>
+                  @if (p(pid).avatar_url) { <img [src]="p(pid).avatar_url" alt="" width="44" height="44" /> } @else { <span class="ava"></span> }
+                  <span class="plate">#{{ p(pid).start_number ?? '—' }}</span>
+                  <span class="nick" [title]="p(pid).nickname">{{ p(pid).nickname }}</span>
                 </div>
-                @if ($index === 0) { <span class="x mono">VS</span> }
               }
+              <span class="x">VS</span>
             </div>
           } @else {
             <p class="subtle">{{ 'live.waiting' | transloco }}</p>
           }
-          @if (lastWinner(); as w) {
-            <p class="last">{{ 'live.lastWin' | transloco: { name: w } }}</p>
+          @if (upNext().length) {
+            <div class="block">
+              <p class="lbl">{{ 'live.next' | transloco }}</p>
+              @for (b of upNext(); track b.round + b.slot) {
+                <p class="row"><span class="mono n">#{{ p(b.leader_id).start_number ?? '—' }}</span> {{ p(b.leader_id).nickname }} <span class="subtle">vs</span> <span class="mono n">#{{ p(b.chaser_id).start_number ?? '—' }}</span> {{ p(b.chaser_id).nickname }}</p>
+              }
+            </div>
+          }
+          @if (last(); as l) {
+            <div class="block last">
+              <p class="lbl">{{ 'live.lastWin' | transloco }} · {{ 'round.' + l.round | transloco }}</p>
+              <p class="row"><b class="win">{{ l.winner }}</b>&nbsp;<span class="subtle">{{ 'live.beat' | transloco }}</span> {{ l.loser }}</p>
+            </div>
           }
         } @else {
           <p class="eyebrow">{{ 'live.qual' | transloco }}</p>
@@ -80,15 +97,31 @@ const ORDER = ['r32', 'r16', 'qf', 'sf', 'third', 'final'];
     .player { aspect-ratio: 16 / 9; border-radius: var(--r-lg); overflow: hidden; border: 1px solid var(--hairline-strong); background: var(--surface-1); }
     iframe { width: 100%; height: 100%; border: 0; display: block; }
     .noplayer { height: 100%; display: grid; place-items: center; }
-    .side { display: grid; align-content: start; gap: 12px; padding: 20px; }
-    .eyebrow { margin: 0; }
-    .round { margin: 0; font-size: 13px; }
-    .vs { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; text-align: center; }
-    .pl { display: grid; gap: 4px; justify-items: center; padding: 12px 4px; border-radius: var(--r-md); background: var(--surface-2); }
-    .plate { font-size: 32px; font-weight: 600; font-style: italic; text-shadow: 2px 2px 0 var(--primary); line-height: 1; }
-    .nick { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
-    .x { color: var(--primary); }
-    .last { margin: 0; font-size: 14px; color: var(--ink-muted); }
+    .side { display: flex; flex-direction: column; gap: 16px; padding: 20px; }
+    .eyebrow { margin: 0; margin-right: auto; }
+    .head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .pill { padding: 3px 10px; border-radius: var(--r-pill); border: 1px solid rgba(10, 186, 181, 0.4); color: var(--primary); font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
+    .pill.omt { border-color: rgba(255, 92, 92, 0.5); color: var(--error); }
+    .vs { position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: center; }
+    .pl { display: grid; gap: 6px; justify-items: center; min-width: 0; padding: 14px 8px; border-radius: var(--r-md); background: var(--surface-2); border: 1px solid var(--hairline); }
+    .pl:first-child { border-color: rgba(10, 186, 181, 0.35); }
+    .role { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ink-subtle); }
+    .pl img, .ava { width: 44px; height: 44px; border-radius: 50%; background: var(--surface-1); box-shadow: 0 0 0 2px var(--hairline-strong); }
+    .pl:first-child img { box-shadow: 0 0 0 2px var(--primary); }
+    .plate { font: 400 26px/1 'Russo One', var(--font); color: var(--primary); text-shadow: 0 0 18px var(--primary-glow); }
+    .nick { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+    .x {
+      position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+      display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%;
+      background: var(--canvas); border: 1px solid var(--primary); color: var(--primary);
+      font: 400 12px 'Russo One', var(--font); box-shadow: 0 0 16px var(--primary-glow);
+    }
+    .block { display: grid; gap: 6px; padding-top: 14px; border-top: 1px solid var(--hairline); }
+    .block p { margin: 0; }
+    .last { margin-top: auto; }
+    .lbl { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ink-subtle); }
+    .row { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .win { color: var(--primary); }
     .top { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
     .top li { display: grid; grid-template-columns: 24px 36px 1fr auto; gap: 8px; align-items: center; padding: 8px 10px; border-radius: var(--r-sm); background: var(--surface-2); font-size: 14px; }
     .top li:first-child { box-shadow: inset 3px 0 0 var(--primary); }
@@ -124,10 +157,15 @@ export class LiveStage implements OnInit {
   );
   private readonly sorted = computed(() => [...this.battles()].sort((a, b) => ORDER.indexOf(a.round) - ORDER.indexOf(b.round) || a.slot - b.slot));
   protected readonly current = computed(() => this.sorted().find((b) => b.status !== 'done' && b.leader_id && b.chaser_id) ?? null);
-  protected readonly lastWinner = computed(() => {
-    const done = this.sorted().filter((b) => b.status === 'done' && b.winner_id && b.leader_id && b.chaser_id);
-    const w = done.at(-1)?.winner_id;
-    return w ? this.p(w).nickname : null;
+  protected readonly upNext = computed(() => {
+    const cur = this.current();
+    return this.sorted().filter((b) => b !== cur && b.status !== 'done' && b.leader_id && b.chaser_id).slice(0, 3);
+  });
+  protected readonly last = computed(() => {
+    const b = this.sorted().filter((x) => x.status === 'done' && x.winner_id && x.leader_id && x.chaser_id).at(-1);
+    if (!b) return null;
+    const loser = b.winner_id === b.leader_id ? b.chaser_id : b.leader_id;
+    return { round: b.round, winner: this.p(b.winner_id).nickname, loser: this.p(loser).nickname };
   });
 
   constructor() {
@@ -147,7 +185,7 @@ export class LiveStage implements OnInit {
   private async load() {
     const id = this.stageId();
     const [regs, runs, battles] = await Promise.all([
-      supabase.from('registrations').select('profile_id, queue_order, profile:profiles(nickname, start_number)').eq('stage_id', id).eq('status', 'registered'),
+      supabase.from('registrations').select('profile_id, queue_order, profile:profiles(nickname, start_number, avatar_url)').eq('stage_id', id).eq('status', 'registered'),
       supabase.from('qual_runs').select('profile_id, attempt, total').eq('stage_id', id),
       supabase.from('battles').select('round, slot, leader_id, chaser_id, winner_id, status, omt_count').eq('stage_id', id),
     ]);
