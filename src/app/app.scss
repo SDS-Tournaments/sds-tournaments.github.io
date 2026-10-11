@@ -14,6 +14,19 @@ main {
   z-index: 50;
   padding-top: 12px;
   pointer-events: none; // клики в зазорах между островами проходят к странице
+  /* при прокрутке — мягкое затемнение под островами, без жёсткого края */
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 -32px;
+    z-index: -1;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.95), rgba(0, 0, 0, 0.8) 60%, transparent);
+    opacity: 0;
+    transition: opacity var(--base) var(--ease-out);
+  }
+  &.scrolled::before {
+    opacity: 1;
+  }
 }
 %island {
   pointer-events: auto;
@@ -21,6 +34,11 @@ main {
   backdrop-filter: blur(14px);
   border: 1px solid var(--hairline);
   border-radius: var(--r-pill);
+  transition: background-color var(--base) var(--ease-out), border-color var(--base) var(--ease-out);
+  .scrolled & {
+    background-color: rgba(14, 14, 14, 0.9);
+    border-color: var(--hairline-strong);
+  }
 }
 
 .livebar {
