@@ -1,0 +1,12 @@
+# Netlify: сборка Angular и SPA-маршруты (/pilots/…, /admin/… открываются напрямую)
+[build]
+  command = "npm run build"
+  publish = "dist/sds/browser"
+
+[build.environment]
+  NODE_VERSION = "24"  # как локально
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
