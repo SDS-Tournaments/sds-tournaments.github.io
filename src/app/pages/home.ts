@@ -14,7 +14,6 @@ import { Reveal } from '../reveal';
   imports: [RouterLink, TranslocoPipe, Reveal, NextStage, LiveStage, SeasonRoad],
   template: `
     <section class="hero">
-      <div class="glow" aria-hidden="true"><i></i></div>
       <span class="kanji" aria-hidden="true">ドリフト</span>
 
       <div class="container inner">
@@ -145,22 +144,6 @@ import { Reveal } from '../reveal';
     }
     @media (max-width: 900px) {
       .inner { flex-direction: column; align-items: flex-start; }
-    }
-
-    /* Бирюзовое свечение, как от неона в ночи */
-    .glow i {
-      position: absolute;
-      z-index: -2;
-      border-radius: 50%;
-      animation: breathe 14s var(--ease-in-out) infinite alternate;
-    }
-    .glow i:nth-child(1) {
-      width: 50vw; height: 50vw; right: -8vw; top: -12vw;
-      background: radial-gradient(circle, rgba(10, 186, 181, 0.3), transparent 65%);
-    }
-    @keyframes breathe {
-      from { transform: scale(1); opacity: 0.8; }
-      to { transform: scale(1.12) translate(-3vw, 2vw); opacity: 1; }
     }
 
     /* Во время этапа надпись загорается неоном и пульсирует; на событие эфира — вспышка */
