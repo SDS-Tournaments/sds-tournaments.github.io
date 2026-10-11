@@ -3,10 +3,9 @@ import { RouterLink } from '@angular/router';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { supabase } from '../auth';
 import { Loader } from '../components/loader';
-import { CardData, PilotCard } from '../components/pilot-card';
-import { Radar } from '../components/radar';
+import { loadSkillRuns, PilotShowcase } from '../components/pilot-showcase';
 import { currentSeason } from '../data/standings';
-import { SkillRun, skills } from '../scoring/scoring';
+import { SkillRun } from '../scoring/scoring';
 
 interface Profile {
   id: string;
@@ -34,7 +33,7 @@ const ACH_ORDER = ['win', 'first_win', 'hat_trick', 'podium', 'qual_king', 'perf
 // Публичный профиль пилота: обложка-ливрея, машина, статистика, «паутинка», FIFA-карточка, достижения, история
 @Component({
   selector: 'app-pilot',
-  imports: [RouterLink, TranslocoPipe, Loader, Radar, PilotCard],
+  imports: [RouterLink, TranslocoPipe, Loader, PilotShowcase],
   template: `
     @if (!ready()) {
       <app-loader />
@@ -66,22 +65,7 @@ const ACH_ORDER = ['win', 'first_win', 'hat_trick', 'podium', 'qual_king', 'perf
             }
           </div>
 
-          <div class="cols">
-            <div class="card">
-              <h2 class="h">{{ 'pilot.skills' | transloco }}</h2>
-              @if (sk(); as s) {
-                <app-radar [values]="[s.angle, s.style, s.line]" [labels]="radarLabels()" />
-                <p class="subtle small center">{{ 'pilot.skillsNote' | transloco: { n: s.runs } }}</p>
-              } @else {
-                <p class="subtle">{{ 'pilot.noRuns' | transloco }}</p>
-              }
-            </div>
-            <div class="card cardbox">
-              <h2 class="h">{{ 'pilot.card' | transloco }}</h2>
-              <app-pilot-card [d]="cardData()" />
-            </div>
-          </div>
-
+          <app-pilot-showcase [pilot]="p" [runs]="runs()" [team]="team()" [wins]="wins()" />
           @if (achievements().length) {
             <h2 class="h sec">{{ 'pilot.achievements' | transloco }}</h2>
             <div class="ach">
@@ -138,13 +122,8 @@ const ACH_ORDER = ['win', 'first_win', 'hat_trick', 'podium', 'qual_king', 'perf
     .stat { display: grid; gap: 4px; padding: 18px 20px; }
     .stat .v { font-size: 30px; color: var(--primary); line-height: 1; }
     .stat .k { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--ink-subtle); }
-    .cols { display: grid; gap: 24px; grid-template-columns: 1fr 1fr; align-items: start; }
-    @media (max-width: 860px) { .cols { grid-template-columns: 1fr; } }
     .h { font-size: 18px; margin-bottom: 16px; }
     .sec { margin: 48px 0 16px; }
-    .small { font-size: 12px; }
-    .center { text-align: center; margin: 8px 0 0; }
-    .cardbox { display: grid; justify-items: center; }
     .ach { display: flex; flex-wrap: wrap; gap: 10px; }
     .badge-a { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border: 1px solid var(--hairline-strong); border-radius: var(--r-pill); background: var(--surface-1); font-size: 14px; }
     .badge-a .e { font-size: 18px; }
@@ -160,12 +139,12 @@ export class PilotPage implements OnInit {
   protected readonly ready = signal(false);
   protected readonly team = signal<string | null>(null);
   protected readonly results = signal<Result[]>([]);
-  private readonly runs = signal<SkillRun[]>([]);
+  protected readonly runs = signal<SkillRun[]>([]);
   private readonly achRows = signal<string[]>([]);
   private readonly t = inject(TranslocoService);
   private readonly lang = signal(this.t.getActiveLang());
 
-  protected readonly sk = computed(() => skills(this.runs()));
+  protected readonly wins = computed(() => this.results().filter((x) => x.stage_place === 1).length);
   protected readonly bio = computed(() => {
     const p = this.p();
     return (this.lang() === 'en' && p?.bio_en) || p?.bio_ru || null;
@@ -195,28 +174,6 @@ export class PilotPage implements OnInit {
     for (const c of this.achRows()) counts.set(c, (counts.get(c) ?? 0) + 1);
     return ACH_ORDER.filter((c) => counts.has(c)).map((code) => ({ code, n: counts.get(code)! }));
   });
-  protected readonly radarLabels = computed(() => {
-    this.lang();
-    return ['angle', 'style', 'line'].map((k) => this.t.translate('pilot.crit.' + k));
-  });
-  protected readonly cardData = computed<CardData>(() => {
-    const p = this.p()!;
-    const s = this.sk();
-    return {
-      nickname: p.nickname,
-      start_number: p.start_number,
-      avatar_url: p.avatar_url,
-      livery_url: p.livery_url,
-      team: this.team(),
-      car: p.car,
-      overall: s?.overall ?? null,
-      angle: s?.angle ?? null,
-      style: s?.style ?? null,
-      line: s?.line ?? null,
-      wins: this.results().filter((x) => x.stage_place === 1).length,
-    };
-  });
-
   constructor() {
     this.t.langChanges$.subscribe((l) => this.lang.set(l));
   }
@@ -231,12 +188,12 @@ export class PilotPage implements OnInit {
       const season = await currentSeason();
       const [results, runs, ach, member] = await Promise.all([
         supabase.from('stage_results').select('stage_id, stage_place, qual_place, total, stage:stages(ord, title_ru, title_en, season:seasons(title))').eq('profile_id', p.id).order('stage_id', { ascending: false }),
-        supabase.from('qual_runs').select('attempt, angle, style, line, spin, stage:stages(weights)').eq('profile_id', p.id),
+        loadSkillRuns(p.id),
         supabase.from('achievements').select('code').eq('profile_id', p.id),
         season ? supabase.from('team_members').select('team:teams(name)').eq('season_id', season.id).eq('profile_id', p.id).eq('status', 'approved').maybeSingle() : Promise.resolve({ data: null }),
       ]);
       this.results.set((results.data ?? []) as unknown as Result[]);
-      this.runs.set(((runs.data ?? []) as unknown as (Omit<SkillRun, 'weights'> & { stage: { weights: SkillRun['weights'] } | null })[]).map((r) => ({ ...r, weights: r.stage?.weights ?? { angle: 40, style: 30, line: 30 } })));
+      this.runs.set(runs);
       this.achRows.set((ach.data ?? []).map((a) => a.code));
       this.team.set(((member.data as { team: { name: string } | null } | null)?.team?.name) ?? null);
       this.p.set(p);

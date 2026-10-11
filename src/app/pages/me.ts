@@ -8,13 +8,16 @@ import { NumberPicker } from '../components/number-picker';
 import { MyProtests } from '../components/my-protests';
 import { MyTeam } from '../components/my-team';
 import { Loader } from '../components/loader';
+import { loadSkillRuns, PilotShowcase } from '../components/pilot-showcase';
+import { publicSeasons } from '../data/standings';
+import { SkillRun } from '../scoring/scoring';
 import { StageSignup } from '../components/stage-signup';
 import { compressImage } from '../image';
 
 // Личный кабинет пилота (шаг 2.2). Регистрация на этап и команда — шаги 3.3–3.4.
 @Component({
   selector: 'app-me',
-  imports: [FormsModule, TranslocoPipe, NumberPicker, StageSignup, MyTeam, MyProtests, Loader],
+  imports: [FormsModule, TranslocoPipe, NumberPicker, StageSignup, MyTeam, MyProtests, Loader, PilotShowcase],
   template: `
     <section class="section container">
       @if (!auth.ready()) {
@@ -50,6 +53,8 @@ import { compressImage } from '../image';
 
         <app-my-protests class="protests" [profileId]="me.id" />
 
+        <app-pilot-showcase class="showcase" [pilot]="me" [runs]="runs()" [team]="team()" [wins]="wins()" />
+
         <div class="grid top-row">
           <app-stage-signup class="card" [profileId]="me.id" [hasNumber]="!!me.start_number" />
           <app-my-team class="card" [profileId]="me.id" />
@@ -58,8 +63,16 @@ import { compressImage } from '../image';
         <form class="grid" (ngSubmit)="save()">
           <div class="card stack wide">
             <h2 class="h">{{ 'me.number' | transloco }}</h2>
-            <p class="muted small">{{ 'me.numberHint' | transloco }}</p>
-            <app-number-picker [(value)]="number" [taken]="taken()" [nickname]="me.nickname" />
+            @if (numberLocked()) {
+              <div class="locked">
+                <span class="plate">#{{ me.start_number }}</span>
+                <p class="muted">🔒 {{ 'me.numberLocked' | transloco }}</p>
+              </div>
+            } @else {
+              <p class="muted small">{{ 'me.numberHint' | transloco }}</p>
+              <p class="warn small">{{ 'me.numberOnce' | transloco }}</p>
+              <app-number-picker [(value)]="number" [taken]="taken()" [nickname]="me.nickname" />
+            }
           </div>
 
           <div class="card stack">
@@ -106,7 +119,7 @@ import { compressImage } from '../image';
           </div>
 
           <div class="savebar wide">
-            <button class="btn btn-primary" type="submit" [disabled]="saving()">
+            <button class="btn btn-primary" type="submit" [disabled]="saving() || !dirty()">
               {{ (saving() ? 'me.saving' : 'me.save') | transloco }}
             </button>
             @if (saved()) { <span class="hint ok">✓ {{ 'me.saved' | transloco }}</span> }
@@ -192,6 +205,11 @@ import { compressImage } from '../image';
     .wide { grid-column: 1 / -1; }
     .livery-row { margin-top: 24px; }
     .top-row { margin-bottom: 24px; }
+    .showcase { margin-bottom: 24px; }
+    .warn { color: var(--warning); }
+    .locked { display: flex; align-items: center; gap: 20px; }
+    .locked p { margin: 0; }
+    .plate { font: 400 44px/1 'Russo One', var(--font); color: var(--primary); text-shadow: 0 0 18px var(--primary-glow); }
     .protests { display: block; margin-bottom: 24px; }
     .protests:empty { display: none; }
     .two { display: grid; grid-template-columns: 1fr 120px; gap: 12px; }
@@ -261,6 +279,30 @@ export class Me {
   protected readonly uploading = signal(false);
   protected readonly uploadError = signal<string | null>(null);
   private readonly transloco = inject(TranslocoService);
+  protected readonly runs = signal<SkillRun[]>([]);
+  protected readonly team = signal<string | null>(null);
+  protected readonly wins = signal(0);
+  /** id активного сезона: номер, выбранный в нём, пилот уже не меняет (0009) */
+  private readonly seasonId = signal<number | null>(null);
+  protected numberLocked() {
+    const p = this.auth.profile();
+    return !!p?.start_number && p.number_season_id === this.seasonId();
+  }
+  /** «Сохранить» активна, только если что-то изменилось */
+  protected dirty() {
+    const p = this.auth.profile();
+    if (!p) return false;
+    const t = (s: string) => s.trim() || null;
+    return (
+      this.number() !== p.start_number ||
+      t(this.car) !== p.car ||
+      t(this.engine) !== p.engine ||
+      t(this.gearbox) !== p.gearbox ||
+      (this.power || null) !== p.power_hp ||
+      t(this.bioRu) !== p.bio_ru ||
+      t(this.bioEn) !== p.bio_en
+    );
+  }
 
   constructor() {
     // Заполнить форму, когда профиль загрузился
@@ -276,6 +318,28 @@ export class Me {
       this.bioEn = p.bio_en ?? '';
       this.loadTaken(p.id);
     });
+    // id пилота не меняется — витрину грузим один раз на пилота
+    effect(() => {
+      const id = this.auth.profile()?.id;
+      if (id) this.loadShowcase(id);
+    });
+  }
+
+  private loadedFor?: string;
+  private async loadShowcase(id: string) {
+    if (this.loadedFor === id) return;
+    this.loadedFor = id;
+    const seasons = await publicSeasons();
+    const season = seasons.find((s) => s.status === 'active') ?? null;
+    this.seasonId.set(season?.id ?? null);
+    const [runs, wins, member] = await Promise.all([
+      loadSkillRuns(id),
+      supabase.from('stage_results').select('stage_id', { count: 'exact', head: true }).eq('profile_id', id).eq('stage_place', 1),
+      season ? supabase.from('team_members').select('team:teams(name)').eq('season_id', season.id).eq('profile_id', id).eq('status', 'approved').maybeSingle() : Promise.resolve({ data: null }),
+    ]);
+    this.runs.set(runs);
+    this.wins.set(wins.count ?? 0);
+    this.team.set((member.data as { team: { name: string } | null } | null)?.team?.name ?? null);
   }
 
   private async loadTaken(myId: string) {
@@ -286,6 +350,8 @@ export class Me {
   async save() {
     const me = this.auth.profile();
     if (!me) return;
+    const pickNumber = !this.numberLocked() && this.number() !== me.start_number && this.number() !== null;
+    if (pickNumber && !confirm(this.transloco.translate('me.numberConfirm', { n: this.number() }))) return;
     this.saving.set(true);
     this.saved.set(false);
     this.error.set(null);

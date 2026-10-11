@@ -14,6 +14,8 @@ export interface Profile {
   avatar_url: string | null;
   role: 'admin' | 'staff' | 'pilot';
   start_number: number | null;
+  /** сезон, в котором пилот выбрал номер (0009): в этом сезоне сменить его может только админ */
+  number_season_id: number | null;
   livery_url: string | null;
   car: string | null;
   engine: string | null;
@@ -74,7 +76,7 @@ export class Auth {
     if (!id) return this.profile.set(null);
     const { data } = await supabase
       .from('profiles')
-      .select('id, steam_id, nickname, avatar_url, role, start_number, livery_url, car, engine, gearbox, power_hp, bio_ru, bio_en')
+      .select('id, steam_id, nickname, avatar_url, role, start_number, number_season_id, livery_url, car, engine, gearbox, power_hp, bio_ru, bio_en')
       .eq('id', id)
       .single();
     this.profile.set(data);

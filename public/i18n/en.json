@@ -74,8 +74,11 @@
   "me": {
     "profile": "Profile",
     "number": "Race number",
-    "numberHint": "1 to 999. The number is yours for the whole championship — it goes on your rear window.",
+    "numberHint": "1 to 999. Numbers are unique across the championship — it goes on your rear window.",
     "numberTaken": "Someone just took this number — pick another one",
+    "numberOnce": "You pick your number once per season: after saving, only an admin can change it.",
+    "numberLocked": "This number is locked to you for the season. Only an admin can change it.",
+    "numberConfirm": "Lock #{{n}} for the whole season? Only an admin can change it later.",
     "car": "Car",
     "carModel": "Car",
     "engine": "Engine",
