@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { supabase } from '../auth';
 import { fromLocalInput, STAGE_FLOW, STAGE_STATUS, toLocalInput } from './labels';
+import { AdminParticipants } from './participants';
 
 type Crit = 'angle' | 'style' | 'line';
 interface Stage {
@@ -30,7 +31,7 @@ const CRITS: { key: Crit; label: string }[] = [
 
 @Component({
   selector: 'app-admin-stage',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, AdminParticipants],
   template: `
     @if (st(); as st) {
       <a [routerLink]="['/admin/seasons', st.season_id]" class="back">← К сезону</a>
@@ -97,6 +98,10 @@ const CRITS: { key: Crit; label: string }[] = [
           }
         </div>
       </form>
+
+      @if (st.status !== 'draft') {
+        <app-admin-participants class="participants" [stageId]="st.id" />
+      }
     } @else if (msg()) {
       <p class="bad">{{ msg() }}</p>
     }
@@ -115,6 +120,7 @@ const CRITS: { key: Crit; label: string }[] = [
     .sum { margin: 0; color: var(--primary); }
     .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
     .danger { margin-left: auto; color: var(--error); }
+    .participants { display: block; margin-top: 24px; }
     .ok { color: var(--primary); }
     .bad { color: var(--error); }
 

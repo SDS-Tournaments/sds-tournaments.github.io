@@ -85,6 +85,15 @@
     "uploading": "Uploading…",
     "guest": "Sign in with Steam to pick a race number, upload your livery and register for rounds."
   },
+  "signup": {
+    "title": "Round registration",
+    "count": "signed up: {{n}}",
+    "in": "You're in",
+    "join": "Register",
+    "leave": "Withdraw",
+    "none": "No rounds are open for registration right now.",
+    "needNumber": "Pick and save a race number below to register."
+  },
   "picker": {
     "random": "Random",
     "free": "free",

@@ -1,4 +1,5 @@
 import {
+  assignGroups,
   battleOutcome,
   bracketSize,
   Finish,
@@ -33,6 +34,15 @@ describe('квалификация', () => {
 
   it('без зачётных попыток пилот не классифицирован', () => {
     expect(qualStandings([{ id: 'a', queueOrder: 1, runs: runs(50) }])).toEqual([]);
+  });
+});
+
+describe('группы', () => {
+  it('по 10 пилотов, очередь сквозная', () => {
+    const rows = assignGroups(Array.from({ length: 23 }, (_, i) => i));
+    expect(rows.filter((r) => r.group === 1)).toHaveLength(10);
+    expect(rows.filter((r) => r.group === 3)).toHaveLength(3);
+    expect(rows[22]).toEqual({ item: 22, group: 3, queue: 23 });
   });
 });
 

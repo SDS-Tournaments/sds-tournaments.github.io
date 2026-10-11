@@ -34,6 +34,11 @@ export function qualStandings(entries: QualEntry[]): QualRow[] {
   return rows.map((r, i) => ({ id: r.id, place: i + 1, best: r.best, worst: r.worst }));
 }
 
+/** Разбивка на группы по `size` в заданном порядке → номер группы (с 1) и сквозной порядок в очереди (с 1) */
+export function assignGroups<T>(items: T[], size = 10): { item: T; group: number; queue: number }[] {
+  return items.map((item, i) => ({ item, group: Math.floor(i / size) + 1, queue: i + 1 }));
+}
+
 /** §5.2 Размер сетки: auto → 32 при 17+, 16 при 9–16, 8 при ≤ 8 */
 export function bracketSize(qualified: number, setting: 'auto' | '32' | '16' | '8' = 'auto'): 32 | 16 | 8 {
   if (setting !== 'auto') return Number(setting) as 32 | 16 | 8;

@@ -5,12 +5,13 @@ import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { Auth, supabase } from '../auth';
 import { CARS, ENGINES, GEARBOXES } from '../catalog';
 import { NumberPicker } from '../components/number-picker';
+import { StageSignup } from '../components/stage-signup';
 import { compressImage } from '../image';
 
 // Личный кабинет пилота (шаг 2.2). Регистрация на этап и команда — шаги 3.3–3.4.
 @Component({
   selector: 'app-me',
-  imports: [FormsModule, TranslocoPipe, NumberPicker],
+  imports: [FormsModule, TranslocoPipe, NumberPicker, StageSignup],
   template: `
     <section class="section container">
       @if (!auth.ready()) {
@@ -43,6 +44,8 @@ import { compressImage } from '../image';
             <button class="btn btn-ghost out" (click)="logout()">{{ 'auth.logout' | transloco }}</button>
           </div>
         </header>
+
+        <app-stage-signup class="card signup" [profileId]="me.id" [hasNumber]="!!me.start_number" />
 
         <form class="grid" (ngSubmit)="save()">
           <div class="card stack wide">
@@ -180,6 +183,7 @@ import { compressImage } from '../image';
     }
     .wide { grid-column: 1 / -1; }
     .livery-row { margin-top: 24px; }
+    .signup { margin-bottom: 24px; }
     .two { display: grid; grid-template-columns: 1fr 120px; gap: 12px; }
     .savebar {
       position: sticky;
