@@ -66,8 +66,9 @@ export class UiShowcase {
     ord: i + 1,
     title: `Этап ${i + 1}`,
     track,
-    starts_at: i > 3 ? null : `2026-${String(i + 8).padStart(2, '0')}-12T18:00:00Z`,
-    status: i < 3 ? 'finished' : i === 3 ? 'battles' : 'draft',
+    // этап 3 был 5 дней назад, этап 4 — через 10 дней: огонёк на трети пути
+    starts_at: i > 3 ? null : new Date(Date.now() + (i === 3 ? 10 : -5 - (2 - i) * 14) * 86_400_000).toISOString(),
+    status: i < 3 ? 'finished' : i === 3 ? 'registration' : 'draft',
     winner: ['Hachiroku', 'Kaido', 'Hachiroku'][i] ?? null,
   }));
   protected readonly taken = new Map([7, 13, 21, 69, 88, 99, 101].map((n) => [n, `Pilot ${n}`] as [number, string]));

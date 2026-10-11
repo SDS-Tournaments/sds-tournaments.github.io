@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { Component, computed, input } from '@angular/core';
+import { Component, computed, DestroyRef, inject, input, signal } from '@angular/core';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { Reveal } from '../reveal';
 
@@ -13,13 +13,44 @@ export interface RoadStage {
   winner: string | null;
 }
 
+const DAY = 86_400_000;
+const isLive = (s: { status: string }) => s.status === 'qualifying' || s.status === 'battles';
+
+/**
+ * Где огонёк на линии и насколько он «горячий».
+ * Между последним пройденным и следующим этапом — по доле прошедшего времени между их датами;
+ * в день старта (и во время этапа) — на самом этапе, жар = 1. Нет предыдущей даты — жар по последним 14 дням.
+ * fill — % длины линии, heat — 0..1.
+ */
+export function roadProgress(stages: { status: string; starts_at: string | null }[], now: number): { fill: number; heat: number } {
+  const segs = stages.length - 1;
+  const pct = (pos: number) => (segs > 0 ? (pos / segs) * 100 : 0);
+  const live = stages.findIndex(isLive);
+  if (live >= 0) return { fill: pct(live), heat: 1 };
+  const next = stages.findIndex((s) => s.status !== 'finished');
+  if (next < 0) return { fill: 100, heat: 0 };
+
+  const at = (i: number) => (i >= 0 && stages[i].starts_at ? Date.parse(stages[i].starts_at!) : NaN);
+  const nextAt = at(next);
+  const prevAt = at(next - 1);
+  const clamp = (x: number) => Math.min(1, Math.max(0, x));
+  if (Number.isNaN(nextAt)) return { fill: pct(Math.max(0, next - 1)), heat: 0 };
+  if (now >= nextAt) return { fill: pct(next), heat: 1 };
+  if (next === 0 || Number.isNaN(prevAt) || prevAt >= nextAt) {
+    // не от чего отсчитывать — стоим у предыдущего этапа, краснеем за 2 недели до старта
+    return { fill: pct(Math.max(0, next - 1)), heat: clamp(1 - (nextAt - now) / (14 * DAY)) };
+  }
+  const t = clamp((now - prevAt) / (nextAt - prevAt));
+  return { fill: pct(next - 1 + t), heat: t };
+}
+
 // «Дорога сезона»: тонкая линия с этапами; пройденное светится, название пройденного этапа перечёркивается
 @Component({
   selector: 'app-season-road',
   imports: [DatePipe, TranslocoPipe, Reveal],
   template: `
     <div class="scroller">
-      <ol class="tl" reveal [style.--n]="nodes().length" [style.--fill]="fill() + '%'">
+      <ol class="tl" reveal [style.--n]="nodes().length" [style.--fill]="fill() + '%'" [style.--heat]="heat() * 100 + '%'" [style.--heat-n]="heat()" [style.--pulse]="2 - heat() * 1.3 + 's'">
         @if (nodes().length > 1) {
           <li class="rail" aria-hidden="true"><span class="fill"></span></li>
         }
@@ -50,9 +81,12 @@ export interface RoadStage {
     </div>
   `,
   styles: `
-    .scroller { overflow-x: auto; padding: 8px var(--gutter) 16px; scrollbar-width: thin; }
+    /* запас сверху — под расходящиеся кольца (overflow-x обрезает и по вертикали) */
+    .scroller { overflow-x: auto; padding: 32px var(--gutter) 16px; scrollbar-width: thin; }
     .tl {
-      --col: max(180px, calc((100% - 0px) / var(--n)));
+      /* «жар» приближения этапа: бирюзовый → красный */
+      /* через синий и фиолетовый неон, без серой середины */
+      --hot: color-mix(in oklch longer hue, var(--primary), var(--error) var(--heat, 0%));
       position: relative;
       display: grid;
       grid-template-columns: repeat(var(--n), minmax(180px, 1fr));
@@ -75,24 +109,29 @@ export interface RoadStage {
       position: absolute;
       inset: 0 auto 0 0;
       width: 0;
-      background: linear-gradient(90deg, rgba(10, 186, 181, 0.35), var(--primary));
-      box-shadow: 0 0 12px var(--primary-glow);
+      background: linear-gradient(90deg, rgba(10, 186, 181, 0.35), var(--primary) 60%, var(--hot));
+      box-shadow: 0 0 12px color-mix(in oklab, var(--hot), transparent 55%);
       transition: width 1.8s var(--ease-out) 0.2s;
     }
     /* огонёк на конце пройденного */
     .fill::after {
       content: '';
       position: absolute;
-      right: -3px;
-      top: -3px;
-      width: 7px;
-      height: 7px;
+      right: -4px;
+      top: -4px;
+      width: 9px;
+      height: 9px;
       border-radius: 50%;
       background: #fff;
-      box-shadow: 0 0 8px 2px var(--primary), 0 0 24px 6px var(--primary-glow);
+      /* чем ближе этап, тем краснее и ярче */
+      box-shadow:
+        0 0 8px 2px var(--hot),
+        0 0 calc(18px + 24px * var(--heat-n, 0)) calc(4px + 8px * var(--heat-n, 0)) color-mix(in oklab, var(--hot), transparent 50%);
+      animation: flicker 1.6s ease-in-out infinite;
       opacity: 0;
       transition: opacity 0.4s 1.6s;
     }
+    @keyframes flicker { 50% { transform: scale(0.8); } }
     .tl.shown .fill { width: var(--fill); }
     .tl.shown .fill::after { opacity: 1; }
     .tl.reveal { opacity: 1; transform: none; }
@@ -140,18 +179,16 @@ export interface RoadStage {
     }
     .tl.shown .done .t::after { transform: scaleX(1); }
 
-    /* текущий: пульсирующее кольцо */
-    .next .dot, .live .dot { border-color: var(--primary); background: var(--canvas); box-shadow: 0 0 0 4px var(--primary-soft); }
+    /* текущий: пульсирующее кольцо; цвет и частота — по «жару» приближения */
+    .next .dot, .live .dot { border-color: var(--hot); background: var(--canvas); box-shadow: 0 0 0 4px color-mix(in oklab, var(--hot), transparent 85%); }
     .next .dot::after, .live .dot::after {
-      content: ''; position: absolute; inset: -1px; border-radius: 50%; border: 1px solid var(--primary);
-      animation: ring 2s ease-out infinite;
+      content: ''; position: absolute; inset: -1px; border-radius: 50%; border: 1px solid var(--hot);
+      animation: ring var(--pulse, 2s) ease-out infinite;
     }
     @keyframes ring { to { transform: scale(2.6); opacity: 0; } }
-    .next .num, .live .num { color: var(--ink); -webkit-text-stroke: 0; text-shadow: 0 0 24px var(--primary-glow); }
-    .next .label { color: var(--primary); }
+    .next .num, .live .num { color: var(--ink); -webkit-text-stroke: 0; text-shadow: 0 0 24px color-mix(in oklab, var(--hot), transparent 50%); }
+    .next .label { color: var(--hot); }
     .st .live { color: var(--error); }
-    .live .dot, .live .dot::after { border-color: var(--error); }
-    .live .dot { box-shadow: 0 0 0 4px rgba(255, 92, 92, 0.15); }
 
     .future { opacity: 0.55; }
   `,
@@ -176,9 +213,14 @@ export class SeasonRoad {
     }));
   });
 
-  /** Длина бирюзовой части линии — до текущего этапа */
-  protected readonly fill = computed(() => {
-    const segs = this.stages().length - 1;
-    return segs > 0 ? (this.currentIdx() / segs) * 100 : 0;
-  });
+  /** Время идёт — огонёк ползёт к следующему этапу (пересчёт раз в минуту) */
+  private readonly now = signal(Date.now());
+  private readonly progress = computed(() => roadProgress(this.stages(), this.now()));
+  protected readonly fill = computed(() => this.progress().fill);
+  protected readonly heat = computed(() => this.progress().heat);
+
+  constructor() {
+    const id = setInterval(() => this.now.set(Date.now()), 60_000);
+    inject(DestroyRef).onDestroy(() => clearInterval(id));
+  }
 }
