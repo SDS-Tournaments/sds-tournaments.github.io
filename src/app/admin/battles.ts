@@ -53,14 +53,14 @@ const RESULT_LABEL: Record<string, string> = { normal: '', tech_loss: 'техп�
             </p>
             <div class="vs">
               <div class="side lead">
-                <span class="role">Лидер</span>
+                <span class="role">Лидер в 1-м заезде</span>
                 <span class="plate mono">{{ info(b.leader_id).start_number ?? '—' }}</span>
                 <span class="nick">{{ info(b.leader_id).nickname }}</span>
                 <span class="subtle mono">квал. #{{ qualPlace().get(b.leader_id!) }}</span>
               </div>
               <span class="x mono">VS</span>
               <div class="side chase">
-                <span class="role">Чейзер</span>
+                <span class="role">Чейзер в 1-м заезде</span>
                 <span class="plate mono">{{ info(b.chaser_id).start_number ?? '—' }}</span>
                 <span class="nick">{{ info(b.chaser_id).nickname }}</span>
                 <span class="subtle mono">квал. #{{ qualPlace().get(b.chaser_id!) }}</span>
@@ -82,9 +82,15 @@ const RESULT_LABEL: Record<string, string> = { normal: '', tech_loss: 'техп�
                 @for (c of crits; track c.key) {
                   <div class="vrow">
                     <span class="judge">{{ c.label }} <span class="subtle">· {{ judges()[c.key] || 'судья' }}</span></span>
+                    <!-- Пилоты в том же порядке, что и карточки выше; OMT посередине -->
                     <div class="seg" role="radiogroup">
-                      @for (v of voteKinds; track v.v) {
-                        <button type="button" role="radio" [class.on]="votes()[c.key] === v.v" [attr.aria-checked]="votes()[c.key] === v.v" (click)="setVote(c.key, v.v)">{{ v.label }}</button>
+                      @for (v of voteKinds; track v) {
+                        @let pid = v === 'leader' ? b.leader_id : v === 'chaser' ? b.chaser_id : null;
+                        <button type="button" role="radio" [class.omt-btn]="v === 'omt'" [class.on]="votes()[c.key] === v" [attr.aria-checked]="votes()[c.key] === v" (click)="setVote(c.key, v)">
+                          @if (pid) {
+                            <span class="mono vn">{{ info(pid).start_number ?? '—' }}</span> {{ info(pid).nickname }}
+                          } @else { OMT }
+                        </button>
                       }
                     </div>
                   </div>
@@ -161,17 +167,21 @@ const RESULT_LABEL: Record<string, string> = { normal: '', tech_loss: 'техп�
     .x { font-size: 20px; color: var(--primary); }
 
     .votes { display: grid; gap: 10px; }
-    .vrow { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; }
+    .vrow { display: grid; gap: 6px; }
     .judge { font-size: 14px; }
-    .seg { display: flex; border: 1px solid var(--hairline-strong); border-radius: var(--r-md); overflow: hidden; }
+    .seg { display: grid; grid-template-columns: 1fr 72px 1fr; border: 1px solid var(--hairline-strong); border-radius: var(--r-md); overflow: hidden; }
     .seg button {
-      min-width: 88px; min-height: 44px; border: 0; border-right: 1px solid var(--hairline-strong); background: var(--surface-1);
+      min-height: 48px; padding: 6px 10px; border: 0; border-right: 1px solid var(--hairline-strong); background: var(--surface-1);
       color: var(--ink-muted); font: 500 14px var(--font); cursor: pointer; transition: background-color var(--fast), color var(--fast);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
       &:last-child { border-right: 0; }
-      &:hover { color: var(--ink); }
+      &:hover { color: var(--ink); background: var(--surface-2); }
       &.on { background: var(--primary); color: var(--on-primary); }
-      &.on:last-child { background: var(--warning); }
+      &.omt-btn { font-family: var(--mono); font-size: 13px; }
+      &.omt-btn.on { background: var(--warning); }
     }
+    .vn { color: var(--primary); margin-right: 4px; }
+    .on .vn { color: inherit; }
     .commit { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; padding-top: 8px; border-top: 1px solid var(--hairline); }
     .preview { font-size: 15px; color: var(--primary); }
     .incidents { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -219,11 +229,7 @@ export class AdminBattles implements OnInit, OnDestroy {
   protected readonly crits = CRITS;
   protected readonly roundLabel = ROUND_LABEL;
   protected readonly resultLabel = RESULT_LABEL;
-  protected readonly voteKinds: { v: Vote; label: string }[] = [
-    { v: 'leader', label: 'Лидер' },
-    { v: 'chaser', label: 'Чейзер' },
-    { v: 'omt', label: 'OMT' },
-  ];
+  protected readonly voteKinds: Vote[] = ['leader', 'omt', 'chaser'];
   private channel?: RealtimeChannel;
 
   protected readonly qualPlace = computed(() => new Map(this.standings().map((r) => [r.id, r.place])));
