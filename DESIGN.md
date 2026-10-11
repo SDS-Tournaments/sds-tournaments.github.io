@@ -283,7 +283,11 @@ Motion makes the interface feel alive but never gets in the way.
 - **Hero entrance**: headline, subline and buttons fade-and-rise in sequence (stagger 80ms) on load.
 - **Button hover**: background → hover color (150ms) + translateY(-2px) + soft Tiffany glow `0 8px 24px -8px {colors.primary-glow}` on primary.
 - **Button press**: scale(0.97), 100ms.
-- **Card hover**: border → `{colors.hairline-strong}`, background → `{colors.surface-2}`, translateY(-2px), 250ms.
+- **Card hover**: border → Tiffany at 45%, background → faint Tiffany diagonal tint over `{colors.surface-2}`, soft glow `0 12px 40px -16px {colors.primary-glow}`, translateY(-4px), 250ms.
+- **Primary button shine**: a white highlight sweeps across on hover (600ms).
+- **Hero atmosphere** (night touge): drifting tire-smoke blobs (blurred Tiffany radials, 18–30s alternate loop), perspective telemetry grid "road" scrolling toward viewer, film grain, headlight streaks, outlined kanji ドリフト, gradient-shine on the accent word, angle gauge with needle sweep + gentle sway.
+- **Ticker**: skewed broadcast-style marquee strip under the hero (mono, uppercase, Tiffany).
+- **Live dot**: pulsing Tiffany ring for live/active status chips.
 - **Links**: Tiffany underline grows from left (scaleX 0 → 1, 250ms ease-out).
 - **Focus**: Tiffany ring fades in over 150ms.
 - **Modals/dropdowns**: fade + scale 0.96 → 1, 250ms ease-out; backdrop fades to `{colors.semantic-overlay}`.
@@ -291,7 +295,7 @@ Motion makes the interface feel alive but never gets in the way.
 
 ### Rules
 - Animate only `transform` and `opacity` (and colors) — never width/height/top/left.
-- No infinite or looping decorative animations, no parallax overload, no bounce on large elements.
+- Looping ambient motion is allowed only in the hero, the ticker and live indicators — slow, low-contrast, never behind body text or data tables. No parallax overload, no bounce on large elements.
 - Always honour reduced motion:
   ```css
   @media (prefers-reduced-motion: reduce) {
@@ -332,7 +336,7 @@ Motion makes the interface feel alive but never gets in the way.
 ### Don't
 - Don't use a second accent color.
 - Don't fill sections or large areas with Tiffany.
-- Don't use gradients, heavy shadows, or glassmorphism beyond the nav blur.
+- Don't use gradients outside atmosphere (hero, ticker, card hover tint, accent word); no heavy shadows; glass blur only on nav and chips.
 - Don't put white text on Tiffany.
 - Don't animate layout properties or ignore `prefers-reduced-motion`.
 - Don't ship a light theme unless asked.

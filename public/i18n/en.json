@@ -13,10 +13,33 @@
     "loginShort": "Sign in"
   },
   "home": {
-    "eyebrow": "Online drift championship · CarX Drift Racing Online 2",
+    "chip": "Online championship · CarX Drift Racing Online 2",
+    "gauge": "Drift angle",
     "lead": "Qualifying, Top 32 tandem battles and season standings — all in one place, live.",
     "toStages": "Season rounds",
-    "toStandings": "Standings"
+    "toStandings": "Standings",
+    "fact": {
+      "bracket": "Drivers in bracket",
+      "judges": "Judges per run",
+      "max": "Max points"
+    },
+    "ticker": "Qualifying  ✦  Top 32  ✦  Tandem battles  ✦  One More Time  ✦  Angle · Style · Line  ✦  Sad Drift Series  ✦  ",
+    "how": {
+      "eyebrow": "Format",
+      "title": "How a round works",
+      "qual": {
+        "title": "Qualifying",
+        "text": "Three runs: a warm-up and two scored attempts. Three judges score angle, style and line — up to 100 points."
+      },
+      "bracket": {
+        "title": "Top 32 bracket",
+        "text": "The best qualifiers make the bracket. The higher qualifier leads the pair."
+      },
+      "final": {
+        "title": "Battles to the final",
+        "text": "Two runs with swapped roles, judges' votes, up to two OMTs. The winner takes 250 season points."
+      }
+    }
   },
   "common": {
     "soon": "Coming soon."
