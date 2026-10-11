@@ -3,7 +3,9 @@ import { ActivatedRoute } from '@angular/router';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '../auth';
 import { BracketTree, TreeBattle, TreePilot } from '../components/bracket-tree';
-import { qualStandings, Round } from '../scoring/scoring';
+import { CardData, PilotCard } from '../components/pilot-card';
+import { qualStandings, Round, SkillRun, skills } from '../scoring/scoring';
+import { compareRow } from './compare';
 import { DEFAULT_STATE, OVERLAY_TEXT, OverlayState, Widget } from './state';
 
 interface Pilot extends TreePilot {
@@ -45,7 +47,7 @@ const FLASH_MS = 10_000;
 // Плашки для OBS: прозрачный фон 1920×1080. ?only=widget — один виджет на отдельный источник
 @Component({
   selector: 'app-overlay',
-  imports: [BracketTree],
+  imports: [BracketTree, PilotCard],
   template: `
     <div class="screen" [class.preview]="preview">
       <!-- Стадия этапа -->
@@ -148,6 +150,37 @@ const FLASH_MS = 10_000;
         </div>
       }
 
+      <!-- Карточки дуэли: сравнение сил -->
+      @if (show('matchup') && matchup(); as m) {
+        <div class="w full matchup" animate.enter="in-fade" animate.leave="out-fade">
+          <p class="mu-round">{{ t()[m.round] }} · {{ t().pair }} {{ m.slot + 1 }}</p>
+          <div class="mu">
+            <div class="mu-card left">
+              <span class="role">{{ t().leader }}</span>
+              <app-pilot-card [d]="m.a" [downloadable]="false" />
+            </div>
+            <div class="mu-stats">
+              <span class="vs">VS</span>
+              @for (r of m.rows; track r.key; let i = $index) {
+                <div class="cmp" [style.--i]="i">
+                  <span class="k">{{ label(r.key) }}</span>
+                  <span class="va" [class.win]="r.better === 'a'">{{ r.a ?? '—' }}</span>
+                  <span class="bars">
+                    <span class="half l"><span class="b" [class.win]="r.better === 'a'" [style.--w]="r.wa + '%'"></span></span>
+                    <span class="half r"><span class="b" [class.win]="r.better === 'b'" [style.--w]="r.wb + '%'"></span></span>
+                  </span>
+                  <span class="vb" [class.win]="r.better === 'b'">{{ r.b ?? '—' }}</span>
+                </div>
+              }
+            </div>
+            <div class="mu-card right">
+              <span class="role">{{ t().chaser }}</span>
+              <app-pilot-card [d]="m.b" [downloadable]="false" />
+            </div>
+          </div>
+        </div>
+      }
+
       <!-- Сетка -->
       @if (show('bracket') && battles().length) {
         <div class="w full" animate.enter="in-fade" animate.leave="out-fade">
@@ -247,9 +280,41 @@ export class Overlay implements OnInit {
     // авто-показ: 10 секунд после каждой новой оценки
     return !this.only && this.state().autoScore && !!r && this.now() - Date.parse(r.created_at) < FLASH_MS;
   });
-  protected readonly top = computed(() =>
-    qualStandings(this.queue().map((r) => ({ id: r.profile_id, queueOrder: r.queue_order ?? 1e9, runs: this.runsOf(r.profile_id) }))).slice(0, 10),
+  private readonly qualAll = computed(() =>
+    qualStandings(this.queue().map((r) => ({ id: r.profile_id, queueOrder: r.queue_order ?? 1e9, runs: this.runsOf(r.profile_id) }))),
   );
+  protected readonly top = computed(() => this.qualAll().slice(0, 10));
+
+  /** карточки пары: навыки и победы за всё время + квалификация этого этапа */
+  private readonly mu = signal<{ ids: string; cards: Record<string, CardData> } | null>(null);
+  protected readonly matchup = computed(() => {
+    const d = this.duel();
+    const m = this.mu();
+    if (!d || !m || m.ids !== `${d.leader_id}|${d.chaser_id}`) return null;
+    const a = m.cards[d.leader_id!];
+    const b = m.cards[d.chaser_id!];
+    const qa = this.qualAll().find((q) => q.id === d.leader_id);
+    const qb = this.qualAll().find((q) => q.id === d.chaser_id);
+    return {
+      round: d.round,
+      slot: d.slot,
+      a,
+      b,
+      rows: [
+        compareRow('ovr', a.overall, b.overall),
+        compareRow('angle', a.angle, b.angle),
+        compareRow('style', a.style, b.style),
+        compareRow('line', a.line, b.line),
+        compareRow('wins', a.wins, b.wins),
+        compareRow('qualPlace', qa?.place ?? null, qb?.place ?? null, true),
+        compareRow('bestRun', qa?.best ?? null, qb?.best ?? null),
+      ],
+    };
+  });
+
+  protected label(key: string) {
+    return (this.t() as Record<string, string>)[key] ?? key;
+  }
 
   /** Масштаб сетки, чтобы Top 32/16/8 целиком влезала в 1920×1080 (размеры — из BracketTree: колонка 168 + 40, строка 34) */
   protected readonly bracketZoom = computed(() => {
@@ -262,7 +327,13 @@ export class Overlay implements OnInit {
   });
 
   private readonly sorted = computed(() => [...this.battles()].sort((a, b) => ORDER.indexOf(a.round) - ORDER.indexOf(b.round) || a.slot - b.slot));
-  protected readonly duel = computed(() => this.sorted().find((b) => b.status !== 'done' && b.leader_id && b.chaser_id) ?? null);
+  // ?pair=ID — показать конкретную пару (превью карточек на завершённом этапе)
+  private readonly forcePair = Number(this.route.snapshot.queryParamMap.get('pair')) || null;
+  protected readonly duel = computed(() =>
+    this.forcePair
+      ? (this.battles().find((b) => b.id === this.forcePair) ?? null)
+      : (this.sorted().find((b) => b.status !== 'done' && b.leader_id && b.chaser_id) ?? null),
+  );
   /** «Победа: ник» — 10 секунд после решения судей */
   protected readonly flash = computed(() => {
     const last = this.battles()
@@ -360,7 +431,42 @@ export class Overlay implements OnInit {
     this.runs.set(runs.data ?? []);
     this.battles.set((battles.data ?? []) as Battle[]);
     this.results.set(results.data ?? []);
-    await this.loadVotes();
+    await Promise.all([this.loadVotes(), this.loadMatchup()]);
+  }
+
+  /** Данные для карточек текущей пары — перезагружаются только когда пара сменилась */
+  private async loadMatchup() {
+    const d = this.duel();
+    if (!d) return;
+    const ids = [d.leader_id!, d.chaser_id!];
+    if (this.mu()?.ids === ids.join('|')) return;
+    const [profiles, runs, wins] = await Promise.all([
+      supabase.from('profiles').select('id, nickname, start_number, avatar_url, livery_url, car').in('id', ids),
+      supabase.from('qual_runs').select('profile_id, attempt, angle, style, line, spin, stage:stages(weights)').in('profile_id', ids),
+      supabase.from('stage_results').select('profile_id').in('profile_id', ids).eq('stage_place', 1),
+    ]);
+    const cards: Record<string, CardData> = {};
+    for (const p of profiles.data ?? []) {
+      const sk = skills(
+        ((runs.data ?? []) as unknown as (Omit<SkillRun, 'weights'> & { profile_id: string; stage: { weights: SkillRun['weights'] } | null })[])
+          .filter((r) => r.profile_id === p.id)
+          .map((r) => ({ ...r, weights: r.stage?.weights ?? { angle: 40, style: 30, line: 30 } })),
+      );
+      cards[p.id] = {
+        nickname: p.nickname,
+        start_number: p.start_number,
+        avatar_url: p.avatar_url,
+        livery_url: p.livery_url,
+        team: this.p(p.id).team,
+        car: p.car,
+        overall: sk?.overall ?? null,
+        angle: sk?.angle ?? null,
+        style: sk?.style ?? null,
+        line: sk?.line ?? null,
+        wins: (wins.data ?? []).filter((w) => w.profile_id === p.id).length,
+      };
+    }
+    this.mu.set({ ids: ids.join('|'), cards });
   }
 
   private async loadVotes() {

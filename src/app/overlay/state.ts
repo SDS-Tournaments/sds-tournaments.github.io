@@ -1,6 +1,6 @@
 // Состояние плашек трансляции — хранится в overlay_state.state (одна строка, Realtime)
 
-export const WIDGETS = ['stage', 'onTrack', 'score', 'qualTable', 'duel', 'bracket', 'podium', 'sponsors', 'protest'] as const;
+export const WIDGETS = ['stage', 'onTrack', 'score', 'qualTable', 'duel', 'matchup', 'bracket', 'podium', 'sponsors', 'protest'] as const;
 export type Widget = (typeof WIDGETS)[number];
 
 export interface OverlayState {
@@ -19,6 +19,7 @@ export const WIDGET_LABEL: Record<Widget, string> = {
   score: 'Оценка заезда',
   qualTable: 'Таблица квалификации',
   duel: 'Дуэль',
+  matchup: 'Карточки дуэли (сравнение)',
   bracket: 'Сетка (весь экран)',
   podium: 'Подиум (весь экран)',
   sponsors: 'Спонсоры',
@@ -50,6 +51,11 @@ export const OVERLAY_TEXT = {
     protestSub: 'Организатор изучает видео',
     podium: 'Подиум этапа',
     partners: 'Партнёры',
+    pair: 'Пара',
+    ovr: 'Рейтинг',
+    wins: 'Победы на этапах',
+    qualPlace: 'Место в квалификации',
+    bestRun: 'Лучший заезд',
     r32: 'Top 32', r16: 'Top 16', qf: 'Top 8', sf: 'Полуфинал', third: 'За 3-е место', final: 'Финал',
   },
   en: {
@@ -75,6 +81,11 @@ export const OVERLAY_TEXT = {
     protestSub: 'The organizer is reviewing the footage',
     podium: 'Round podium',
     partners: 'Partners',
+    pair: 'Pair',
+    ovr: 'Rating',
+    wins: 'Round wins',
+    qualPlace: 'Qualifying place',
+    bestRun: 'Best run',
     r32: 'Top 32', r16: 'Top 16', qf: 'Top 8', sf: 'Semi-final', third: '3rd place', final: 'Final',
   },
 };
