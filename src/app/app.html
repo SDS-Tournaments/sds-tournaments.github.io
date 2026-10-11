@@ -16,9 +16,19 @@
         <button type="button" [class.on]="lang() === 'ru'" [attr.aria-pressed]="lang() === 'ru'" (click)="setLang('ru')">RU</button>
         <button type="button" [class.on]="lang() === 'en'" [attr.aria-pressed]="lang() === 'en'" (click)="setLang('en')">EN</button>
       </div>
-      <button type="button" class="btn btn-primary login">
-        <span class="long">{{ 'auth.login' | transloco }}</span><span class="short">{{ 'auth.loginShort' | transloco }}</span>
-      </button>
+      @if (auth.profile(); as me) {
+        <a routerLink="/me" class="me" [title]="me.nickname">
+          @if (me.avatar_url) {
+            <img [src]="me.avatar_url" alt="" width="36" height="36" />
+          }
+          <span class="me-name">{{ me.nickname }}</span>
+        </a>
+        <button type="button" class="btn btn-ghost logout" (click)="auth.logout()">{{ 'auth.logout' | transloco }}</button>
+      } @else {
+        <button type="button" class="btn btn-primary login" (click)="auth.login()">
+          <span class="long">{{ 'auth.login' | transloco }}</span><span class="short">{{ 'auth.loginShort' | transloco }}</span>
+        </button>
+      }
       <button type="button" class="burger" [attr.aria-expanded]="menuOpen()" [attr.aria-label]="'nav.menu' | transloco" (click)="menuOpen.set(!menuOpen())">
         <span></span><span></span>
       </button>

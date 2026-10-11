@@ -2,6 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
+import { Auth } from './auth';
 import { Lang, saveLang } from './i18n';
 
 @Component({
@@ -12,6 +13,7 @@ import { Lang, saveLang } from './i18n';
 })
 export class App {
   private transloco = inject(TranslocoService);
+  protected readonly auth = inject(Auth);
   protected readonly lang = toSignal(this.transloco.langChanges$, { initialValue: this.transloco.getActiveLang() });
   protected readonly menuOpen = signal(false);
   protected readonly nav = ['standings', 'stages', 'pilots', 'teams', 'rules'];

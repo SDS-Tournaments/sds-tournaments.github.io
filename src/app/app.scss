@@ -161,6 +161,36 @@ main {
     }
   }
 }
+.me {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink);
+  background: none;
+  img {
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px var(--primary);
+  }
+  &:hover {
+    color: var(--primary);
+  }
+}
+.me-name {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 500;
+}
+// shortcut: на телефоне «Выйти» скрыт; кнопка выхода будет в личном кабинете (шаг 2.2)
+@media (max-width: 560px) {
+  .me-name,
+  .logout {
+    display: none;
+  }
+}
+
 .login .short {
   display: none;
 }

@@ -6,11 +6,18 @@
     "pilots": "Drivers",
     "teams": "Teams",
     "archive": "Archive",
-    "rules": "Rules"
+    "rules": "Rules",
+    "me": "My account"
   },
   "auth": {
     "login": "Sign in with Steam",
-    "loginShort": "Sign in"
+    "loginShort": "Sign in",
+    "logout": "Sign out",
+    "signingIn": "Signing in with Steam…",
+    "failed": "Sign-in failed",
+    "failedHint": "Please try again. If it keeps failing, contact the organizer.",
+    "retry": "Try again",
+    "home": "Home"
   },
   "home": {
     "chip": "Online championship · CarX Drift Racing Online 2",
