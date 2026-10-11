@@ -54,7 +54,32 @@
   "sponsor": {
     "general": "General sponsor"
   },
+  "role": {
+    "admin": "Organizer",
+    "staff": "Judge",
+    "pilot": "Driver"
+  },
+  "me": {
+    "profile": "Profile",
+    "number": "Race number",
+    "numberHint": "1 to 999. The number is yours for the whole championship.",
+    "numberFree": "Number is available",
+    "numberTaken": "This number is already taken",
+    "numberInvalid": "Number must be between 1 and 999",
+    "bioRu": "About me (RU)",
+    "bioEn": "About me (EN, optional)",
+    "save": "Save",
+    "saving": "Saving…",
+    "saved": "Saved",
+    "livery": "Livery",
+    "liveryHint": "A screenshot of your car — it becomes your profile cover. PNG, JPG or WebP, the site compresses it for you.",
+    "noLivery": "No livery uploaded",
+    "upload": "Upload livery",
+    "uploading": "Uploading…",
+    "guest": "Sign in with Steam to pick a race number, upload your livery and register for rounds."
+  },
   "common": {
-    "soon": "Coming soon."
+    "soon": "Coming soon.",
+    "loading": "Loading…"
   }
 }

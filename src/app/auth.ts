@@ -11,18 +11,26 @@ export interface Profile {
   avatar_url: string | null;
   role: 'admin' | 'staff' | 'pilot';
   start_number: number | null;
+  livery_url: string | null;
+  bio_ru: string | null;
+  bio_en: string | null;
 }
 
 @Injectable({ providedIn: 'root' })
 export class Auth {
   readonly session = signal<Session | null>(null);
   readonly profile = signal<Profile | null>(null);
+  /** true после того, как supabase-js восстановил (или не нашёл) сессию */
+  readonly ready = signal(false);
 
   constructor() {
     supabase.auth.onAuthStateChange((_event, session) => {
       this.session.set(session);
       // вне колбэка: supabase-js не любит запросы внутри onAuthStateChange
-      setTimeout(() => this.loadProfile(session?.user.id));
+      setTimeout(async () => {
+        await this.loadProfile(session?.user.id);
+        this.ready.set(true);
+      });
     });
   }
 
@@ -33,6 +41,10 @@ export class Auth {
 
   logout() {
     return supabase.auth.signOut();
+  }
+
+  reload() {
+    return this.loadProfile(this.session()?.user.id);
   }
 
   /** Возврат из Steam: #token_hash=… → сессия. Возвращает текст ошибки или null. */
@@ -49,7 +61,7 @@ export class Auth {
     if (!id) return this.profile.set(null);
     const { data } = await supabase
       .from('profiles')
-      .select('id, steam_id, nickname, avatar_url, role, start_number')
+      .select('id, steam_id, nickname, avatar_url, role, start_number, livery_url, bio_ru, bio_en')
       .eq('id', id)
       .single();
     this.profile.set(data);
