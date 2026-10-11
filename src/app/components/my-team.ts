@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { supabase } from '../auth';
 import { compressImage } from '../image';
+import { Skeleton } from './skeleton';
 
 interface Team {
   id: number;
@@ -19,12 +20,12 @@ interface Member {
 // Команда пилота в текущем сезоне: создать, подать заявку, состав; капитану — приглашения и логотип
 @Component({
   selector: 'app-my-team',
-  imports: [FormsModule, TranslocoPipe],
+  imports: [FormsModule, TranslocoPipe, Skeleton],
   template: `
     <h2 class="h">{{ 'team.title' | transloco }}</h2>
 
     @if (loading()) {
-      <p class="subtle">{{ 'common.loading' | transloco }}</p>
+      <app-skeleton variant="rows" [count]="2" />
     } @else if (!seasonId()) {
       <p class="subtle">{{ 'team.noSeason' | transloco }}</p>
     } @else if (team(); as t) {

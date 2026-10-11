@@ -2,6 +2,7 @@ import { DatePipe } from '@angular/common';
 import { Component, inject, input, OnInit, signal } from '@angular/core';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { supabase } from '../auth';
+import { Skeleton } from './skeleton';
 
 interface OpenStage {
   id: number;
@@ -15,7 +16,7 @@ interface OpenStage {
 // Регистрация пилота на этапы с открытой регистрацией
 @Component({
   selector: 'app-stage-signup',
-  imports: [TranslocoPipe, DatePipe],
+  imports: [TranslocoPipe, DatePipe, Skeleton],
   template: `
     <h2 class="h">{{ 'signup.title' | transloco }}</h2>
     @for (s of stages(); track s.id) {
@@ -37,7 +38,7 @@ interface OpenStage {
         }
       </article>
     } @empty {
-      <p class="subtle">{{ 'signup.none' | transloco }}</p>
+      @if (loading()) { <app-skeleton variant="rows" [count]="1" /> } @else { <p class="subtle">{{ 'signup.none' | transloco }}</p> }
     }
     @if (!hasNumber() && stages().length) { <p class="hint">{{ 'signup.needNumber' | transloco }}</p> }
     @if (error()) { <p class="bad">{{ error() }}</p> }
@@ -68,6 +69,7 @@ export class StageSignup implements OnInit {
   readonly hasNumber = input(false);
   protected readonly stages = signal<OpenStage[]>([]);
   protected readonly busy = signal(false);
+  protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
   private readonly transloco = inject(TranslocoService);
   protected readonly lang = signal(this.transloco.getActiveLang());
@@ -86,6 +88,7 @@ export class StageSignup implements OnInit {
       .select('id, title_ru, title_en, track, starts_at, registrations(profile_id, status)')
       .eq('status', 'registration')
       .order('starts_at');
+    this.loading.set(false);
     if (error) return this.error.set(error.message);
     this.stages.set(data);
   }

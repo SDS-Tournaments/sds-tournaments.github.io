@@ -6,6 +6,7 @@ import { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '../auth';
 import { BracketTree, TreeBattle, TreePilot } from '../components/bracket-tree';
 import { LiveStage } from '../components/live-stage';
+import { Skeleton } from '../components/skeleton';
 import { qualStandings, Round } from '../scoring/scoring';
 
 interface Stage {
@@ -40,7 +41,7 @@ type Tab = 'results' | 'bracket' | 'qual';
 // Страница этапа для зрителей: итоги, живая сетка, квалификация
 @Component({
   selector: 'app-stage',
-  imports: [RouterLink, TranslocoPipe, DatePipe, BracketTree, LiveStage],
+  imports: [RouterLink, TranslocoPipe, DatePipe, BracketTree, LiveStage, Skeleton],
   template: `
     @if (stage(); as s) {
       <section class="section container">
@@ -119,6 +120,8 @@ type Tab = 'results' | 'bracket' | 'qual';
       </section>
     } @else if (missing()) {
       <section class="section container"><p class="subtle">{{ 'stage.notFound' | transloco }}</p></section>
+    } @else {
+      <section class="section container"><app-skeleton variant="block" [count]="1" /></section>
     }
   `,
   styles: `
@@ -191,9 +194,10 @@ export class StagePage implements OnInit {
       supabase.from('app_settings').select('twitch_channel').single(),
     ]);
     if (!s) return this.missing.set(true);
-    this.stage.set(s as unknown as Stage);
     this.twitch.set(settings.data?.twitch_channel ?? null);
     await this.load();
+    // показываем этап, когда данные уже на месте — без мелькания «нет оценок»
+    this.stage.set(s as unknown as Stage);
     // по умолчанию — самое интересное: итоги, иначе сетка, иначе квалификация
     this.tab.set(this.tabs()[0]);
     if (this.live()) {

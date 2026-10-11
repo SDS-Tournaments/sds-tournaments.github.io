@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { supabase } from '../auth';
+import { Skeleton } from '../components/skeleton';
 import { publicSeasons, Season } from '../data/standings';
 
 interface StageRow {
@@ -19,7 +20,7 @@ interface StageRow {
 // Этапы сезона: карточки со статусом и победителем
 @Component({
   selector: 'app-stages',
-  imports: [FormsModule, RouterLink, TranslocoPipe, DatePipe],
+  imports: [FormsModule, RouterLink, TranslocoPipe, DatePipe, Skeleton],
   template: `
     <section class="section container">
       <header class="top">
@@ -34,6 +35,9 @@ interface StageRow {
         }
       </header>
 
+      @if (loading()) {
+        <app-skeleton variant="cards" [count]="4" />
+      } @else {
       <div class="grid">
         @for (s of stages(); track s.id; let i = $index) {
           <a class="card card-hover stage rise" [class]="s.status" [routerLink]="['/stages', s.id]" [style.--i]="i">
@@ -51,6 +55,7 @@ interface StageRow {
           <p class="subtle">{{ 'stages.empty' | transloco }}</p>
         }
       </div>
+      }
     </section>
   `,
   styles: `
@@ -76,6 +81,7 @@ export class Stages implements OnInit {
   protected readonly season = signal<Season | null>(null);
   protected readonly stages = signal<StageRow[]>([]);
   protected readonly winners = signal<Record<number, string>>({});
+  protected readonly loading = signal(true);
   private readonly lang = signal(inject(TranslocoService).getActiveLang());
   protected readonly title = (s: StageRow) => (this.lang() === 'en' && s.title_en ? s.title_en : s.title_ru);
 
@@ -88,15 +94,20 @@ export class Stages implements OnInit {
     this.seasons.set(list);
     const cur = list.find((s) => s.status === 'active') ?? list[0];
     if (cur) await this.pick(cur.id);
+    else this.loading.set(false);
   }
 
   async pick(id: number) {
+    this.loading.set(true);
     this.season.set(this.seasons().find((s) => s.id === id) ?? null);
     const { data } = await supabase.from('stages').select('id, ord, title_ru, title_en, track, starts_at, status').eq('season_id', id).order('ord');
-    this.stages.set(data ?? []);
     const ids = (data ?? []).map((s) => s.id);
-    if (!ids.length) return this.winners.set({});
-    const { data: w } = await supabase.from('stage_results').select('stage_id, pilot:profiles(nickname)').in('stage_id', ids).eq('stage_place', 1);
+    const { data: w } = ids.length
+      ? await supabase.from('stage_results').select('stage_id, pilot:profiles(nickname)').in('stage_id', ids).eq('stage_place', 1)
+      : { data: [] };
+    // показываем всё разом — без промежуточной «пустоты»
+    this.stages.set(data ?? []);
     this.winners.set(Object.fromEntries(((w ?? []) as unknown as { stage_id: number; pilot: { nickname: string } | null }[]).map((r) => [r.stage_id, r.pilot?.nickname ?? ''])));
+    this.loading.set(false);
   }
 }

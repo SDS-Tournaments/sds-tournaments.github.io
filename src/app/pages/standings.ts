@@ -1,12 +1,13 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { TranslocoPipe } from '@jsverse/transloco';
+import { Skeleton } from '../components/skeleton';
 import { loadStandings, PilotStanding, publicSeasons, Season, StageCol, TeamStanding } from '../data/standings';
 
 // Зачёт сезона: личный (с очками по этапам) и командный
 @Component({
   selector: 'app-standings',
-  imports: [FormsModule, TranslocoPipe],
+  imports: [FormsModule, TranslocoPipe, Skeleton],
   template: `
     <section class="section container">
       <header class="top">
@@ -27,7 +28,7 @@ import { loadStandings, PilotStanding, publicSeasons, Season, StageCol, TeamStan
       </div>
 
       @if (loading()) {
-        <p class="subtle">{{ 'common.loading' | transloco }}</p>
+        <app-skeleton variant="rows" [count]="8" />
       } @else if (!pilots().length) {
         <p class="subtle empty">{{ 'standings.empty' | transloco }}</p>
       } @else if (tab() === 'pilots') {
