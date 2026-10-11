@@ -51,7 +51,9 @@
   <div class="container foot">
     <span class="logo-mark">SDS</span>
     <span class="subtle">© {{ year }} Sad Drift Series · CarX Drift Racing Online 2</span>
-    <a class="sponsor" href="https://carx-online.com" target="_blank" rel="noopener">{{ 'sponsor.general' | transloco }}: <b>CarX Technologies</b></a>
+    @if (general(); as g) {
+      <a class="sponsor" [href]="g.url" target="_blank" rel="noopener">{{ 'sponsor.general' | transloco }}: <b>{{ g.name }}</b></a>
+    }
     <a routerLink="/archive">{{ 'nav.archive' | transloco }}</a>
   </div>
 </footer>

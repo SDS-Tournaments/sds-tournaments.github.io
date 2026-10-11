@@ -4,6 +4,7 @@ import { supabase } from '../auth';
 import { battleOutcome, bracketSize, buildBracket, QualRow, Round, Vote } from '../scoring/scoring';
 import { canChange, reseat, targetsOf } from './bracket-ops';
 import { finishStage } from './finish';
+import { notify } from '../notify';
 import { BracketTree } from '../components/bracket-tree';
 
 interface Battle {
@@ -415,6 +416,7 @@ export class AdminBattles implements OnInit, OnDestroy {
     // ошибка функции приходит телом ответа (например «Время на протест истекло»)
     const text = error ? ((await (error as { context?: Response }).context?.json?.())?.error ?? error.message) : data?.error;
     this.note(text ?? 'Тестовый протест подан', !text);
+    if (!text && data?.id) notify('protest', data.id);
   }
 
   async wipe() {

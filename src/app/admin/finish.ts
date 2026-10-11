@@ -1,4 +1,5 @@
 import { supabase } from '../auth';
+import { notify } from '../notify';
 import { BattleResult, finishesFrom, PointsTable, qualStandings, Round, stageAchievements, stagePlaces, stagePoints } from '../scoring/scoring';
 
 /**
@@ -80,5 +81,6 @@ export async function finishStage(stageId: number): Promise<string | null> {
     const { error } = await step();
     if (error) return error.message;
   }
+  notify('results', stageId);
   return null;
 }

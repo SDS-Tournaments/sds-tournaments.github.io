@@ -76,15 +76,19 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (!b) return json({ error: 'Нет решённых дуэлей' }, 400);
     const loser = b.winner_id === b.leader_id ? b.chaser_id : b.leader_id;
-    const { error } = await db.from('protests').insert({
-      battle_id: b.id,
-      stage_id: b.stage_id,
-      profile_id: loser,
-      video_url: 'https://www.twitch.tv/videos/test',
-      reason: 'Тестовый протест: судьи не заметили касание лидером внутренней бровки.',
-    });
+    const { data: p, error } = await db
+      .from('protests')
+      .insert({
+        battle_id: b.id,
+        stage_id: b.stage_id,
+        profile_id: loser,
+        video_url: 'https://www.twitch.tv/videos/test',
+        reason: 'Тестовый протест: судьи не заметили касание лидером внутренней бровки.',
+      })
+      .select('id')
+      .single();
     if (error) return json({ error: error.message }, 400);
-    return json({ ok: true });
+    return json({ ok: true, id: p.id });
   }
 
   return json({ error: 'unknown action' }, 400);

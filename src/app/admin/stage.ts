@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { supabase } from '../auth';
 import { fromLocalInput, STAGE_FLOW, STAGE_STATUS, toLocalInput } from './labels';
+import { notify } from '../notify';
 import { AdminParticipants } from './participants';
 import { AdminStageResults } from './stage-results';
 
@@ -233,6 +234,8 @@ export class AdminStage implements OnInit {
     if (error) return this.note(error.message, false);
     this.st.set({ ...st, status });
     this.note(`Статус: ${STAGE_STATUS[status]}`, true);
+    if (status === 'registration') notify('registration', st.id);
+    if (status === 'qualifying') notify('stage_start', st.id);
   }
 
   async remove() {

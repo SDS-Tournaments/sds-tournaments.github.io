@@ -2,7 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
-import { Auth } from './auth';
+import { Auth, supabase } from './auth';
 import { ProtestBell } from './components/protest-bell';
 import { Lang, saveLang } from './i18n';
 
@@ -22,8 +22,21 @@ export class App {
   // shortcut: проверяем адрес при загрузке — /overlay открывают напрямую в OBS, переходом изнутри сайта туда не попадают
   protected readonly bare = location.pathname.startsWith('/overlay');
 
+  /** генеральный спонсор для подвала — из Админки → Спонсоры */
+  protected readonly general = signal<{ name: string; url: string | null } | null>(null);
+
   constructor() {
     this.transloco.langChanges$.subscribe((l) => (document.documentElement.lang = l));
+    if (!this.bare)
+      supabase
+        .from('sponsors')
+        .select('name, url')
+        .eq('tier', 'general')
+        .eq('active', true)
+        .order('sort')
+        .limit(1)
+        .maybeSingle()
+        .then(({ data }) => this.general.set(data));
   }
 
   setLang(lang: Lang) {

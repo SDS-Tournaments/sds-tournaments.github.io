@@ -112,6 +112,9 @@ const ATTEMPTS = [
                 <p class="eyebrow">Группа {{ c.group_no ?? '—' }} · в очереди {{ c.queue_order ?? '—' }}</p>
                 <h2 class="nick-big">{{ c.profile?.nickname }}</h2>
                 <p class="subtle car">{{ c.profile?.car ?? '' }}</p>
+                @if (warnings().get(c.profile_id); as n) {
+                  <p class="warned">⚠ Предупреждений: {{ n }} — повторное нарушение ведёт к дисквалификации</p>
+                }
               </div>
             </div>
 
@@ -234,6 +237,7 @@ const ATTEMPTS = [
     .eyebrow { margin: 0; }
     .nick-big { font-size: 32px; margin: 4px 0 2px; }
     .car { margin: 0; font-size: 14px; }
+    .warned { margin: 6px 0 0; font-size: 13px; color: var(--warning); }
 
     .tabs { display: flex; gap: 6px; flex-wrap: wrap; }
     .tab {
@@ -357,13 +361,20 @@ export class AdminJudge implements OnInit, OnDestroy {
 
   private async load() {
     const id = Number(this.id());
-    const [regs, runs] = await Promise.all([
+    const [regs, runs, warns] = await Promise.all([
       supabase.from('registrations').select('profile_id, group_no, queue_order, status, profile:profiles(nickname, start_number, avatar_url, car)').eq('stage_id', id),
       supabase.from('qual_runs').select('profile_id, attempt, angle, style, line, spin, total').eq('stage_id', id),
+      supabase.from('sanctions').select('profile_id').eq('type', 'warning'),
     ]);
     this.regs.set((regs.data ?? []) as unknown as Reg[]);
     this.runs.set(runs.data ?? []);
+    const w = new Map<string, number>();
+    for (const s of warns.data ?? []) w.set(s.profile_id, (w.get(s.profile_id) ?? 0) + 1);
+    this.warnings.set(w);
   }
+
+  /** предупреждения пилотов (регламент 1.6: повторное → дисквалификация) */
+  protected readonly warnings = signal(new Map<string, number>());
 
   protected runOf(pid: string, attempt: number) {
     return this.runMap().get(pid)?.get(attempt);

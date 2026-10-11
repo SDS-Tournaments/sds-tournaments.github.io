@@ -27,6 +27,8 @@ export const routes: Routes = [
       { path: 'teams', loadComponent: () => import('./admin/teams').then((m) => m.AdminTeams) },
       { path: 'protests', loadComponent: () => import('./admin/protests').then((m) => m.AdminProtests) },
       { path: 'settings', loadComponent: () => import('./admin/settings').then((m) => m.AdminSettings) },
+      { path: 'sponsors', loadComponent: () => import('./admin/sponsors').then((m) => m.AdminSponsors) },
+      { path: 'pilots', loadComponent: () => import('./admin/pilots').then((m) => m.AdminPilots) },
     ],
   },
   // Пульты — на всю ширину, без бокового меню админки

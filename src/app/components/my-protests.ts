@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '../auth';
+import { notify } from '../notify';
 
 const WINDOW_MS = 5 * 60_000;
 const LIMIT = 2;
@@ -152,11 +153,14 @@ export class MyProtests implements OnInit {
   async submit(b: LostBattle) {
     this.busy.set(true);
     this.error.set(null);
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('protests')
-      .insert({ battle_id: b.id, stage_id: b.stage_id, video_url: this.video[b.id]?.trim(), reason: this.reason[b.id]?.trim() });
+      .insert({ battle_id: b.id, stage_id: b.stage_id, video_url: this.video[b.id]?.trim(), reason: this.reason[b.id]?.trim() })
+      .select('id')
+      .single();
     this.busy.set(false);
     if (error) return this.error.set(error.message);
+    notify('protest', data.id);
     await this.load();
   }
 }
