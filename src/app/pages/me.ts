@@ -217,6 +217,7 @@ import { compressImage } from '../image';
     .sec { margin: 40px 0 16px; }
     .cols { display: grid; gap: 24px; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
     .cols.eq { align-items: stretch; }
+    .cols.eq > * { align-content: start; } /* одна высота у карточек, но содержимое сверху */
     @media (max-width: 860px) { .cols { grid-template-columns: 1fr; } }
     .wide { grid-column: 1 / -1; }
     .fit { justify-self: start; }
