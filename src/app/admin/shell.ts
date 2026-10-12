@@ -1,5 +1,6 @@
-import { Component } from '@angular/core';
+import { Component, OnDestroy } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { clearStandingsCache } from '../data/standings';
 
 // Оболочка админки (только RU)
 @Component({
@@ -51,4 +52,9 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
     }
   `,
 })
-export class AdminShell {}
+export class AdminShell implements OnDestroy {
+  // после правок в админке публичные страницы должны показать свежие сезоны и зачёт, а не кэш
+  ngOnDestroy() {
+    clearStandingsCache();
+  }
+}
