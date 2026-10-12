@@ -102,7 +102,14 @@ const FLASH_MS = 10_000;
             <span class="label">{{ t().run }} {{ r.attempt }}</span>
           </div>
           @if (r.spin) {
-            <div class="spin">{{ t().fail[r.fail ?? 'spin'] }} · 0</div>
+            <!-- нулевая попытка: у каждой причины своя анимация (ключ — заезд, чтобы проигрывалась заново) -->
+            @for (k of [r.created_at]; track k) {
+              <div class="fail" [attr.data-fail]="r.fail ?? 'spin'">
+                <span class="ic">{{ failIcon[r.fail ?? 'spin'] }}</span>
+                <span class="word">{{ t().fail[r.fail ?? 'spin'] }}</span>
+                <b class="zero">0</b>
+              </div>
+            }
           } @else {
             @for (k of crits; track k) {
               <div class="bar">
@@ -329,6 +336,7 @@ export class Overlay implements OnInit {
     if (this.state().mock) return [{ key: r.created_at + 'a', code: 'sniper', n: 0, ...text['sniper'] }, { key: r.created_at + 'b', code: 'perfect_100', n: 1, ...text['perfect_100'] }];
     return liveRunAchievements(r, this.runsOf(r.profile_id)).map((code: Achievement) => ({ key: r.created_at + code, code, n: counts.get(code) ?? 0, ...text[code] }));
   });
+  protected readonly failIcon: Record<Fail, string> = { spin: '🌀', crash: '💥', straight: '📏', offtrack: '🚧' };
   protected readonly scoreVisible = computed(() => {
     if (this.show('score')) return true;
     const r = this.lastRun();
