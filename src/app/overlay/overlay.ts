@@ -4,7 +4,12 @@ import { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '../auth';
 import { BracketTree, TreeBattle, TreePilot } from '../components/bracket-tree';
 import { CardData, PilotCard } from '../components/pilot-card';
-import { Fail, Legacy, mergeSkills, qualStandings, Round, SkillRun, skills } from '../scoring/scoring';
+import { Achievement, Fail, Legacy, liveRunAchievements, mergeSkills, qualStandings, Round, SkillRun, skills } from '../scoring/scoring';
+import ruText from '../../../public/i18n/ru.json';
+import enText from '../../../public/i18n/en.json';
+
+/** названия и иконки ачивок — из переводов сайта */
+const ACH_TEXT = { ru: ruText.ach, en: enText.ach } as Record<'ru' | 'en', Record<string, { icon: string; name: string }>>;
 import { compareRow } from './compare';
 import { forceNoir } from '../theme';
 import { mockStage } from './mock';
@@ -107,6 +112,20 @@ const FLASH_MS = 10_000;
               </div>
             }
             <div class="total" [style.--heat]="maxPct(r) + '%'"><span>{{ t().total }}</span><b [class.max]="maxPct(r) >= 100">{{ scoreShown() }}</b></div>
+          }
+          <!-- ачивки этого заезда: новая выезжает серой и «загорается», повторная — сразу цветная, счётчик +1 -->
+          @if (liveAch().length) {
+            <div class="ach-live">
+              @for (a of liveAch(); track a.key; let i = $index) {
+                <div class="ach" [class.repeat]="a.n > 0" [style.--d]="0.9 + i * 0.5 + 's'">
+                  <span class="ic">{{ a.icon }}</span>
+                  <span class="tx"><small>{{ t().achievement }}</small><b>{{ a.name }}</b></span>
+                  @if (a.n > 0) {
+                    <span class="cnt"><i class="old">×{{ a.n }}</i><i class="new">×{{ a.n + 1 }}</i></span>
+                  }
+                </div>
+              }
+            </div>
           }
         </div>
       }
@@ -298,6 +317,18 @@ export class Overlay implements OnInit {
       .filter((r) => r.attempt > 0)
       .reduce<Run | null>((m, r) => (!m || r.created_at > m.created_at ? r : m), null),
   );
+  /** сколько раз пилот уже получал каждую ачивку на прошлых этапах */
+  private readonly achBefore = signal<{ pid: string; counts: Map<string, number> } | null>(null);
+  protected readonly liveAch = computed(() => {
+    const r = this.lastRun();
+    if (!r) return [];
+    const before = this.achBefore();
+    const counts = before?.pid === r.profile_id ? before.counts : new Map<string, number>();
+    const text = ACH_TEXT[this.lang() === 'en' ? 'en' : 'ru'];
+    // тестовые данные: показать обе анимации — новая ачивка и повторная (×1 → ×2)
+    if (this.state().mock) return [{ key: r.created_at + 'a', code: 'sniper', n: 0, ...text['sniper'] }, { key: r.created_at + 'b', code: 'perfect_100', n: 1, ...text['perfect_100'] }];
+    return liveRunAchievements(r, this.runsOf(r.profile_id)).map((code: Achievement) => ({ key: r.created_at + code, code, n: counts.get(code) ?? 0, ...text[code] }));
+  });
   protected readonly scoreVisible = computed(() => {
     if (this.show('score')) return true;
     const r = this.lastRun();
@@ -402,6 +433,21 @@ export class Overlay implements OnInit {
   protected readonly podiumOrder = computed(() => [2, 1, 3].map((pl) => this.podium().find((x) => x.place === pl)).filter((x) => !!x));
 
   constructor() {
+    // счётчики ачивок пилота — при смене пилота на трассе (в тестовых данных — как будто ачивок ещё не было)
+    effect(() => {
+      const pid = this.lastRun()?.profile_id;
+      if (!pid || untracked(() => this.achBefore()?.pid) === pid) return;
+      if (this.state().mock) return this.achBefore.set({ pid, counts: new Map() });
+      supabase
+        .from('achievements')
+        .select('code')
+        .eq('profile_id', pid)
+        .then(({ data }) => {
+          const counts = new Map<string, number>();
+          for (const { code } of data ?? []) counts.set(code, (counts.get(code) ?? 0) + 1);
+          this.achBefore.set({ pid, counts });
+        });
+    });
     effect((onCleanup) => {
       const target = this.lastRun()?.total ?? 0;
       const start = performance.now();

@@ -219,6 +219,32 @@ export const ACHIEVEMENTS = [
 ] as const;
 export type Achievement = (typeof ACHIEVEMENTS)[number];
 
+type ZeroRun = { total: number; spin: boolean; fail?: Fail | null };
+
+/** Ачивка за пару зачётных попыток квалификации: «Снайпер» или два одинаковых нуля (старые записи без причины — спин) */
+export function pairAchievement(runs: ZeroRun[]): Achievement | null {
+  if (runs.length !== 2) return null;
+  if (runs.every((x) => !x.spin && x.total > 0) && Math.abs(runs[0].total - runs[1].total) <= 0.5) return 'sniper';
+  const f = runs[0].fail ?? 'spin';
+  if (!runs.every((x) => x.spin && (x.fail ?? 'spin') === f)) return null;
+  return ({ spin: 'spinner', straight: 'straight2', offtrack: 'offtrack2', crash: 'crash2' } as const)[f];
+}
+
+/**
+ * Ачивки, которые заезд приносит прямо сейчас (показываются на стриме под оценкой).
+ * Те же правила, что при подведении итогов: «Идеальные 100» — первая сотня на этапе, парные — после 2-й попытки.
+ */
+export function liveRunAchievements(run: ZeroRun & { attempt: number }, pilotRuns: (ZeroRun & { attempt: number })[]): Achievement[] {
+  const out: Achievement[] = [];
+  const scored = pilotRuns.filter((x) => x.attempt > 0);
+  if (!run.spin && run.total >= 100 && !scored.some((x) => x.attempt < run.attempt && !x.spin && x.total >= 100)) out.push('perfect_100');
+  if (run.attempt === 2) {
+    const pair = pairAchievement([...scored].sort((a, b) => a.attempt - b.attempt));
+    if (pair) out.push(pair);
+  }
+  return out;
+}
+
 /** Решённая дуэль этапа (без баев) */
 export interface Duel {
   winner: string;
@@ -274,14 +300,10 @@ export function stageAchievements(
     if (r.id === lastSeed && won.length) add('last_wagon');
     if (duels.filter((d) => d.winner === r.id || d.loser === r.id).reduce((s, d) => s + d.omt, 0) >= 3) add('marathon');
     const runs = r.runs ?? [];
-    if (runs.length === 2 && runs.every((x) => !x.spin && x.total > 0) && Math.abs(runs[0].total - runs[1].total) <= 0.5) add('sniper');
+    const pair = pairAchievement(runs);
+    if (pair === 'sniper') add('sniper');
     if (r.stagePlace === 4 && seeded.length >= 4) add('wooden');
-    // обе зачётные попытки — ноль по одной и той же причине (старые записи без причины считаем спином)
-    const both = (f: Fail) => runs.length === 2 && runs.every((x) => x.spin && (x.fail ?? 'spin') === f);
-    if (both('spin')) add('spinner');
-    if (both('straight')) add('straight2');
-    if (both('offtrack')) add('offtrack2');
-    if (both('crash')) add('crash2');
+    if (pair && pair !== 'sniper') add(pair);
     // «322»: первый квалификации вылетает от последнего номера посева
     if (r.qualPlace === 1 && lastSeed && duels.some((d) => d.loser === r.id && d.winner === lastSeed)) add('throw_322');
   }

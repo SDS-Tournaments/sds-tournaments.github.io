@@ -1029,3 +1029,100 @@
 @keyframes ghost {
   50% { opacity: 0.35; }
 }
+
+/* ───────── Ачивки заезда под оценкой ───────── */
+.score .ach-live {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 14px);
+  display: grid;
+  gap: 10px;
+  width: 100%;
+}
+.score .ach {
+  --gold: #f5d77a;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 20px;
+  overflow: hidden;
+  border: 1px solid color-mix(in oklab, var(--gold), transparent 45%);
+  border-radius: 16px;
+  background: linear-gradient(110deg, rgba(245, 215, 122, 0.16), rgba(5, 5, 5, 0.92) 55%);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55), 0 0 30px -10px rgba(245, 215, 122, 0.6);
+  /* выезжает серой, через --d «загорается» золотом */
+  animation:
+    ach-in 500ms var(--ease-spring) both,
+    ach-earn 900ms ease-out var(--d) both;
+  .ic {
+    font-size: 40px;
+    line-height: 1;
+  }
+  .tx {
+    display: grid;
+    flex: 1;
+  }
+  small {
+    font: 400 12px var(--mono);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--gold);
+  }
+  b {
+    font: 400 24px 'Russo One', var(--font);
+    letter-spacing: 0.02em;
+  }
+  /* вспышка-блик в момент получения */
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(105deg, transparent 35%, rgba(255, 242, 184, 0.55) 50%, transparent 65%);
+    transform: translateX(-120%);
+    animation: ach-flash 900ms ease-out var(--d) both;
+    pointer-events: none;
+  }
+}
+@keyframes ach-in {
+  from { opacity: 0; transform: translateY(-12px) scale(0.9); }
+}
+@keyframes ach-earn {
+  from {
+    filter: grayscale(1) brightness(0.6);
+    border-color: rgba(255, 255, 255, 0.14);
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+  }
+  45% {
+    filter: grayscale(0) brightness(1.35);
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55), 0 0 60px 4px rgba(245, 215, 122, 0.8);
+  }
+}
+@keyframes ach-flash {
+  to { transform: translateX(120%); }
+}
+/* повторная — сразу цветная, счётчик ×n → ×n+1 */
+.score .ach.repeat {
+  animation: ach-in 500ms var(--ease-spring) both;
+  &::after { animation: none; }
+  .cnt {
+    display: grid;
+    overflow: hidden;
+    height: 38px;
+    padding: 0 14px;
+    border-radius: 999px;
+    background: var(--gold);
+    color: #1a1405;
+    font: 400 24px 'Russo One', var(--font);
+    i { grid-area: 1 / 1; font-style: normal; line-height: 38px; }
+    .old { animation: cnt-out 450ms ease-in var(--d) both; }
+    .new { animation: cnt-in 600ms var(--ease-spring) var(--d) both; }
+  }
+}
+@keyframes cnt-out {
+  to { opacity: 0; transform: translateY(-100%); }
+}
+@keyframes cnt-in {
+  from { opacity: 0; transform: translateY(100%) scale(0.6); }
+  60% { transform: translateY(0) scale(1.35); }
+}

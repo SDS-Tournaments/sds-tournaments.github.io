@@ -8,6 +8,7 @@ import {
   firstRound,
   Round,
   stageAchievements,
+  liveRunAchievements,
   nextSlot,
   orderPair,
   qualStandings,
@@ -246,6 +247,15 @@ describe('итоги этапа', () => {
     expect(of('top')).toEqual(['qual_king', 'sniper', 'throw_322']);
     expect(of('low')).toEqual(['omt2', 'giant_slayer', 'last_wagon', 'marathon']);
     expect(of('w4')).toEqual(['revenge', 'wooden', 'spinner']);
+  });
+
+  it('ачивки заезда для стрима: сотня один раз за этап, парные — после 2-й попытки', () => {
+    const run = (attempt: number, total: number, spin = false, fail: 'crash' | null = null) => ({ attempt, total, spin, fail });
+    expect(liveRunAchievements(run(1, 100), [run(0, 0), run(1, 100)])).toEqual(['perfect_100']);
+    expect(liveRunAchievements(run(2, 100), [run(1, 100), run(2, 100)])).toEqual(['sniper']); // вторая сотня — уже не новая, зато пара ровная
+    expect(liveRunAchievements(run(2, 85.3), [run(1, 85), run(2, 85.3)])).toEqual(['sniper']);
+    expect(liveRunAchievements(run(2, 0, true, 'crash'), [run(1, 0, true, 'crash'), run(2, 0, true, 'crash')])).toEqual(['crash2']);
+    expect(liveRunAchievements(run(1, 85), [run(1, 85)])).toEqual([]);
   });
 
   it('достижения за нули: выпрямление, вылет, авария дважды; разные причины — не в зачёт', () => {
