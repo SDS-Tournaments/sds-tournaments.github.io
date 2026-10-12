@@ -57,7 +57,7 @@ const hue = (level: number) => 200 + ((Math.max(1, level) - 1) / 6) * 100;
           </div>
           <div class="segs" aria-hidden="true">
             @for (i of segs; track i) {
-              <i class="seg" [style.--sc]="color(i + 1, 0.95)"><b [style.width.%]="i < hy().level ? 100 : i === hy().level ? hy().progress * 100 : 0"></b></i>
+              <i class="seg" [style.--sc]="color(i + 1, 0.95)"><b [style.width.%]="i < bar().level ? 100 : i === bar().level ? bar().progress * 100 : 0"></b></i>
             }
           </div>
           <p class="hb-note">
@@ -144,7 +144,7 @@ const hue = (level: number) => 200 + ((Math.max(1, level) - 1) / 6) * 100;
     .hb-top .mono { color: var(--hc, var(--ink-muted)); }
     .segs { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
     .seg { height: 6px; border-radius: 3px; background: var(--surface-3); overflow: hidden; }
-    .seg b { display: block; height: 100%; background: var(--sc); box-shadow: 0 0 8px var(--sc); transition: width 0.8s var(--ease-out); }
+    .seg b { display: block; height: 100%; background: var(--sc); box-shadow: 0 0 8px var(--sc); }
     .hb-note { margin: 0; font-size: 12px; color: var(--ink-muted); }
 
     @media (prefers-reduced-motion: reduce) {
@@ -165,6 +165,8 @@ export class NextStage {
   /** хайп только пока идёт регистрация */
   protected readonly hypeOn = computed(() => !!this.stage() && this.status() === 'registration');
   protected readonly hy = computed(() => hype(this.registered()));
+  /** полоска идёт за бегущим счётчиком (0 → N) — заполняется одной линией слева направо */
+  protected readonly bar = computed(() => hype(this.shown()));
   protected readonly segs = [0, 1, 2, 3, 4, 5, 6];
   protected color(level: number, alpha: number) {
     return `hsl(${hue(level)} 95% 66% / ${Math.min(1, alpha)})`;
