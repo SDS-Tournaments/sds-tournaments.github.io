@@ -39,7 +39,7 @@ import { DEFAULT_STATE, OverlayState, SKIN_LABEL, SKINS, Widget, WIDGET_LABEL, W
           <div class="seg">
             <button [class.on]="state().lang === 'ru'" (click)="patch({ lang: 'ru' })">RU</button>
             <button [class.on]="state().lang === 'en'" (click)="patch({ lang: 'en' })">EN</button>
-            <button [class.on]="state().lang === 'auto'" (click)="patch({ lang: 'auto' })" title="Плашки сами меняют язык каждые 8 секунд">RU⇄EN</button>
+            <button [class.on]="state().lang === 'auto'" (click)="patch({ lang: 'auto' })" title="Плашки сами меняют язык каждые 4 секунды">RU⇄EN</button>
           </div>
         </div>
 
