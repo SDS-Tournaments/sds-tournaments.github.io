@@ -3,18 +3,21 @@ import { Routes } from '@angular/router';
 import { staffGuard } from './auth';
 import { Home } from './pages/home';
 
+/** публичная страница — подгрузить заранее (preload.ts) */
+const P = { preload: true };
+
 export const routes: Routes = [
   { path: '', component: Home },
-  { path: 'standings', title: 'Зачёт сезона', loadComponent: () => import('./pages/standings').then((m) => m.Standings) },
-  { path: 'stages', title: 'Этапы сезона', loadComponent: () => import('./pages/stages').then((m) => m.Stages) },
-  { path: 'stages/:id', loadComponent: () => import('./pages/stage').then((m) => m.StagePage) },
-  { path: 'pilots', title: 'Пилоты', loadComponent: () => import('./pages/pilots').then((m) => m.Pilots) },
-  { path: 'pilots/:steamId', loadComponent: () => import('./pages/pilot').then((m) => m.PilotPage) },
-  { path: 'teams', title: 'Команды', loadComponent: () => import('./pages/teams').then((m) => m.Teams) },
-  { path: 'teams/:id', loadComponent: () => import('./pages/team').then((m) => m.TeamPage) },
-  { path: 'archive', title: 'Архив сезонов', loadComponent: () => import('./pages/archive').then((m) => m.Archive) },
-  { path: 'rules', title: 'Регламент', loadComponent: () => import('./pages/rules').then((m) => m.Rules) },
-  { path: 'me', title: 'Личный кабинет', loadComponent: () => import('./pages/me').then((m) => m.Me) },
+  { path: 'standings', data: P, title: 'Зачёт сезона', loadComponent: () => import('./pages/standings').then((m) => m.Standings) },
+  { path: 'stages', data: P, title: 'Этапы сезона', loadComponent: () => import('./pages/stages').then((m) => m.Stages) },
+  { path: 'stages/:id', data: P, loadComponent: () => import('./pages/stage').then((m) => m.StagePage) },
+  { path: 'pilots', data: P, title: 'Пилоты', loadComponent: () => import('./pages/pilots').then((m) => m.Pilots) },
+  { path: 'pilots/:steamId', data: P, loadComponent: () => import('./pages/pilot').then((m) => m.PilotPage) },
+  { path: 'teams', data: P, title: 'Команды', loadComponent: () => import('./pages/teams').then((m) => m.Teams) },
+  { path: 'teams/:id', data: P, loadComponent: () => import('./pages/team').then((m) => m.TeamPage) },
+  { path: 'archive', data: P, title: 'Архив сезонов', loadComponent: () => import('./pages/archive').then((m) => m.Archive) },
+  { path: 'rules', data: P, title: 'Регламент', loadComponent: () => import('./pages/rules').then((m) => m.Rules) },
+  { path: 'me', data: P, title: 'Личный кабинет', loadComponent: () => import('./pages/me').then((m) => m.Me) },
   { path: 'auth/callback', loadComponent: () => import('./pages/auth-callback').then((m) => m.AuthCallback) },
   { path: 'auth/steam', loadComponent: () => import('./pages/auth-callback').then((m) => m.SteamReturn) },
   {

@@ -1,6 +1,9 @@
 import { Component, computed, ElementRef, input, signal, viewChild } from '@angular/core';
 import { TranslocoPipe } from '@jsverse/transloco';
-import { toPng } from 'html-to-image';
+import { Tier, tierOf } from '../tier';
+
+export { tierOf };
+export type { Tier };
 
 export interface CardData {
   nickname: string;
@@ -15,13 +18,6 @@ export interface CardData {
   wins: number;
 }
 
-export type Tier = 'bronze' | 'silver' | 'gold' | 'elite' | 'legend';
-
-/** Уровень карточки по рейтингу: <75 бронза, 75–82 серебро, 83–89 золото, 90–94 элита, 95+ легенда */
-export function tierOf(overall: number | null): Tier {
-  const o = overall ?? 0;
-  return o >= 95 ? 'legend' : o >= 90 ? 'elite' : o >= 83 ? 'gold' : o >= 75 ? 'silver' : 'bronze';
-}
 
 // FIFA-карточка пилота (5 уровней оформления) + скачивание PNG
 @Component({
@@ -282,6 +278,7 @@ export class PilotCard {
     this.busy.set(true);
     this.error.set(null);
     try {
+      const { toPng } = await import('html-to-image'); // библиотека грузится только при скачивании
       const url = await toPng(this.card().nativeElement, { pixelRatio: 2, cacheBust: true });
       const a = document.createElement('a');
       a.href = url;

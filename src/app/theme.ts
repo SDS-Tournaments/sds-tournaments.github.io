@@ -1,7 +1,7 @@
 import { effect, inject, Injectable, signal, untracked } from '@angular/core';
 import { Auth, Profile } from './auth';
-import { Tier, tierOf } from './components/pilot-card';
-import { loadSkillRuns } from './components/pilot-showcase';
+import { Tier, tierOf } from './tier';
+import { loadSkillRuns } from './data/skills';
 import { mergeSkills, skills } from './scoring/scoring';
 
 export type ThemeId = 'noir' | Tier;

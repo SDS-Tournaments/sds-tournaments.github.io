@@ -43,10 +43,29 @@ export interface Season {
   team_counted: number;
 }
 
+// Кэш на минуту: сезоны и зачёт меняются только при подведении итогов этапа (тогда кэш сбрасывается)
+const TTL = 60_000;
+const cache = new Map<string, { at: number; value: Promise<unknown> }>();
+function cached<T>(key: string, load: () => Promise<T>): Promise<T> {
+  const hit = cache.get(key);
+  if (hit && Date.now() - hit.at < TTL) return hit.value as Promise<T>;
+  const value = load();
+  cache.set(key, { at: Date.now(), value });
+  value.catch(() => cache.delete(key)); // ошибку не запоминаем
+  return value;
+}
+/** Сбросить кэш (после подведения итогов этапа) */
+export function clearStandingsCache() {
+  cache.clear();
+}
+
 /** Опубликованные сезоны, новые сверху */
-export async function publicSeasons(): Promise<Season[]> {
-  const { data } = await supabase.from('seasons').select('id, number, title, status, team_counted').neq('status', 'draft').order('number', { ascending: false });
-  return data ?? [];
+export function publicSeasons(): Promise<Season[]> {
+  return cached('seasons', async () => {
+    const { data, error } = await supabase.from('seasons').select('id, number, title, status, team_counted').neq('status', 'draft').order('number', { ascending: false });
+    if (error) throw error;
+    return data ?? [];
+  }).catch(() => []);
 }
 
 /** Активный сезон (или последний, если активного нет) */
@@ -56,14 +75,20 @@ export async function currentSeason() {
 }
 
 /** §5.6 Личный и командный зачёт сезона по итогам завершённых этапов */
-export async function loadStandings(seasonId: number, teamCounted = 3): Promise<{ pilots: PilotStanding[]; teams: TeamStanding[]; stages: StageCol[] }> {
-  const { data: stages } = await supabase.from('stages').select('id, ord').eq('season_id', seasonId).eq('status', 'finished').order('ord');
+export function loadStandings(seasonId: number, teamCounted = 3): Promise<{ pilots: PilotStanding[]; teams: TeamStanding[]; stages: StageCol[] }> {
+  return cached(`standings:${seasonId}:${teamCounted}`, () => fetchStandings(seasonId, teamCounted)).catch(() => ({ pilots: [], teams: [], stages: [] }));
+}
+
+async function fetchStandings(seasonId: number, teamCounted: number): Promise<{ pilots: PilotStanding[]; teams: TeamStanding[]; stages: StageCol[] }> {
+  const { data: stages, error } = await supabase.from('stages').select('id, ord').eq('season_id', seasonId).eq('status', 'finished').order('ord');
+  if (error) throw error;
   const ids = (stages ?? []).map((s) => s.id);
   if (!ids.length) return { pilots: [], teams: [], stages: [] };
-  const { data } = await supabase
+  const { data, error: resErr } = await supabase
     .from('stage_results')
     .select('stage_id, profile_id, team_id, qual_place, stage_place, total, pilot:profiles(nickname, start_number, avatar_url), team:teams(name, logo_url)')
     .in('stage_id', ids);
+  if (resErr) throw resErr;
   const rows = (data ?? []) as unknown as ResultRow[];
   const byStage = ids.map((id) => rows.filter((r) => r.stage_id === id));
 

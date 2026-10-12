@@ -1,5 +1,6 @@
 import { supabase } from '../auth';
 import { notify } from '../notify';
+import { clearStandingsCache } from '../data/standings';
 import { BattleResult, Duel, finishesFrom, PointsTable, qualStandings, Round, stageAchievements, stagePlaces, stagePoints } from '../scoring/scoring';
 
 /**
@@ -98,6 +99,7 @@ export async function finishStage(stageId: number): Promise<string | null> {
     const { error } = await step();
     if (error) return error.message;
   }
+  clearStandingsCache();
   notify('results', stageId);
   return null;
 }

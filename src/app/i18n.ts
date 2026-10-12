@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Translation, TranslocoLoader } from '@jsverse/transloco';
+import ru from '../../public/i18n/ru.json';
 
 export const LANGS = ['ru', 'en'] as const;
 export type Lang = (typeof LANGS)[number];
@@ -9,8 +10,7 @@ const KEY = 'sds-lang';
 export class I18nLoader implements TranslocoLoader {
   // переводы собираются вместе с кодом (имя файла с хешем) — после публикации браузер не покажет старые из кэша
   async getTranslation(lang: string): Promise<Translation> {
-    const m = lang === 'en' ? await import('../../public/i18n/en.json') : await import('../../public/i18n/ru.json');
-    return m.default;
+    return lang === 'en' ? (await import('../../public/i18n/en.json')).default : ru;
   }
 }
 

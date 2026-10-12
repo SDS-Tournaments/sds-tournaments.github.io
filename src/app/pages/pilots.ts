@@ -4,7 +4,7 @@ import { RouterLink } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { supabase } from '../auth';
 import { Loader } from '../components/loader';
-import { Tier, tierOf } from '../components/pilot-card';
+import { Tier, tierOf } from '../tier';
 import { currentSeason } from '../data/standings';
 import { Legacy, mergeSkills, SkillRun, skills } from '../scoring/scoring';
 

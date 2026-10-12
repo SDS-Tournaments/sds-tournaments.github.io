@@ -47,7 +47,9 @@ import { Reveal } from '../reveal';
       <section id="live" class="section container live">
         <p class="eyebrow" reveal>LIVE</p>
         <h2 class="display-lg" reveal>{{ stageTitle(l) }}</h2>
-        <app-live-stage [stageId]="l.id" [status]="l.status" [channel]="l.twitch_channel || twitch()" />
+        @defer {
+          <app-live-stage [stageId]="l.id" [status]="l.status" [channel]="l.twitch_channel || twitch()" />
+        }
       </section>
     }
 
@@ -335,9 +337,14 @@ export class Home implements OnInit {
     this.next.set(next);
     this.twitch.set(settings.data?.twitch_channel ?? null);
     this.sponsors.set((sponsors.data ?? []) as Sponsor[]);
+    // счётчик записавшихся, дорога сезона и зачёт — одновременно, а не по очереди
     if (next) {
-      const { count } = await supabase.from('registrations').select('profile_id', { count: 'exact', head: true }).eq('stage_id', next.id).eq('status', 'registered');
-      this.nextCount.set(count ?? 0);
+      supabase
+        .from('registrations')
+        .select('profile_id', { count: 'exact', head: true })
+        .eq('stage_id', next.id)
+        .eq('status', 'registered')
+        .then(({ count }) => this.nextCount.set(count ?? 0));
     }
     if (season) {
       this.seasonTitle.set(season.title);
