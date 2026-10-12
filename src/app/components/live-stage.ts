@@ -100,11 +100,11 @@ const ORDER = ['r32', 'r16', 'qf', 'sf', 'third', 'final'];
     .side { display: flex; flex-direction: column; gap: 16px; padding: 20px; }
     .eyebrow { margin: 0; margin-right: auto; }
     .head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-    .pill { padding: 3px 10px; border-radius: var(--r-pill); border: 1px solid rgba(10, 186, 181, 0.4); color: var(--primary); font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
+    .pill { padding: 3px 10px; border-radius: var(--r-pill); border: 1px solid rgba(var(--accent-rgb), 0.4); color: var(--primary); font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
     .pill.omt { border-color: rgba(255, 92, 92, 0.5); color: var(--error); }
     .vs { position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: center; }
     .pl { display: grid; gap: 6px; justify-items: center; min-width: 0; padding: 14px 8px; border-radius: var(--r-md); background: var(--surface-2); border: 1px solid var(--hairline); }
-    .pl:first-child { border-color: rgba(10, 186, 181, 0.35); }
+    .pl:first-child { border-color: rgba(var(--accent-rgb), 0.35); }
     .role { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ink-subtle); }
     .pl img, .ava { width: 44px; height: 44px; border-radius: 50%; background: var(--surface-1); box-shadow: 0 0 0 2px var(--hairline-strong); }
     .pl:first-child img { box-shadow: 0 0 0 2px var(--primary); }

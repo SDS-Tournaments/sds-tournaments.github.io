@@ -141,7 +141,7 @@ type Tab = 'results' | 'bracket' | 'qual';
     .flush { padding: 0; }
     .place { color: var(--ink-subtle); width: 40px; }
     .podium .place { color: var(--primary); }
-    .podium { background: rgba(10, 186, 181, 0.06); }
+    .podium { background: rgba(var(--accent-rgb), 0.06); }
     .podium td:first-child { box-shadow: inset 3px 0 0 var(--primary); }
     .n { color: var(--primary); display: inline-block; min-width: 32px; }
     .total { color: var(--primary); font-weight: 600; }

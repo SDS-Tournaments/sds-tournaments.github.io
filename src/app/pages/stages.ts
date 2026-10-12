@@ -77,7 +77,7 @@ interface StageRow {
     .badge { justify-self: start; }
     .badge { display: inline-flex; align-items: center; gap: 6px; }
     .st-draft, .st-finished { background: var(--surface-3); color: var(--ink-muted); }
-    .st-registration { background: rgba(10, 186, 181, 0.15); color: var(--primary); }
+    .st-registration { background: rgba(var(--accent-rgb), 0.15); color: var(--primary); }
     .st-qualifying, .st-battles { background: rgba(255, 92, 92, 0.15); color: var(--error); }
     .pip { width: 7px; height: 7px; border-radius: 50%; background: currentColor; animation: pip 1.4s ease-out infinite; }
     @keyframes pip { from { box-shadow: 0 0 0 0 currentColor; } to { box-shadow: 0 0 0 6px transparent; } }
@@ -85,8 +85,8 @@ interface StageRow {
 
 
     /* регистрация: бирюзовая рамка и свечение */
-    .stage.registration { border-color: rgba(10, 186, 181, 0.55); box-shadow: 0 0 32px -8px var(--primary-glow), inset 0 0 40px -20px rgba(10, 186, 181, 0.35); }
-    .stage.registration .num { -webkit-text-stroke-color: rgba(10, 186, 181, 0.55); }
+    .stage.registration { border-color: rgba(var(--accent-rgb), 0.55); box-shadow: 0 0 32px -8px var(--primary-glow), inset 0 0 40px -20px rgba(var(--accent-rgb), 0.35); }
+    .stage.registration .num { -webkit-text-stroke-color: rgba(var(--accent-rgb), 0.55); }
     .stage.registration .cta { color: var(--primary); }
 
     /* идёт сейчас: красная рамка, пульсирующее свечение */
@@ -98,7 +98,7 @@ interface StageRow {
     /* завершён: приглушён, номер залит бирюзой */
     .stage.finished { opacity: 0.75; }
     .stage.finished:hover { opacity: 1; }
-    .stage.finished .num { -webkit-text-stroke-color: rgba(10, 186, 181, 0.35); }
+    .stage.finished .num { -webkit-text-stroke-color: rgba(var(--accent-rgb), 0.35); }
 
     @media (prefers-reduced-motion: reduce) {
       .pip, .stage.qualifying, .stage.battles { animation: none !important; }

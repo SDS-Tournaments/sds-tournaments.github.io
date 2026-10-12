@@ -189,7 +189,7 @@ import { compressImage } from '../image';
     }
     .cover {
       height: 200px;
-      background: radial-gradient(60% 120% at 80% 0%, rgba(10, 186, 181, 0.25), transparent 70%), var(--surface-1);
+      background: radial-gradient(60% 120% at 80% 0%, rgba(var(--accent-rgb), 0.25), transparent 70%), var(--surface-1);
       background-size: cover;
       background-position: center;
       mask-image: linear-gradient(to bottom, #000 40%, transparent);
@@ -236,8 +236,8 @@ import { compressImage } from '../image';
     .decal {
       position: relative; display: flex; align-items: baseline; justify-content: center; min-height: 120px;
       align-self: stretch; place-content: center; border-radius: var(--r-lg);
-      border: 1px solid rgba(10, 186, 181, 0.25);
-      background: radial-gradient(60% 80% at 50% 50%, rgba(10, 186, 181, 0.16), transparent 70%), var(--surface-2);
+      border: 1px solid rgba(var(--accent-rgb), 0.25);
+      background: radial-gradient(60% 80% at 50% 50%, rgba(var(--accent-rgb), 0.16), transparent 70%), var(--surface-2);
       font-family: 'Russo One', var(--font); color: var(--primary); text-shadow: 0 0 28px var(--primary-glow);
     }
     .hash { font-size: 40px; opacity: 0.6; margin-right: 4px; align-self: center; }
@@ -269,8 +269,8 @@ import { compressImage } from '../image';
     }
     .savebar:not(.on) { padding: 10px 20px; }
     .savebar.on {
-      border-color: rgba(10, 186, 181, 0.6);
-      box-shadow: 0 0 0 1px rgba(10, 186, 181, 0.2), 0 10px 40px rgba(0, 0, 0, 0.6), 0 0 32px var(--primary-glow);
+      border-color: rgba(var(--accent-rgb), 0.6);
+      box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 0.2), 0 10px 40px rgba(0, 0, 0, 0.6), 0 0 32px var(--primary-glow);
       animation: rise 300ms var(--ease-out) both;
     }
     .savebar.err { border-color: rgba(255, 92, 92, 0.6); }

@@ -148,7 +148,7 @@ import { Reveal } from '../reveal';
 
     /* Во время этапа надпись загорается неоном и пульсирует; на событие эфира — вспышка */
     :host-context(html.live) .kanji {
-      -webkit-text-stroke: 1.5px rgba(10, 186, 181, 0.8);
+      -webkit-text-stroke: 1.5px rgba(var(--accent-rgb), 0.8);
       animation: kanji-live 2.4s var(--ease-in-out) infinite;
     }
     :host-context(html.pulse) .kanji {
@@ -156,8 +156,8 @@ import { Reveal } from '../reveal';
       filter: drop-shadow(0 0 24px rgba(255, 92, 92, 0.8));
     }
     @keyframes kanji-live {
-      0%, 100% { opacity: 0.55; filter: drop-shadow(0 0 6px rgba(10, 186, 181, 0.3)); }
-      50% { opacity: 1; filter: drop-shadow(0 0 22px rgba(10, 186, 181, 0.9)) drop-shadow(0 0 60px rgba(255, 92, 92, 0.35)); }
+      0%, 100% { opacity: 0.55; filter: drop-shadow(0 0 6px rgba(var(--accent-rgb), 0.3)); }
+      50% { opacity: 1; filter: drop-shadow(0 0 22px rgba(var(--accent-rgb), 0.9)) drop-shadow(0 0 60px rgba(255, 92, 92, 0.35)); }
     }
     @media (prefers-reduced-motion: reduce) {
       :host-context(html.live) .kanji { animation: none; }
@@ -172,7 +172,7 @@ import { Reveal } from '../reveal';
       font-weight: 600;
       line-height: 1;
       color: transparent;
-      -webkit-text-stroke: 1px rgba(10, 186, 181, 0.25);
+      -webkit-text-stroke: 1px rgba(var(--accent-rgb), 0.25);
       user-select: none;
       pointer-events: none;
     }
@@ -183,9 +183,9 @@ import { Reveal } from '../reveal';
       gap: 8px;
       margin: 0;
       padding: 6px 14px;
-      border: 1px solid rgba(10, 186, 181, 0.35);
+      border: 1px solid rgba(var(--accent-rgb), 0.35);
       border-radius: var(--r-pill);
-      background: rgba(10, 186, 181, 0.08);
+      background: rgba(var(--accent-rgb), 0.08);
       color: var(--primary);
       font-size: 12px;
       font-weight: 500;
@@ -206,15 +206,15 @@ import { Reveal } from '../reveal';
     }
 
     h1 { margin: 20px 0 24px; }
-    :host-context([data-theme='light']) .kanji { -webkit-text-stroke-color: rgba(11, 13, 16, 0.22); }
-    :host-context([data-theme='light']) .accent { background-image: linear-gradient(100deg, #0aa39e 0%, #12c4be 40%, #0b0d10 75%, #0aa39e 100%); filter: none; }
+    :host-context([data-theme='light']) .kanji { -webkit-text-stroke-color: rgba(148, 112, 15, 0.3); }
+    :host-context([data-theme='light']) .accent { background-image: linear-gradient(100deg, #94700f 0%, #e2b84a 40%, #6b4f08 70%, #94700f 100%); filter: drop-shadow(0 0 18px rgba(226, 184, 74, 0.35)); }
     .accent {
       background: linear-gradient(100deg, #0abab5 0%, #7ff5ef 45%, #0abab5 60%, #067f7b 100%);
       background-size: 250% 100%;
       -webkit-background-clip: text;
       background-clip: text;
       color: transparent;
-      filter: drop-shadow(0 0 28px rgba(10, 186, 181, 0.45));
+      filter: drop-shadow(0 0 28px rgba(var(--accent-rgb), 0.45));
       animation: shine 2.5s var(--ease-out) 0.6s both;
     }
     @keyframes shine {

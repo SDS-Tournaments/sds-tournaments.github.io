@@ -78,7 +78,7 @@ const hue = (level: number) => 200 + ((Math.max(1, level) - 1) / 6) * 100;
       gap: 20px;
       width: min(100%, 360px);
       padding: 28px;
-      border: 1px solid rgba(10, 186, 181, 0.25);
+      border: 1px solid rgba(var(--accent-rgb), 0.25);
       border-radius: var(--r-xl);
       background: var(--glass);
       backdrop-filter: blur(10px);

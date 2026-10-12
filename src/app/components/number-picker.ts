@@ -65,9 +65,9 @@ const PAGES = Array.from({ length: 10 }, (_, p) => ({ p, label: p ? `${p * 100}â
       border-radius: var(--r-lg);
       background:
         linear-gradient(135deg, rgba(255, 255, 255, 0.06), transparent 40%),
-        radial-gradient(80% 100% at 50% 120%, rgba(10, 186, 181, 0.25), transparent 70%),
+        radial-gradient(80% 100% at 50% 120%, rgba(var(--accent-rgb), 0.25), transparent 70%),
         var(--surface-2);
-      border: 1px solid rgba(10, 186, 181, 0.35);
+      border: 1px solid rgba(var(--accent-rgb), 0.35);
       clip-path: polygon(6% 0, 94% 0, 100% 100%, 0 100%);
     }
     .big {

@@ -105,7 +105,7 @@ import { loadStandings, PilotStanding, publicSeasons, Season, StageCol, TeamStan
     .flush { padding: 0; }
     .place { color: var(--ink-subtle); width: 40px; }
     .podium .place { color: var(--primary); }
-    .podium { background: rgba(10, 186, 181, 0.06); }
+    .podium { background: rgba(var(--accent-rgb), 0.06); }
     .podium td:first-child { box-shadow: inset 3px 0 0 var(--primary); }
     .who { display: flex; align-items: center; gap: 10px; white-space: nowrap; }
     .who img, .ph, .tlogo { width: 28px; height: 28px; border-radius: 50%; background: var(--surface-3) center / cover no-repeat; flex-shrink: 0; }

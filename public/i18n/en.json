@@ -290,7 +290,7 @@
     "takenBy": "Taken by {{name}}"
   },
   "theme": {
-    "light": "Light theme",
+    "light": "LEGEND mode",
     "dark": "Dark theme"
   },
   "common": {

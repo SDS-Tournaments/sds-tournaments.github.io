@@ -4,8 +4,10 @@
   --on-primary: #000;
   --primary-hover: #2fd3ce;
   --primary-pressed: #08938f;
-  --primary-soft: rgba(10, 186, 181, 0.12);
-  --primary-glow: rgba(10, 186, 181, 0.35);
+  --primary-soft: rgba(var(--accent-rgb), 0.12);
+  --primary-glow: rgba(var(--accent-rgb), 0.35);
+  /* акцент (r, g, b) для подсветок и рамок: бирюза, в режиме LEGEND — золото */
+  --accent-rgb: 10, 186, 181;
 
   --ink: #f5f5f5;
   --ink-muted: #b3b3b3;
@@ -53,48 +55,55 @@
   color-scheme: dark;
 }
 
-/* Светлая тема «ливрея»: холодное серебро, чёрная графика, яркая бирюза, перламутровые блики */
+/* Режим LEGEND (светлая тема): белый перламутр карточки LEGEND, золото вместо бирюзы, голографические блики */
 :root[data-theme='light'] {
-  --primary: #0aa39e;
-  --on-primary: #000;
-  --primary-hover: #12c4be;
-  --primary-pressed: #088a86;
-  --primary-soft: rgba(10, 163, 158, 0.12);
-  --primary-glow: rgba(18, 196, 190, 0.35);
+  /* текст, ссылки, рамки — тёмное золото (читается на перламутре); заливки — металлический перелив --gold-fill */
+  --primary: #94700f;
+  --on-primary: #1a1405;
+  --primary-hover: #b08a1c;
+  --primary-pressed: #7a5c0b;
+  --primary-soft: rgba(201, 162, 39, 0.14);
+  --primary-glow: rgba(214, 169, 53, 0.38);
+  --accent-rgb: 201, 158, 40;
+  --gold-fill: linear-gradient(135deg, #fbe7a1 0%, #e2b84a 45%, #c79a2c 70%, #f3d27a 100%);
 
-  --ink: #0b0d10;
-  --ink-muted: #31373e;
-  --ink-subtle: #545b64;
-  --ink-tertiary: #7b828b;
-  /* светлота цветов «хайпа» этапа: на светлом фоне — темнее */
+  --ink: #14110b;
+  --ink-muted: #3a352b;
+  --ink-subtle: #5c5547;
+  --ink-tertiary: #847b69;
   --hype-l: 44%;
 
-  --canvas: #e8eaee;
-  --surface-1: #f9fafb;
-  --surface-2: #eef0f3;
-  --surface-3: #dfe2e7;
-  --hairline: #d3d7dd;
-  --hairline-strong: #b4bac3;
+  --canvas: #f1eee7;
+  --surface-1: #fbfaf7;
+  --surface-2: #f4f1ea;
+  --surface-3: #e8e3d8;
+  --hairline: #e0d9c9;
+  --hairline-strong: #c9bea5;
 
-  --error: #d63b3b;
-  --warning: #b9770e;
-  --overlay: rgba(11, 13, 16, 0.45);
+  --error: #c93030;
+  --warning: #a8660a;
+  --overlay: rgba(20, 17, 11, 0.45);
 
-  --glass: rgba(249, 250, 251, 0.75);
-  --glass-strong: rgba(249, 250, 251, 0.94);
-  --shade: 232, 234, 238;
-  --grid-line: rgba(11, 13, 16, 0.05);
+  --glass: rgba(251, 250, 247, 0.76);
+  --glass-strong: rgba(251, 250, 247, 0.94);
+  --shade: 241, 238, 231;
+  --grid-line: rgba(20, 17, 11, 0.05);
 
   color-scheme: light;
 }
-/* фон: бирюзовое свечение + лавандовый перламутр, вместо сетки — косые гоночные полосы */
+/* фон: золотое свечение + голографический перелив, тонкие косые штрихи */
 :root[data-theme='light'] .backdrop {
-  --g1: rgba(18, 196, 190, 0.22);
-  --g2: rgba(196, 160, 255, 0.22);
+  --g1: rgba(244, 196, 80, 0.3);
+  --g2: rgba(178, 141, 255, 0.2);
   .grid {
-    background-image: repeating-linear-gradient(-55deg, rgba(11, 13, 16, 0.045) 0 2px, transparent 2px 26px);
+    background-image: repeating-linear-gradient(-55deg, rgba(148, 112, 15, 0.06) 0 1px, transparent 1px 26px);
     background-size: auto;
   }
+}
+/* золотые заливки: главная кнопка и активный язык */
+:root[data-theme='light'] .btn-primary {
+  background: var(--gold-fill);
+  box-shadow: 0 0 0 1px rgba(148, 112, 15, 0.45) inset, 0 6px 18px -8px rgba(148, 112, 15, 0.6);
 }
 
 @media (max-width: 767px) {
@@ -132,7 +141,7 @@ img {
 
 /* ───────── Фон всех страниц ───────── */
 .backdrop {
-  --g1: rgba(10, 186, 181, 0.2);
+  --g1: rgba(var(--accent-rgb), 0.2);
   --g2: rgba(220, 245, 244, 0.07);
   position: fixed;
   inset: 0;
@@ -185,7 +194,7 @@ img {
     height: 80vh;
     translate: -50% 0;
     border-radius: 50%;
-    background: radial-gradient(ellipse, rgba(10, 186, 181, 0.35), rgba(255, 92, 92, 0.12) 40%, transparent 70%);
+    background: radial-gradient(ellipse, rgba(var(--accent-rgb), 0.35), rgba(255, 92, 92, 0.12) 40%, transparent 70%);
     opacity: 0;
   }
 }
@@ -197,7 +206,7 @@ img {
 
 /* ───────── Этап идёт: сайт «разгорается» ───────── */
 html.live .backdrop {
-  --g1: rgba(10, 186, 181, 0.3);
+  --g1: rgba(var(--accent-rgb), 0.3);
   --g2: rgba(255, 92, 92, 0.16);
   .glow.a {
     animation:
@@ -392,8 +401,8 @@ h3 {
     transform var(--base) var(--ease-out);
 }
 .card-hover:hover {
-  background: linear-gradient(160deg, rgba(10, 186, 181, 0.08), transparent 50%), var(--surface-2);
-  border-color: rgba(10, 186, 181, 0.45);
+  background: linear-gradient(160deg, rgba(var(--accent-rgb), 0.08), transparent 50%), var(--surface-2);
+  border-color: rgba(var(--accent-rgb), 0.45);
   box-shadow: 0 12px 40px -16px var(--primary-glow);
   transform: translateY(-4px);
 }

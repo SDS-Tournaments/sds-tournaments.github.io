@@ -124,7 +124,7 @@ export function roadProgress(stages: { status: string; starts_at: string | null 
       position: absolute;
       inset: 0 auto 0 0;
       width: 0;
-      background: linear-gradient(90deg, rgba(10, 186, 181, 0.35), var(--primary) 60%, var(--hot));
+      background: linear-gradient(90deg, rgba(var(--accent-rgb), 0.35), var(--primary) 60%, var(--hot));
       box-shadow: 0 0 12px color-mix(in oklab, var(--hot), transparent 55%);
       transition: width 1.8s var(--ease-out) 0.2s;
     }

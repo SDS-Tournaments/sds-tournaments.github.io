@@ -35,7 +35,7 @@ const pt = (a: number, r: number) => `${(C + Math.cos(a) * r).toFixed(1)},${(C +
     .grid { fill: none; stroke: var(--hairline-strong); stroke-width: 1; }
     .axis { stroke: var(--hairline-strong); stroke-width: 1; }
     .shape {
-      fill: rgba(10, 186, 181, 0.22); stroke: var(--primary); stroke-width: 2; stroke-linejoin: round;
+      fill: rgba(var(--accent-rgb), 0.22); stroke: var(--primary); stroke-width: 2; stroke-linejoin: round;
       filter: drop-shadow(0 0 12px var(--primary-glow));
       transform-origin: 130px 130px; animation: grow 900ms var(--ease-out) both;
     }

@@ -105,7 +105,7 @@ const ACH_ORDER = ['win', 'first_win', 'hat_trick', 'podium', 'qual_king', 'perf
     .hero { position: relative; padding: 48px 0 32px; overflow: hidden; isolation: isolate; }
     .cover {
       position: absolute; inset: 0; z-index: -1;
-      background: radial-gradient(60% 100% at 80% 0%, rgba(10, 186, 181, 0.25), transparent 70%) center / cover no-repeat;
+      background: radial-gradient(60% 100% at 80% 0%, rgba(var(--accent-rgb), 0.25), transparent 70%) center / cover no-repeat;
       mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.7), transparent 95%);
     }
     .back { display: inline-block; margin-bottom: 32px; font-size: 14px; }

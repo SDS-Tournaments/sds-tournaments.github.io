@@ -290,7 +290,7 @@
     "takenBy": "Занят: {{name}}"
   },
   "theme": {
-    "light": "Светлая тема",
+    "light": "Режим LEGEND",
     "dark": "Тёмная тема"
   },
   "common": {
