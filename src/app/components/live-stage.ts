@@ -84,7 +84,14 @@ const ORDER = ['r32', 'r16', 'qf', 'sf', 'third', 'final'];
                 <span class="mono score">{{ r.best }}</span>
               </li>
             } @empty {
-              <li class="subtle">{{ 'live.noScores' | transloco }}</li>
+              <!-- пока никто не проехал: понятная заглушка + «скелет» будущей таблицы -->
+              <li class="empty">
+                <span class="pulse" aria-hidden="true"></span>
+                <span><b>{{ 'live.noScores' | transloco }}</b><small>{{ 'live.noScoresHint' | transloco }}</small></span>
+              </li>
+              @for (i of [1, 2, 3]; track i) {
+                <li class="ghost" aria-hidden="true"><span class="mono pl-place">{{ i }}</span><span class="bar"></span></li>
+              }
             }
           </ol>
         }
@@ -129,6 +136,22 @@ const ORDER = ['r32', 'r16', 'qf', 'sf', 'third', 'final'];
     .n { color: var(--primary); }
     .score { color: var(--primary); font-weight: 500; }
     .rise-row { animation: rise 500ms var(--ease-out) both; }
+    .top li.empty {
+      display: flex; gap: 14px; padding: 14px 16px; margin-bottom: 4px; box-shadow: none;
+      border: 1px dashed rgba(var(--accent-rgb), 0.35); background: rgba(var(--accent-rgb), 0.06);
+    }
+    .empty b { display: block; font-size: 14px; font-weight: 600; }
+    .empty small { display: block; margin-top: 2px; font-size: 12px; color: var(--ink-subtle); }
+    .pulse { position: relative; flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--primary); }
+    .pulse::after { content: ''; position: absolute; inset: 0; border-radius: 50%; background: var(--primary); animation: ring-out 1.8s ease-out infinite; }
+    @keyframes ring-out { from { transform: scale(1); opacity: 0.6; } to { transform: scale(3); opacity: 0; } }
+    .top li.ghost { grid-template-columns: 24px 1fr; box-shadow: none; opacity: 0.55; }
+    .ghost .bar { height: 8px; border-radius: 4px; background: color-mix(in oklab, var(--ink), transparent 85%); animation: ghost 1.6s ease-in-out infinite; }
+    .ghost:nth-child(2) .bar { width: 72%; }
+    .ghost:nth-child(3) .bar { width: 56%; animation-delay: 0.2s; }
+    .ghost:nth-child(4) .bar { width: 40%; animation-delay: 0.4s; }
+    @keyframes ghost { 50% { opacity: 0.35; } }
+    @media (prefers-reduced-motion: reduce) { .pulse::after, .ghost .bar { animation: none; } }
   `,
 })
 export class LiveStage implements OnInit {

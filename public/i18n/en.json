@@ -272,7 +272,8 @@
     "leader": "Leader",
     "chaser": "Chaser",
     "qual": "Qualifying · top 8",
-    "noScores": "No scores yet"
+    "noScores": "No scores yet",
+    "noScoresHint": "The table comes alive after the first qualifying run"
   },
   "round": {
     "r32": "Top 32",
