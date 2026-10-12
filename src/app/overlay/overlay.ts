@@ -444,14 +444,18 @@ export class Overlay implements OnInit {
   });
   /** порядок на пьедестале: 2 — 1 — 3 */
   /** карточки пилотов подиума */
-  private readonly pc = signal<{ ids: string; cards: Record<string, CardData> } | null>(null);
+  // counted — итоги этапа уже были в базе, когда грузили карточки (значит, сегодняшняя победа в них уже учтена)
+  private readonly pc = signal<{ ids: string; cards: Record<string, CardData>; counted: boolean } | null>(null);
   /** победитель уже «повышен» до карточки чемпиона (через пару секунд после показа подиума) */
   protected readonly champUp = signal(false);
   /** карточка на подиуме; у победителя до «повышения» — без сегодняшней победы */
   protected podCard(id: string, place: number): CardData | null {
-    const c = this.pc()?.cards[id];
-    if (!c) return null;
-    return place === 1 && !this.champUp() ? { ...c, wins: Math.max(0, c.wins - 1) } : c;
+    const pc = this.pc();
+    const c = pc?.cards[id];
+    if (!c || place !== 1) return c ?? null;
+    // победы до этого этапа; если итоги ещё не подведены (подиум из финала сетки) — сегодняшней победы в базе нет
+    const before = pc!.counted ? Math.max(0, c.wins - 1) : c.wins;
+    return { ...c, wins: this.champUp() ? before + 1 : before };
   }
   protected readonly podiumOrder = computed(() => [2, 1, 3].map((pl) => this.podium().find((x) => x.place === pl)).filter((x) => !!x));
 
@@ -541,7 +545,7 @@ export class Overlay implements OnInit {
     this.results.set(m.results);
     const d = this.duel()!;
     this.mu.set({ ids: `${d.leader_id}|${d.chaser_id}`, cards: m.cards });
-    this.pc.set({ ids: this.podium().map((x) => x.id).join('|'), cards: m.cards });
+    this.pc.set({ ids: this.podium().map((x) => x.id).join('|'), cards: m.cards, counted: true });
   }
 
   async ngOnInit() {
@@ -616,7 +620,8 @@ export class Overlay implements OnInit {
   private async loadPodium() {
     const ids = this.podium().map((x) => x.id);
     if (!ids.length || this.pc()?.ids === ids.join('|')) return;
-    this.pc.set({ ids: ids.join('|'), cards: await this.fetchCards(ids) });
+    const counted = this.results().length > 0;
+    this.pc.set({ ids: ids.join('|'), cards: await this.fetchCards(ids), counted });
   }
 
   /** FIFA-карточки пилотов: навыки по всем оценкам (+ данные до сайта), победы на этапах */
