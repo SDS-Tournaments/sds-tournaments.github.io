@@ -28,21 +28,29 @@ export function tierOf(overall: number | null): Tier {
   selector: 'app-pilot-card',
   imports: [TranslocoPipe],
   template: `
-    <div #card class="fut" [class]="tier()">
+    <div #card class="fut" [class]="tier()" [class.champ]="champ()">
       <div class="shade"></div>
       @if (tier() === 'elite' || tier() === 'legend') { <div class="shine"></div> }
       @if (tier() === 'legend') {
         <div class="ribbon">LEGEND</div>
         <span class="spark s1">✦</span><span class="spark s2">✦</span><span class="spark s3">✦</span>
       }
-      <!-- звезда за каждую победу на этапе; больше пяти — счётчик -->
-      @if (d().wins > 0) {
-        <div class="stars" [attr.aria-label]="('pilot.wins' | transloco) + ': ' + d().wins">
-          @if (d().wins <= 5) {
-            @for (s of [1, 2, 3, 4, 5].slice(0, d().wins); track s) { <span [style.animation-delay.ms]="s * 120">★</span> }
-          } @else {
-            <span>★</span><b>×{{ d().wins }}</b>
-          }
+      <!-- спецкарточка чемпиона: фольга, корона со звёздами побед, лавровый венок — в цветах своего уровня -->
+      @if (champ()) {
+        <div class="foil"></div>
+        <div class="champ-badge" [attr.aria-label]="('pilot.wins' | transloco) + ': ' + d().wins">
+          <svg class="crown" viewBox="0 0 40 26" aria-hidden="true">
+            <path d="M3 22 L1 6 L11 13 L20 1 L29 13 L39 6 L37 22 Z" />
+            <rect x="3" y="22.5" width="34" height="3" rx="1.5" />
+          </svg>
+          <span class="st">
+            @if (d().wins <= 5) {
+              @for (s of [1, 2, 3, 4, 5].slice(0, d().wins); track s) { <i [style.animation-delay.ms]="s * 300">★</i> }
+            } @else {
+              <i>★</i><b>×{{ d().wins }}</b>
+            }
+          </span>
+          <span class="cap">CHAMPION</span>
         </div>
       }
       <div class="top">
@@ -53,8 +61,17 @@ export function tierOf(overall: number | null): Tier {
         </div>
         <span class="brand mono">SDS</span>
       </div>
-      <div class="face">
-        @if (d().avatar_url) { <img [src]="d().avatar_url" alt="" crossorigin="anonymous" /> } @else { <span class="noface">{{ d().nickname[0] }}</span> }
+      <div class="face-wrap">
+        @if (champ()) {
+          <svg class="laurel" viewBox="0 0 200 160" aria-hidden="true">
+            @for (l of leaves; track $index) {
+              <ellipse [attr.cx]="l.x" [attr.cy]="l.y" rx="10" ry="4.2" [attr.transform]="'rotate(' + l.r + ' ' + l.x + ' ' + l.y + ')'" />
+            }
+          </svg>
+        }
+        <div class="face">
+          @if (d().avatar_url) { <img [src]="d().avatar_url" alt="" crossorigin="anonymous" /> } @else { <span class="noface">{{ d().nickname[0] }}</span> }
+        </div>
       </div>
       <p class="nick">{{ d().nickname }}</p>
       <p class="team">{{ d().team ?? 'Sad Drift Series' }}</p>
@@ -93,23 +110,49 @@ export function tierOf(overall: number | null): Tier {
       box-shadow: 0 24px 60px -24px var(--glow);
     }
     .shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.6) 45%, var(--body) 86%); }
-    .fut > :not(.shade):not(.shine):not(.spark):not(.ribbon):not(.stars) { position: relative; }
-    .stars {
-      position: absolute; top: 14px; left: 50%; z-index: 2; transform: translateX(-50%);
-      display: flex; align-items: center; gap: 3px; font-size: 24px; line-height: 1; color: #ffd36e;
-      text-shadow: 0 0 10px rgba(255, 211, 110, 0.8), 0 1px 2px rgba(0, 0, 0, 0.7);
+    .fut > :not(.shade):not(.shine):not(.spark):not(.ribbon):not(.foil):not(.champ-badge) { position: relative; }
+
+    /* ── Чемпион: всё в цвете уровня (--champ), сама тема карточки не меняется ── */
+    .fut { --champ: var(--accent); }
+    .legend { --champ: #c9971c; }
+    .champ { box-shadow: 0 24px 70px -18px color-mix(in srgb, var(--champ), transparent 35%); }
+    /* фольга: косая штриховка + бегущий перелив */
+    .foil {
+      position: absolute; inset: 0; pointer-events: none;
+      background:
+        linear-gradient(115deg, transparent 30%, color-mix(in srgb, var(--champ), transparent 72%) 45%, transparent 60%) 0 0 / 300% 100%,
+        repeating-linear-gradient(115deg, transparent 0 11px, color-mix(in srgb, var(--champ), transparent 88%) 11px 12px);
+      mask-image: linear-gradient(180deg, #000 0%, rgba(0, 0, 0, 0.55) 55%, transparent 80%);
+      animation: foil 5s linear infinite;
     }
-    .legend .stars { color: #e0a82e; text-shadow: 0 0 1px #5a3d05, 0 0 10px rgba(255, 190, 60, 0.9); }
-    .stars span { animation: twinkle-star 3s ease-in-out infinite; }
-    .stars b { margin-left: 4px; font: 400 14px 'Russo One', var(--font); }
-    @keyframes twinkle-star { 0%, 100% { opacity: 1; } 50% { opacity: 0.65; } }
+    @keyframes foil { from { background-position: 100% 0, 0 0; } to { background-position: -200% 0, 0 0; } }
+    /* корона + звёзды побед */
+    .champ-badge {
+      position: absolute; top: 16px; left: 50%; z-index: 2; transform: translateX(-50%);
+      display: grid; justify-items: center; gap: 3px; color: var(--champ);
+      filter: drop-shadow(0 0 8px color-mix(in srgb, var(--champ), transparent 40%));
+    }
+    .crown { width: 38px; height: 25px; fill: currentColor; }
+    .st { display: flex; align-items: center; gap: 2px; font-size: 14px; line-height: 1; }
+    .st i { font-style: normal; animation: star 2.4s ease-in-out infinite; }
+    .st b { margin-left: 3px; font: 400 13px 'Russo One', var(--font); }
+    .cap { font: 400 9px 'Russo One', var(--font); letter-spacing: 3px; opacity: 0.85; }
+    @keyframes star { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.25); opacity: 0.7; } }
+    /* лавровый венок вокруг аватара */
+    .face-wrap { position: relative; margin-top: -18px; }
+    .laurel {
+      position: absolute; left: 50%; top: 50%; transform: translate(-50%, -46%);
+      width: 200px; height: 160px; fill: var(--champ); opacity: 0.95;
+      filter: drop-shadow(0 0 6px color-mix(in srgb, var(--champ), transparent 50%));
+    }
+    .fut.champ .face { box-shadow: 0 0 0 3px var(--body), 0 0 0 5px var(--champ), 0 0 30px color-mix(in srgb, var(--champ), transparent 45%); }
     .top { width: 100%; display: flex; justify-content: space-between; align-items: start; }
     .ovr { display: grid; justify-items: center; line-height: 1; }
     .big { font: 600 48px var(--mono); color: var(--accent); }
     .tag { font-size: 11px; letter-spacing: 2px; color: var(--muted); margin-top: 2px; }
     .num { margin-top: 10px; font-size: 18px; font-style: italic; }
     .brand { font-size: 12px; padding: 3px 7px; border: 1px solid var(--accent); border-radius: 6px; color: var(--accent); letter-spacing: 1px; }
-    .face { width: 124px; height: 124px; margin-top: -18px; border-radius: 50%; overflow: hidden; box-shadow: 0 0 0 3px var(--body), 0 0 0 5px var(--accent); }
+    .face { width: 124px; height: 124px; border-radius: 50%; overflow: hidden; box-shadow: 0 0 0 3px var(--body), 0 0 0 5px var(--accent); }
     .face img { width: 100%; height: 100%; object-fit: cover; }
     .noface { display: grid; place-items: center; width: 100%; height: 100%; background: #1a1a1a; font: 600 48px var(--font); color: var(--accent); }
     .nick { margin: 16px 0 0; font-size: 24px; font-weight: 600; letter-spacing: -0.02em; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -198,7 +241,7 @@ export function tierOf(overall: number | null): Tier {
     .legend .shine { background: linear-gradient(105deg, transparent 40%, rgba(255, 255, 255, 0.7) 50%, transparent 60%); }
     @keyframes sweep { from { transform: translateX(-60%); } to { transform: translateX(60%); } }
 
-    @media (prefers-reduced-motion: reduce) { .elite, .legend, .shine, .spark, .stars span { animation: none; } }
+    @media (prefers-reduced-motion: reduce) { .elite, .legend, .shine, .spark, .foil, .st i { animation: none; } }
     .bad { color: var(--error); font-size: 13px; margin: 0; }
   `,
 })
@@ -206,6 +249,15 @@ export class PilotCard {
   readonly d = input.required<CardData>();
   readonly downloadable = input(true);
   protected readonly tier = computed(() => tierOf(this.d().overall));
+  /** выигрывал этапы — спецкарточка чемпиона */
+  protected readonly champ = computed(() => this.d().wins > 0);
+  /** листья венка: две ветви по дуге вокруг аватара (центр 100,80, радиус 80) */
+  protected readonly leaves = [0, 1, 2, 3, 4, 5, 6].flatMap((i) => {
+    const a = ((100 + i * 19) * Math.PI) / 180;
+    const x = 100 + 80 * Math.cos(a), y = 80 + 80 * Math.sin(a);
+    const r = 100 + i * 19 + 90 - 35;
+    return [{ x, y, r }, { x: 200 - x, y, r: -r }];
+  });
   private readonly card = viewChild.required<ElementRef<HTMLElement>>('card');
   protected readonly busy = signal(false);
   protected readonly error = signal<string | null>(null);

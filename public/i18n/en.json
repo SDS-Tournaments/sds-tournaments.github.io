@@ -212,7 +212,14 @@
     "omt2": { "icon": "🔥", "name": "Survived 2 OMTs", "desc": "Win a battle after two one-more-times" },
     "regicide": { "icon": "⚔️", "name": "The king is dead", "desc": "Beat the previous round champion in a battle. Long live the king!" },
     "giant_slayer": { "icon": "🪨", "name": "David vs Goliath", "desc": "Beat a rival who qualified 8+ places higher" },
-    "debut": { "icon": "🎬", "name": "Debut", "desc": "Race your first round" }
+    "debut": { "icon": "🎬", "name": "Debut", "desc": "Race your first round" },
+    "revenge": { "icon": "😤", "name": "Revenge", "desc": "Knock out the pilot who knocked you out last round" },
+    "last_wagon": { "icon": "🚃", "name": "Last train", "desc": "Make the bracket as the lowest seed and win a battle" },
+    "marathon": { "icon": "🏃", "name": "Marathon", "desc": "Run 3+ OMTs in a single round" },
+    "sniper": { "icon": "🎯", "name": "Sniper", "desc": "Two qualifying runs within 0.5 points of each other" },
+    "wooden": { "icon": "🪵", "name": "Wooden medal", "desc": "Finish a round in 4th place" },
+    "spinner": { "icon": "🌀", "name": "Spinning top", "desc": "Spin on both qualifying runs" },
+    "throw_322": { "icon": "💀", "name": "322", "desc": "Top qualifying, then lose to the lowest seed" }
   },
   "standings": {
     "pilot": "Driver",

@@ -210,6 +210,7 @@ export function finishesFrom(battles: BattleResult[]): Map<string, Finish> {
 export const ACHIEVEMENTS = [
   'win', 'first_win', 'back_to_back', 'hat_trick', 'flawless', 'podium', 'underdog',
   'qual_king', 'perfect_100', 'omt2', 'regicide', 'giant_slayer', 'debut',
+  'revenge', 'last_wagon', 'marathon', 'sniper', 'wooden', 'spinner', 'throw_322',
 ] as const;
 export type Achievement = (typeof ACHIEVEMENTS)[number];
 
@@ -220,19 +221,29 @@ export interface Duel {
   omt: number;
 }
 
+/** Доп. данные этапа для достижений: участники сетки, дуэли прошлого этапа сезона */
+export interface AchContext {
+  bracket?: string[];
+  prevDuels?: Duel[];
+}
+
 /**
  * Достижения за этап. `prevWinners` — победители предыдущих этапов сезона (последний — в конце),
  * `everWon` — кто уже побеждал на этапах раньше, `duels` — дуэли этапа, `veterans` — кто уже ездил этапы раньше.
  */
 export function stageAchievements(
-  rows: { id: string; stagePlace: number; qualPlace: number; best: number }[],
+  rows: { id: string; stagePlace: number; qualPlace: number; best: number; runs?: { total: number; spin: boolean }[] }[],
   prevWinners: string[],
   everWon: Set<string>,
   duels: Duel[],
   veterans: Set<string>,
+  ctx: AchContext = {},
 ): { id: string; code: Achievement }[] {
   const qualOf = new Map(rows.map((r) => [r.id, r.qualPlace]));
   const champ = prevWinners.at(-1);
+  // последний номер посева в сетке
+  const seeded = (ctx.bracket ?? []).filter((id) => qualOf.has(id));
+  const lastSeed = seeded.length >= 4 ? seeded.reduce((a, b) => (qualOf.get(b)! > qualOf.get(a)! ? b : a)) : null;
   const out: { id: string; code: Achievement }[] = [];
   for (const r of rows) {
     const add = (code: Achievement) => out.push({ id: r.id, code });
@@ -252,6 +263,17 @@ export function stageAchievements(
     if (champ && champ !== r.id && won.some((d) => d.loser === champ)) add('regicide');
     if (won.some((d) => r.qualPlace - (qualOf.get(d.loser) ?? r.qualPlace) >= 8)) add('giant_slayer');
     if (!veterans.has(r.id)) add('debut');
+    // кто выбил тебя на прошлом этапе — того ты выбил сейчас
+    const nemesis = new Set((ctx.prevDuels ?? []).filter((d) => d.loser === r.id).map((d) => d.winner));
+    if (won.some((d) => nemesis.has(d.loser))) add('revenge');
+    if (r.id === lastSeed && won.length) add('last_wagon');
+    if (duels.filter((d) => d.winner === r.id || d.loser === r.id).reduce((s, d) => s + d.omt, 0) >= 3) add('marathon');
+    const runs = r.runs ?? [];
+    if (runs.length === 2 && runs.every((x) => !x.spin && x.total > 0) && Math.abs(runs[0].total - runs[1].total) <= 0.5) add('sniper');
+    if (r.stagePlace === 4 && seeded.length >= 4) add('wooden');
+    if (runs.length === 2 && runs.every((x) => x.spin)) add('spinner');
+    // «322»: первый квалификации вылетает от последнего номера посева
+    if (r.qualPlace === 1 && lastSeed && duels.some((d) => d.loser === r.id && d.winner === lastSeed)) add('throw_322');
   }
   return out;
 }

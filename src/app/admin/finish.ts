@@ -13,7 +13,7 @@ export async function finishStage(stageId: number): Promise<string | null> {
   const [season, regs, runs, battles, members, prevStages] = await Promise.all([
     supabase.from('seasons').select('qual_points, battle_points').eq('id', stage.season_id).single(),
     supabase.from('registrations').select('profile_id, queue_order, status').eq('stage_id', stageId),
-    supabase.from('qual_runs').select('profile_id, attempt, total').eq('stage_id', stageId),
+    supabase.from('qual_runs').select('profile_id, attempt, total, spin').eq('stage_id', stageId),
     supabase.from('battles').select('round, leader_id, chaser_id, winner_id, result, omt_count').eq('stage_id', stageId),
     supabase.from('team_members').select('profile_id, team_id').eq('season_id', stage.season_id).eq('status', 'approved'),
     supabase.from('stages').select('id').eq('season_id', stage.season_id).eq('status', 'finished').lt('ord', stage.ord).order('ord'),
@@ -55,23 +55,35 @@ export async function finishStage(stageId: number): Promise<string | null> {
 
   // Достижения: история побед — из уже завершённых этапов
   const prevIds = (prevStages.data ?? []).map((s) => s.id);
-  const [prevWins, everWins, earlier] = await Promise.all([
+  const lastPrev = prevIds.at(-1);
+  const [prevWins, everWins, earlier, prevBattles] = await Promise.all([
     prevIds.length ? supabase.from('stage_results').select('stage_id, profile_id').in('stage_id', prevIds).eq('stage_place', 1) : Promise.resolve({ data: [] }),
     supabase.from('stage_results').select('profile_id').eq('stage_place', 1).neq('stage_id', stageId),
     // shortcut: «раньше» = этап создан раньше (id меньше); если этапы заводят не по порядку — сравнивать по starts_at
     supabase.from('stage_results').select('profile_id').lt('stage_id', stageId).in('profile_id', places.map((p) => p.id)),
+    lastPrev ? supabase.from('battles').select('leader_id, chaser_id, winner_id, result, omt_count').eq('stage_id', lastPrev) : Promise.resolve({ data: [] }),
   ]);
   const prevWinners = prevIds.map((id) => (prevWins.data ?? []).find((w) => w.stage_id === id)?.profile_id ?? '');
   const best = new Map(qual.map((q) => [q.id, q.best]));
-  const duels: Duel[] = (battles.data ?? [])
-    .filter((b) => b.winner_id && b.leader_id && b.chaser_id && b.result !== 'bye')
-    .map((b) => ({ winner: b.winner_id!, loser: b.winner_id === b.leader_id ? b.chaser_id! : b.leader_id!, omt: b.omt_count }));
+  const toDuels = (rows: { leader_id: string | null; chaser_id: string | null; winner_id: string | null; result: string | null; omt_count: number }[]): Duel[] =>
+    rows
+      .filter((b) => b.winner_id && b.leader_id && b.chaser_id && b.result !== 'bye')
+      .map((b) => ({ winner: b.winner_id!, loser: b.winner_id === b.leader_id ? b.chaser_id! : b.leader_id!, omt: b.omt_count }));
+  const duels = toDuels(battles.data ?? []);
+  const bracket = [...new Set((battles.data ?? []).flatMap((b) => [b.leader_id, b.chaser_id]).filter((x): x is string => !!x))];
   const achievements = stageAchievements(
-    places.map((p) => ({ id: p.id, stagePlace: p.stagePlace, qualPlace: p.qualPlace, best: best.get(p.id) ?? 0 })),
+    places.map((p) => ({
+      id: p.id,
+      stagePlace: p.stagePlace,
+      qualPlace: p.qualPlace,
+      best: best.get(p.id) ?? 0,
+      runs: (runs.data ?? []).filter((x) => x.profile_id === p.id && x.attempt > 0).map((x) => ({ total: Number(x.total), spin: x.spin })),
+    })),
     prevWinners,
     new Set((everWins.data ?? []).map((w) => w.profile_id)),
     duels,
     new Set((earlier.data ?? []).map((r) => r.profile_id)),
+    { bracket, prevDuels: toDuels(prevBattles.data ?? []) },
   ).map((a) => ({ profile_id: a.id, code: a.code, stage_id: stageId }));
 
   // Пересчёт с нуля

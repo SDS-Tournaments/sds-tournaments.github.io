@@ -225,6 +225,29 @@ describe('итоги этапа', () => {
     expect(stageAchievements([rows[0]], [], new Set(), [], new Set(['a'])).map((x) => x.code)).toContain('first_win');
   });
 
+  it('достижения: 322, последний вагон, реванш, марафонец, снайпер, волчок, деревянная медаль', () => {
+    const run = (total: number, spin = false) => ({ total, spin });
+    const rows = [
+      { id: 'top', stagePlace: 9, qualPlace: 1, best: 95, runs: [run(95), run(94.6)] },
+      { id: 'low', stagePlace: 5, qualPlace: 32, best: 60, runs: [run(60), run(0, true)] },
+      { id: 'w4', stagePlace: 4, qualPlace: 5, best: 80, runs: [run(0, true), run(0, true)] },
+      { id: 'x', stagePlace: 1, qualPlace: 2, best: 90 },
+    ];
+    const duels = [
+      { winner: 'low', loser: 'top', omt: 2 },
+      { winner: 'w4', loser: 'x', omt: 1 },
+      { winner: 'low', loser: 'w4', omt: 1 },
+    ];
+    const got = stageAchievements(rows, [], new Set(['x']), duels, new Set(['top', 'low', 'w4', 'x']), {
+      bracket: ['top', 'low', 'w4', 'x'],
+      prevDuels: [{ winner: 'x', loser: 'w4', omt: 0 }],
+    });
+    const of = (id: string) => got.filter((a) => a.id === id).map((a) => a.code);
+    expect(of('top')).toEqual(['qual_king', 'sniper', 'throw_322']);
+    expect(of('low')).toEqual(['omt2', 'giant_slayer', 'last_wagon', 'marathon']);
+    expect(of('w4')).toEqual(['revenge', 'wooden', 'spinner']);
+  });
+
   it('достижения: король пал, Давид и Голиаф, из низов, чистая победа, дебют', () => {
     const rows = [
       { id: 'u', stagePlace: 1, qualPlace: 12, best: 80 },
