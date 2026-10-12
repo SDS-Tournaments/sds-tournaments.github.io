@@ -1,6 +1,6 @@
 import { supabase } from '../auth';
 import { notify } from '../notify';
-import { BattleResult, finishesFrom, PointsTable, qualStandings, Round, stageAchievements, stagePlaces, stagePoints } from '../scoring/scoring';
+import { BattleResult, Duel, finishesFrom, PointsTable, qualStandings, Round, stageAchievements, stagePlaces, stagePoints } from '../scoring/scoring';
 
 /**
  * §5.7 Итоги этапа: места, очки по таблицам сезона, команда из подтверждённого состава сезона,
@@ -55,18 +55,23 @@ export async function finishStage(stageId: number): Promise<string | null> {
 
   // Достижения: история побед — из уже завершённых этапов
   const prevIds = (prevStages.data ?? []).map((s) => s.id);
-  const [prevWins, everWins] = await Promise.all([
+  const [prevWins, everWins, earlier] = await Promise.all([
     prevIds.length ? supabase.from('stage_results').select('stage_id, profile_id').in('stage_id', prevIds).eq('stage_place', 1) : Promise.resolve({ data: [] }),
     supabase.from('stage_results').select('profile_id').eq('stage_place', 1).neq('stage_id', stageId),
+    // shortcut: «раньше» = этап создан раньше (id меньше); если этапы заводят не по порядку — сравнивать по starts_at
+    supabase.from('stage_results').select('profile_id').lt('stage_id', stageId).in('profile_id', places.map((p) => p.id)),
   ]);
   const prevWinners = prevIds.map((id) => (prevWins.data ?? []).find((w) => w.stage_id === id)?.profile_id ?? '');
   const best = new Map(qual.map((q) => [q.id, q.best]));
-  const omt2 = new Set((battles.data ?? []).filter((b) => b.omt_count >= 2 && b.winner_id).map((b) => b.winner_id as string));
+  const duels: Duel[] = (battles.data ?? [])
+    .filter((b) => b.winner_id && b.leader_id && b.chaser_id && b.result !== 'bye')
+    .map((b) => ({ winner: b.winner_id!, loser: b.winner_id === b.leader_id ? b.chaser_id! : b.leader_id!, omt: b.omt_count }));
   const achievements = stageAchievements(
     places.map((p) => ({ id: p.id, stagePlace: p.stagePlace, qualPlace: p.qualPlace, best: best.get(p.id) ?? 0 })),
     prevWinners,
     new Set((everWins.data ?? []).map((w) => w.profile_id)),
-    omt2,
+    duels,
+    new Set((earlier.data ?? []).map((r) => r.profile_id)),
   ).map((a) => ({ profile_id: a.id, code: a.code, stage_id: stageId }));
 
   // Пересчёт с нуля

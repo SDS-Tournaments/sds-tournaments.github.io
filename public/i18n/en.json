@@ -200,13 +200,19 @@
     "crit": { "angle": "Angle", "style": "Style", "line": "Line" }
   },
   "ach": {
-    "win": { "icon": "🏆", "name": "Round win" },
-    "first_win": { "icon": "⭐", "name": "First win" },
-    "hat_trick": { "icon": "🎩", "name": "Hat-trick" },
-    "podium": { "icon": "🥉", "name": "Podium" },
-    "qual_king": { "icon": "👑", "name": "Qualifying king" },
-    "perfect_100": { "icon": "💯", "name": "Perfect 100" },
-    "omt2": { "icon": "🔥", "name": "Survived 2 OMTs" }
+    "win": { "icon": "🏆", "name": "Round win", "desc": "Win a round" },
+    "first_win": { "icon": "⭐", "name": "First win", "desc": "Win a round for the first time" },
+    "back_to_back": { "icon": "🔁", "name": "Title defence", "desc": "Win a round right after your previous win" },
+    "hat_trick": { "icon": "🎩", "name": "Hat-trick", "desc": "Win three rounds of a season in a row" },
+    "flawless": { "icon": "🧊", "name": "Flawless", "desc": "Win a round without a single OMT" },
+    "podium": { "icon": "🥉", "name": "Podium", "desc": "Finish a round in the top 3" },
+    "underdog": { "icon": "🚀", "name": "Underdog", "desc": "Reach the podium from 9th in qualifying or lower" },
+    "qual_king": { "icon": "👑", "name": "Qualifying king", "desc": "Top qualifying" },
+    "perfect_100": { "icon": "💯", "name": "Perfect 100", "desc": "Score 100 points on a run" },
+    "omt2": { "icon": "🔥", "name": "Survived 2 OMTs", "desc": "Win a battle after two one-more-times" },
+    "regicide": { "icon": "⚔️", "name": "The king is dead", "desc": "Beat the previous round champion in a battle. Long live the king!" },
+    "giant_slayer": { "icon": "🪨", "name": "David vs Goliath", "desc": "Beat a rival who qualified 8+ places higher" },
+    "debut": { "icon": "🎬", "name": "Debut", "desc": "Race your first round" }
   },
   "standings": {
     "pilot": "Driver",

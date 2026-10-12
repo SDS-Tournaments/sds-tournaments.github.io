@@ -211,9 +211,10 @@ describe('итоги этапа', () => {
       { id: 'b', stagePlace: 2, qualPlace: 1, best: 100 },
       { id: 'c', stagePlace: 5, qualPlace: 2, best: 95 },
     ];
-    const got = stageAchievements(rows, ['x', 'a', 'a'], new Set(['a']), new Set(['c']));
+    const got = stageAchievements(rows, ['x', 'a', 'a'], new Set(['a']), [{ winner: 'c', loser: 'z', omt: 2 }], new Set(['a', 'b', 'c']));
     expect(got).toEqual([
       { id: 'a', code: 'win' },
+      { id: 'a', code: 'back_to_back' },
       { id: 'a', code: 'hat_trick' },
       { id: 'a', code: 'podium' },
       { id: 'b', code: 'podium' },
@@ -221,7 +222,24 @@ describe('итоги этапа', () => {
       { id: 'b', code: 'perfect_100' },
       { id: 'c', code: 'omt2' },
     ]);
-    expect(stageAchievements([rows[0]], [], new Set(), new Set()).map((x) => x.code)).toContain('first_win');
+    expect(stageAchievements([rows[0]], [], new Set(), [], new Set(['a'])).map((x) => x.code)).toContain('first_win');
+  });
+
+  it('достижения: король пал, Давид и Голиаф, из низов, чистая победа, дебют', () => {
+    const rows = [
+      { id: 'u', stagePlace: 1, qualPlace: 12, best: 80 },
+      { id: 'k', stagePlace: 4, qualPlace: 1, best: 90 },
+      { id: 'm', stagePlace: 2, qualPlace: 5, best: 85 },
+    ];
+    const duels = [
+      { winner: 'u', loser: 'k', omt: 0 },
+      { winner: 'u', loser: 'm', omt: 0 },
+    ];
+    const got = stageAchievements(rows, ['k'], new Set(['k']), duels, new Set(['u', 'k']));
+    const of = (id: string) => got.filter((a) => a.id === id).map((a) => a.code);
+    expect(of('u')).toEqual(['win', 'first_win', 'flawless', 'podium', 'underdog', 'regicide', 'giant_slayer']);
+    expect(of('m')).toEqual(['podium', 'debut']);
+    expect(of('k')).toEqual(['qual_king']);
   });
 });
 

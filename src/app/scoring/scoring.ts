@@ -207,30 +207,51 @@ export function finishesFrom(battles: BattleResult[]): Map<string, Finish> {
   return m;
 }
 
-export type Achievement = 'win' | 'first_win' | 'hat_trick' | 'podium' | 'qual_king' | 'perfect_100' | 'omt2';
+export const ACHIEVEMENTS = [
+  'win', 'first_win', 'back_to_back', 'hat_trick', 'flawless', 'podium', 'underdog',
+  'qual_king', 'perfect_100', 'omt2', 'regicide', 'giant_slayer', 'debut',
+] as const;
+export type Achievement = (typeof ACHIEVEMENTS)[number];
+
+/** Решённая дуэль этапа (без баев) */
+export interface Duel {
+  winner: string;
+  loser: string;
+  omt: number;
+}
 
 /**
  * Достижения за этап. `prevWinners` — победители предыдущих этапов сезона (последний — в конце),
- * `everWon` — кто уже побеждал на этапах раньше, `omt2Winners` — выиграл дуэль после двух OMT.
+ * `everWon` — кто уже побеждал на этапах раньше, `duels` — дуэли этапа, `veterans` — кто уже ездил этапы раньше.
  */
 export function stageAchievements(
   rows: { id: string; stagePlace: number; qualPlace: number; best: number }[],
   prevWinners: string[],
   everWon: Set<string>,
-  omt2Winners: Set<string>,
+  duels: Duel[],
+  veterans: Set<string>,
 ): { id: string; code: Achievement }[] {
+  const qualOf = new Map(rows.map((r) => [r.id, r.qualPlace]));
+  const champ = prevWinners.at(-1);
   const out: { id: string; code: Achievement }[] = [];
   for (const r of rows) {
     const add = (code: Achievement) => out.push({ id: r.id, code });
+    const won = duels.filter((d) => d.winner === r.id);
     if (r.stagePlace === 1) {
       add('win');
       if (!everWon.has(r.id)) add('first_win');
+      if (champ === r.id) add('back_to_back');
       if (prevWinners.length >= 2 && prevWinners.slice(-2).every((w) => w === r.id)) add('hat_trick');
+      if (won.length && won.every((d) => d.omt === 0)) add('flawless');
     }
     if (r.stagePlace <= 3) add('podium');
+    if (r.stagePlace <= 3 && r.qualPlace >= 9) add('underdog');
     if (r.qualPlace === 1) add('qual_king');
     if (r.best >= 100) add('perfect_100');
-    if (omt2Winners.has(r.id)) add('omt2');
+    if (won.some((d) => d.omt >= 2)) add('omt2');
+    if (champ && champ !== r.id && won.some((d) => d.loser === champ)) add('regicide');
+    if (won.some((d) => r.qualPlace - (qualOf.get(d.loser) ?? r.qualPlace) >= 8)) add('giant_slayer');
+    if (!veterans.has(r.id)) add('debut');
   }
   return out;
 }

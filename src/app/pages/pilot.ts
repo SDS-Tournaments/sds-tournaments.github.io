@@ -7,7 +7,7 @@ import { CAR_PROTOTYPES } from '../catalog';
 import { pageTitle } from '../title';
 import { loadSkillRuns, PilotShowcase } from '../components/pilot-showcase';
 import { currentSeason } from '../data/standings';
-import { Legacy, SkillRun } from '../scoring/scoring';
+import { ACHIEVEMENTS, Legacy, SkillRun } from '../scoring/scoring';
 
 interface Profile {
   id: string;
@@ -31,7 +31,6 @@ interface Result {
   stage: { ord: number; title_ru: string; title_en: string | null; season: { title: string } | null } | null;
 }
 
-const ACH_ORDER = ['win', 'first_win', 'hat_trick', 'podium', 'qual_king', 'perfect_100', 'omt2'];
 
 // Публичный профиль пилота: обложка-ливрея, машина, статистика, «паутинка», FIFA-карточка, достижения, история
 @Component({
@@ -69,14 +68,16 @@ const ACH_ORDER = ['win', 'first_win', 'hat_trick', 'podium', 'qual_king', 'perf
           </div>
 
           <app-pilot-showcase [pilot]="p" [runs]="runs()" [team]="team()" [wins]="wins()" [legacy]="p.legacy" />
-          @if (achievements().length) {
-            <h2 class="h sec">{{ 'pilot.achievements' | transloco }}</h2>
-            <div class="ach">
-              @for (a of achievements(); track a.code) {
-                <span class="badge-a"><span class="e">{{ 'ach.' + a.code + '.icon' | transloco }}</span>{{ 'ach.' + a.code + '.name' | transloco }}@if (a.n > 1) { <b class="mono">×{{ a.n }}</b> }</span>
-              }
-            </div>
-          }
+          <h2 class="h sec">{{ 'pilot.achievements' | transloco }} <span class="subtle mono">{{ earned() }}/{{ achievements().length }}</span></h2>
+          <div class="ach">
+            @for (a of achievements(); track a.code) {
+              <div class="ach-i card" [class.off]="!a.n">
+                <span class="e">{{ 'ach.' + a.code + '.icon' | transloco }}</span>
+                <span class="nm">{{ 'ach.' + a.code + '.name' | transloco }}@if (a.n > 1) { <b class="mono">×{{ a.n }}</b> }</span>
+                <span class="ds">{{ 'ach.' + a.code + '.desc' | transloco }}</span>
+              </div>
+            }
+          </div>
 
           <h2 class="h sec">{{ 'pilot.history' | transloco }}</h2>
           <div class="table-wrap card flush">
@@ -128,10 +129,14 @@ const ACH_ORDER = ['win', 'first_win', 'hat_trick', 'podium', 'qual_king', 'perf
     .stat .k { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--ink-subtle); }
     .h { font-size: 18px; margin-bottom: 16px; }
     .sec { margin: 48px 0 16px; }
-    .ach { display: flex; flex-wrap: wrap; gap: 10px; }
-    .badge-a { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border: 1px solid var(--hairline-strong); border-radius: var(--r-pill); background: var(--surface-1); font-size: 14px; }
-    .badge-a .e { font-size: 18px; }
-    .badge-a b { color: var(--primary); font-weight: 500; }
+    .ach { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+    .ach-i { display: grid; grid-template-columns: auto 1fr; column-gap: 12px; align-items: center; padding: 14px 16px; border-color: rgba(var(--accent-rgb), 0.35); }
+    .ach-i .e { grid-row: span 2; font-size: 28px; }
+    .ach-i .nm { font-size: 14px; font-weight: 600; }
+    .ach-i .nm b { color: var(--primary); font-weight: 500; margin-left: 6px; }
+    .ach-i .ds { font-size: 12px; color: var(--text-muted, inherit); opacity: 0.75; }
+    .ach-i.off { border-color: var(--hairline); opacity: 0.45; }
+    .ach-i.off .e { filter: grayscale(1); }
     .flush { padding: 0; }
     .top { color: var(--primary); font-weight: 600; }
     .total { color: var(--primary); }
@@ -176,8 +181,9 @@ export class PilotPage implements OnInit {
   protected readonly achievements = computed(() => {
     const counts = new Map<string, number>();
     for (const c of this.achRows()) counts.set(c, (counts.get(c) ?? 0) + 1);
-    return ACH_ORDER.filter((c) => counts.has(c)).map((code) => ({ code, n: counts.get(code)! }));
+    return ACHIEVEMENTS.map((code) => ({ code, n: counts.get(code) ?? 0 })).sort((a, b) => +!a.n - +!b.n);
   });
+  protected readonly earned = computed(() => this.achievements().filter((a) => a.n).length);
   constructor() {
     this.t.langChanges$.subscribe((l) => this.lang.set(l));
   }

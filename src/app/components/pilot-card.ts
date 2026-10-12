@@ -35,6 +35,16 @@ export function tierOf(overall: number | null): Tier {
         <div class="ribbon">LEGEND</div>
         <span class="spark s1">✦</span><span class="spark s2">✦</span><span class="spark s3">✦</span>
       }
+      <!-- звезда за каждую победу на этапе; больше пяти — счётчик -->
+      @if (d().wins > 0) {
+        <div class="stars" [attr.aria-label]="('pilot.wins' | transloco) + ': ' + d().wins">
+          @if (d().wins <= 5) {
+            @for (s of [1, 2, 3, 4, 5].slice(0, d().wins); track s) { <span [style.animation-delay.ms]="s * 120">★</span> }
+          } @else {
+            <span>★</span><b>×{{ d().wins }}</b>
+          }
+        </div>
+      }
       <div class="top">
         <div class="ovr">
           <span class="big">{{ d().overall ?? '—' }}</span>
@@ -83,7 +93,16 @@ export function tierOf(overall: number | null): Tier {
       box-shadow: 0 24px 60px -24px var(--glow);
     }
     .shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.6) 45%, var(--body) 86%); }
-    .fut > :not(.shade):not(.shine):not(.spark):not(.ribbon) { position: relative; }
+    .fut > :not(.shade):not(.shine):not(.spark):not(.ribbon):not(.stars) { position: relative; }
+    .stars {
+      position: absolute; top: 14px; left: 50%; z-index: 2; transform: translateX(-50%);
+      display: flex; align-items: center; gap: 3px; font-size: 24px; line-height: 1; color: #ffd36e;
+      text-shadow: 0 0 10px rgba(255, 211, 110, 0.8), 0 1px 2px rgba(0, 0, 0, 0.7);
+    }
+    .legend .stars { color: #e0a82e; text-shadow: 0 0 1px #5a3d05, 0 0 10px rgba(255, 190, 60, 0.9); }
+    .stars span { animation: twinkle-star 3s ease-in-out infinite; }
+    .stars b { margin-left: 4px; font: 400 14px 'Russo One', var(--font); }
+    @keyframes twinkle-star { 0%, 100% { opacity: 1; } 50% { opacity: 0.65; } }
     .top { width: 100%; display: flex; justify-content: space-between; align-items: start; }
     .ovr { display: grid; justify-items: center; line-height: 1; }
     .big { font: 600 48px var(--mono); color: var(--accent); }
@@ -179,7 +198,7 @@ export function tierOf(overall: number | null): Tier {
     .legend .shine { background: linear-gradient(105deg, transparent 40%, rgba(255, 255, 255, 0.7) 50%, transparent 60%); }
     @keyframes sweep { from { transform: translateX(-60%); } to { transform: translateX(60%); } }
 
-    @media (prefers-reduced-motion: reduce) { .elite, .legend, .shine, .spark { animation: none; } }
+    @media (prefers-reduced-motion: reduce) { .elite, .legend, .shine, .spark, .stars span { animation: none; } }
     .bad { color: var(--error); font-size: 13px; margin: 0; }
   `,
 })
