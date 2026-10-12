@@ -15,6 +15,8 @@ interface Team {
 interface Member {
   profile_id: string;
   status: 'pending' | 'approved';
+  /** true — капитан пригласил (принимает пилот), false — пилот попросился (принимает капитан) */
+  invited: boolean;
   profile: { nickname: string; start_number: number | null; avatar_url: string | null } | null;
 }
 
@@ -37,7 +39,7 @@ interface Member {
         <div>
           <h3>{{ t.name }}</h3>
           @if (myStatus() === 'pending') {
-            <span class="badge warn">{{ 'team.pending' | transloco }}</span>
+            <span class="badge warn">{{ (myInvited() ? 'team.invitedBadge' : 'team.pending') | transloco }}</span>
           } @else if (isCaptain()) {
             <span class="badge">{{ 'team.captain' | transloco }}</span>
           }
@@ -51,7 +53,10 @@ interface Member {
               <span class="num mono">{{ m.profile?.start_number ?? '—' }}</span>
               <span class="nick">{{ m.profile?.nickname }}</span>
               @if (m.profile_id === t.captain_id) { <span class="tag">C</span> }
-              @if (m.status === 'pending') { <span class="subtle small">{{ 'team.awaiting' | transloco }}</span> }
+              @if (m.status === 'pending') {
+                <span class="subtle small">{{ (m.invited ? 'team.invitedWait' : 'team.requestWait') | transloco }}</span>
+                @if (isCaptain() && !m.invited) { <button class="btn btn-primary sm" (click)="approve(m)" [disabled]="busy()">{{ 'team.accept' | transloco }}</button> }
+              }
               @if (isCaptain() && m.profile_id !== t.captain_id) {
                 <button class="x" [title]="'team.remove' | transloco" (click)="remove(m)">✕</button>
               }
@@ -77,6 +82,11 @@ interface Member {
             {{ 'team.logo' | transloco }}
             <input type="file" accept="image/png,image/jpeg,image/webp" (change)="uploadLogo($event, t)" />
           </label>
+        </div>
+      } @else if (myStatus() === 'pending' && myInvited()) {
+        <div class="inline">
+          <button class="btn btn-primary" (click)="acceptInvite()" [disabled]="busy()">{{ 'team.acceptInvite' | transloco }}</button>
+          <button class="btn btn-ghost" (click)="leave()" [disabled]="busy()">{{ 'team.decline' | transloco }}</button>
         </div>
       } @else {
         <button class="btn btn-ghost" (click)="leave()" [disabled]="busy()">
@@ -127,6 +137,7 @@ interface Member {
     .num { color: var(--primary); min-width: 32px; }
     .nick { flex: 1; }
     .tag { font: 600 11px var(--mono); padding: 1px 6px; border-radius: var(--r-sm); background: var(--primary); color: var(--on-primary); }
+    .sm { min-height: 30px; padding: 4px 12px; font-size: 13px; }
     .x { border: 0; background: none; color: var(--ink-tertiary); cursor: pointer; &:hover { color: var(--error); } }
     .small { font-size: 13px; margin: 0; }
     .captain, .choose { display: grid; gap: 12px; }
@@ -152,6 +163,7 @@ export class MyTeam implements OnInit {
   protected readonly seasonId = signal<number | null>(null);
   protected readonly team = signal<Team | null>(null);
   protected readonly myStatus = signal<'pending' | 'approved' | null>(null);
+  protected readonly myInvited = signal(false);
   protected readonly members = signal<Member[]>([]);
   protected readonly ownTeam = signal<Team | null>(null);
   protected readonly allTeams = signal<Team[]>([]);
@@ -176,19 +188,20 @@ export class MyTeam implements OnInit {
     if (season) {
       const me = this.profileId();
       const [mine, own, all] = await Promise.all([
-        supabase.from('team_members').select('status, team:teams(id, name, logo_url, captain_id)').eq('season_id', season.id).eq('profile_id', me).maybeSingle(),
+        supabase.from('team_members').select('*, team:teams(id, name, logo_url, captain_id)') // '*' — не ломается, пока миграция 0013 не выполнена.eq('season_id', season.id).eq('profile_id', me).maybeSingle(),
         supabase.from('teams').select('id, name, logo_url, captain_id').eq('captain_id', me).maybeSingle(),
         supabase.from('teams').select('id, name, logo_url, captain_id').order('name'),
       ]);
       const t = (mine.data?.team ?? null) as unknown as Team | null;
       this.team.set(t);
       this.myStatus.set(mine.data?.status ?? null);
+      this.myInvited.set(!!mine.data?.invited);
       this.ownTeam.set(own.data);
       this.allTeams.set(all.data ?? []);
       if (t) {
         const { data } = await supabase
           .from('team_members')
-          .select('profile_id, status, profile:profiles(nickname, start_number, avatar_url)')
+          .select('*, profile:profiles(nickname, start_number, avatar_url)')
           .eq('season_id', season.id)
           .eq('team_id', t.id)
           .order('status');
@@ -232,6 +245,16 @@ export class MyTeam implements OnInit {
   remove(m: Member) {
     if (!confirm(this.t.translate('team.removeConfirm', { name: m.profile?.nickname }))) return;
     return this.run(() => supabase.from('team_members').delete().match({ season_id: this.seasonId(), profile_id: m.profile_id }));
+  }
+
+  /** капитан принимает заявку пилота */
+  approve(m: Member) {
+    return this.run(() => supabase.from('team_members').update({ status: 'approved' }).match({ season_id: this.seasonId(), profile_id: m.profile_id }));
+  }
+
+  /** пилот принимает приглашение капитана */
+  acceptInvite() {
+    return this.run(() => supabase.from('team_members').update({ status: 'approved' }).match({ season_id: this.seasonId(), profile_id: this.profileId() }));
   }
 
   async search() {
