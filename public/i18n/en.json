@@ -195,7 +195,8 @@
     "note": "Points follow the RDS GP tables: qualifying + battles. A team scores the sum of its 3 best drivers each round."
   },
   "stages": {
-    "empty": "The season's rounds haven't been announced yet."
+    "empty": "The season's rounds haven't been announced yet.",
+    "regOpen": "Registration open"
   },
   "stage": {
     "status": {
