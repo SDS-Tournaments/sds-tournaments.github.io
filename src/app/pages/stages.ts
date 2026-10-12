@@ -83,22 +83,17 @@ interface StageRow {
     @keyframes pip { from { box-shadow: 0 0 0 0 currentColor; } to { box-shadow: 0 0 0 6px transparent; } }
     .cta { margin-top: 10px !important; font-size: 14px; font-weight: 500; }
 
-    /* цветная полоса сверху карточки — статус виден издалека */
-    .stage::before { content: ''; position: absolute; inset: 0 0 auto; height: 3px; background: transparent; }
 
     /* регистрация: бирюзовая рамка и свечение */
     .stage.registration { border-color: rgba(10, 186, 181, 0.55); box-shadow: 0 0 32px -8px var(--primary-glow), inset 0 0 40px -20px rgba(10, 186, 181, 0.35); }
-    .stage.registration::before { background: var(--primary); box-shadow: 0 0 12px var(--primary); }
     .stage.registration .num { -webkit-text-stroke-color: rgba(10, 186, 181, 0.55); }
     .stage.registration .cta { color: var(--primary); }
 
     /* идёт сейчас: красная рамка, пульсирующее свечение */
     .stage.qualifying, .stage.battles { border-color: var(--error); animation: live-glow 2.4s ease-in-out infinite; }
-    .stage.qualifying::before, .stage.battles::before { background: linear-gradient(90deg, var(--error), var(--primary), var(--error)); background-size: 200% 100%; animation: live-bar 3s linear infinite; }
     .stage.qualifying .num, .stage.battles .num { -webkit-text-stroke-color: rgba(255, 92, 92, 0.6); }
     .stage.qualifying .cta, .stage.battles .cta { color: var(--error); }
     @keyframes live-glow { 50% { box-shadow: 0 0 36px -6px rgba(255, 92, 92, 0.55); } }
-    @keyframes live-bar { to { background-position: -200% 0; } }
 
     /* завершён: приглушён, номер залит бирюзой */
     .stage.finished { opacity: 0.75; }
@@ -106,7 +101,7 @@ interface StageRow {
     .stage.finished .num { -webkit-text-stroke-color: rgba(10, 186, 181, 0.35); }
 
     @media (prefers-reduced-motion: reduce) {
-      .pip, .stage.qualifying, .stage.battles, .stage::before { animation: none !important; }
+      .pip, .stage.qualifying, .stage.battles { animation: none !important; }
     }
     .date { font-size: 13px; color: var(--ink-muted); }
     .winner { font-weight: 600; margin-top: 6px !important; }
