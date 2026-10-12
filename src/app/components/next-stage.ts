@@ -1,4 +1,4 @@
-import { Component, computed, DestroyRef, effect, inject, input, signal } from '@angular/core';
+import { Component, computed, DestroyRef, effect, inject, input, signal, untracked } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { hype } from './hype';
@@ -57,7 +57,7 @@ const hue = (level: number) => 200 + ((Math.max(1, level) - 1) / 6) * 100;
           </div>
           <div class="segs" aria-hidden="true">
             @for (i of segs; track i) {
-              <i class="seg" [style.--sc]="color(i + 1, 0.95)"><b [style.width.%]="i < bar().level ? 100 : i === bar().level ? bar().progress * 100 : 0"></b></i>
+              <i class="seg" [style.--sc]="color(i + 1, 0.95)"><b [style.width.%]="segFill(i)"></b></i>
             }
           </div>
           <p class="hb-note">
@@ -165,8 +165,12 @@ export class NextStage {
   /** хайп только пока идёт регистрация */
   protected readonly hypeOn = computed(() => !!this.stage() && this.status() === 'registration');
   protected readonly hy = computed(() => hype(this.registered()));
-  /** полоска идёт за бегущим счётчиком (0 → N) — заполняется одной линией слева направо */
-  protected readonly bar = computed(() => hype(this.shown()));
+  /** позиция заполнения полоски в делениях (0…7): плавно едет от 0 к уровню + доле текущего */
+  private readonly fillPos = signal(0);
+  /** деление i заполняется, только когда линия до него доехала — одна непрерывная линия слева направо */
+  protected segFill(i: number) {
+    return Math.min(1, Math.max(0, this.fillPos() - i)) * 100;
+  }
   protected readonly segs = [0, 1, 2, 3, 4, 5, 6];
   protected color(level: number, alpha: number) {
     return `hsl(${hue(level)} 95% 66% / ${Math.min(1, alpha)})`;
@@ -197,6 +201,22 @@ export class NextStage {
       const tick = (t: number) => {
         const p = Math.min(1, (t - start) / 1200);
         this.shown.set(Math.round(target * (1 - (1 - p) ** 3)));
+        if (p < 1) raf = requestAnimationFrame(tick);
+      };
+      let raf = requestAnimationFrame(tick);
+      onCleanup(() => cancelAnimationFrame(raf));
+    });
+
+    // Полоска хайпа — своя плавная анимация (ease-in-out ~1.6 с), не привязана к целым числам счётчика
+    effect((onCleanup) => {
+      const h = this.hy();
+      const target = h.level + (h.level < h.max ? h.progress : 0);
+      const from = untracked(() => this.fillPos()); // без подписки — иначе эффект перезапускался бы каждый кадр
+      const start = performance.now();
+      const ease = (p: number) => (p < 0.5 ? 2 * p * p : 1 - (-2 * p + 2) ** 2 / 2);
+      const tick = (t: number) => {
+        const p = Math.min(1, (t - start) / 1600);
+        this.fillPos.set(from + (target - from) * ease(p));
         if (p < 1) raf = requestAnimationFrame(tick);
       };
       let raf = requestAnimationFrame(tick);
