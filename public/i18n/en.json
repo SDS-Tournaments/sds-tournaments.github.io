@@ -38,7 +38,10 @@
       "qualifying": "Qualifying",
       "battles": "Battles",
       "registration": "Registration",
-      "soon": "Next round date coming soon"
+      "soon": "Next round date coming soon",
+      "hype": "Round hype",
+      "hypeNext": "{{n}} more sign-ups to reach level {{l}}",
+      "hypeMax": "Maximum hype! 🔥"
     },
     "leaders": "Season leaders",
     "pilots": "Drivers",

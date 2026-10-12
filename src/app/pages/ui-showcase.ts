@@ -1,4 +1,5 @@
 import { Component, signal } from '@angular/core';
+import { NextStage } from '../components/next-stage';
 import { NumberPicker } from '../components/number-picker';
 import { RoadStage, SeasonRoad } from '../components/season-road';
 import { CardData, PilotCard, tierOf } from '../components/pilot-card';
@@ -7,13 +8,17 @@ import { Pilot, Pilots, Rank } from './pilots';
 // Витрина базовых стилей для проверки дизайна (/dev/ui), не в меню
 @Component({
   selector: 'app-ui-showcase',
-  imports: [NumberPicker, SeasonRoad, PilotCard, Pilots],
+  imports: [NumberPicker, SeasonRoad, PilotCard, Pilots, NextStage],
   template: `
     <section class="section container stack">
       <h1 class="display-lg">UI kit</h1>
 
       <div class="card"><app-number-picker [(value)]="num" [taken]="taken" nickname="Sadlerk" /></div>
       <app-season-road [stages]="road" />
+      <!-- «хайп» карточки ближайшего этапа на разном числе записавшихся -->
+      <div class="hype-demo">
+        @for (n of hypeCounts; track n) { <app-next-stage [stage]="'Этап 1 · ' + n + ' пил.'" [startsAt]="soon" [registered]="n" status="registration" /> }
+      </div>
       <div class="tiers">
         @for (c of cards; track c.overall) { <app-pilot-card [d]="c" [downloadable]="false" /> }
       </div>
@@ -63,6 +68,7 @@ import { Pilot, Pilots, Rank } from './pilots';
     .stack { display: grid; gap: 40px; }
     .tiers { display: flex; flex-wrap: wrap; gap: 24px; justify-content: center; }
     .demo { display: block; }
+    .hype-demo { display: flex; flex-wrap: wrap; gap: 32px; justify-content: center; text-align: left; }
     .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
     .grid { display: grid; gap: 24px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
     h3 { margin: 8px 0; font-size: 20px; }
@@ -109,5 +115,7 @@ export class UiShowcase {
     ovr,
     rank: ovr === null ? 'unrated' : tierOf(ovr),
   }));
+  protected readonly hypeCounts = [3, 7, 12, 17, 25, 35, 45, 60];
+  protected readonly soon = new Date(Date.now() + 19 * 86_400_000);
   protected readonly taken = new Map([7, 13, 21, 69, 88, 99, 101].map((n) => [n, `Pilot ${n}`] as [number, string]));
 }

@@ -1,13 +1,27 @@
 import { Component, computed, DestroyRef, effect, inject, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
+import { hype } from './hype';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
-// Карточка ближайшего этапа: таймер до старта + сколько пилотов уже записалось
+/** Цвет уровня: 1 — голубой, 7 — ярко-розово-фиолетовый */
+const hue = (level: number) => 200 + ((Math.max(1, level) - 1) / 6) * 100;
+
+// Карточка ближайшего этапа: таймер до старта + сколько пилотов уже записалось.
+// «Хайп»: чем больше записавшихся, тем ярче свечение и чаще пульсация карточки (уровни — hype.ts)
 @Component({
   selector: 'app-next-stage',
   imports: [RouterLink, TranslocoPipe],
+  host: {
+    '[class.hype]': 'hypeOn() && hy().level > 0',
+    '[class.r2]': 'hypeOn() && hy().level >= 3',
+    '[class.r3]': 'hypeOn() && hy().level >= 5',
+    '[style.--hc]': 'color(hy().level, 0.95)',
+    '[style.--hg]': 'color(hy().level, 0.18 + hy().level * 0.07)',
+    '[style.--hr]': '10 + hy().level * 5 + "px"',
+    '[style.--hs]': '3.4 - (hy().level - 1) * 0.38 + "s"',
+  },
   template: `
     @if (stage(); as s) {
       @if (live()) {
@@ -36,6 +50,21 @@ const pad = (n: number) => String(n).padStart(2, '0');
         <a href="#live" class="btn btn-primary">{{ 'home.next.watch' | transloco }}</a>
       } @else if (status() === 'registration') {
         <a routerLink="/me" class="btn btn-primary">{{ 'home.next.cta' | transloco }}</a>
+        <div class="hype-bar">
+          <div class="hb-top">
+            <span>{{ 'home.next.hype' | transloco }}</span>
+            <span class="mono">{{ hy().level }}/{{ hy().max }}</span>
+          </div>
+          <div class="segs" aria-hidden="true">
+            @for (i of segs; track i) {
+              <i class="seg" [style.--sc]="color(i + 1, 0.95)"><b [style.width.%]="i < hy().level ? 100 : i === hy().level ? hy().progress * 100 : 0"></b></i>
+            }
+          </div>
+          <p class="hb-note">
+            @if (hy().toNext; as n) { {{ 'home.next.hypeNext' | transloco: { n, l: hy().level + 1 } }} }
+            @else { {{ 'home.next.hypeMax' | transloco }} }
+          </p>
+        </div>
       }
     } @else {
       <p class="eyebrow">{{ 'home.next.eyebrow' | transloco }}</p>
@@ -44,6 +73,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
   `,
   styles: `
     :host {
+      position: relative;
       display: grid;
       gap: 20px;
       width: min(100%, 360px);
@@ -93,6 +123,34 @@ const pad = (n: number) => String(n).padStart(2, '0');
     }
     .lbl { color: var(--ink-muted); font-size: 14px; }
     .soon { margin: 0; color: var(--ink-muted); }
+
+    /* Хайп: рамка, свечение и число — цветом уровня; пульс чаще с ростом уровня */
+    :host(.hype) { border-color: var(--hc); animation: hype-glow var(--hs) ease-in-out infinite; }
+    :host(.hype) .num { color: var(--hc); text-shadow: 0 0 24px var(--hg); }
+    @keyframes hype-glow {
+      0%, 100% { box-shadow: 0 0 var(--hr) var(--hg); }
+      50% { box-shadow: 0 0 calc(var(--hr) * 2.2) var(--hg), inset 0 0 calc(var(--hr) * 1.2) var(--hg); }
+    }
+    /* с 3-го уровня — расходящееся кольцо, с 5-го — второе */
+    :host(.r2)::before, :host(.r3)::after {
+      content: ''; position: absolute; inset: -1px; border-radius: inherit; border: 1px solid var(--hc);
+      pointer-events: none; animation: hype-ring var(--hs) ease-out infinite;
+    }
+    :host(.r3)::after { animation-delay: calc(var(--hs) / -2); }
+    @keyframes hype-ring { from { opacity: 0.8; transform: scale(1); } to { opacity: 0; transform: scale(1.09); } }
+
+    .hype-bar { display: grid; gap: 8px; }
+    .hb-top { display: flex; justify-content: space-between; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ink-subtle); }
+    .hb-top .mono { color: var(--hc, var(--ink-muted)); }
+    .segs { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+    .seg { height: 6px; border-radius: 3px; background: var(--surface-3); overflow: hidden; }
+    .seg b { display: block; height: 100%; background: var(--sc); box-shadow: 0 0 8px var(--sc); transition: width 0.8s var(--ease-out); }
+    .hb-note { margin: 0; font-size: 12px; color: var(--ink-muted); }
+
+    @media (prefers-reduced-motion: reduce) {
+      :host(.hype), :host(.r2)::before, :host(.r3)::after { animation: none; }
+      :host(.hype) { box-shadow: 0 0 var(--hr) var(--hg); }
+    }
     .live { display: flex; align-items: center; gap: 8px; color: var(--error); }
     .live .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--error); animation: pulse 1.6s ease-out infinite; }
     @keyframes pulse { from { box-shadow: 0 0 0 0 rgba(255, 92, 92, 0.6); } to { box-shadow: 0 0 0 10px transparent; } }
@@ -104,6 +162,13 @@ export class NextStage {
   registered = input(0);
   status = input<string>('registration');
   protected readonly live = computed(() => this.status() === 'qualifying' || this.status() === 'battles');
+  /** хайп только пока идёт регистрация */
+  protected readonly hypeOn = computed(() => !!this.stage() && this.status() === 'registration');
+  protected readonly hy = computed(() => hype(this.registered()));
+  protected readonly segs = [0, 1, 2, 3, 4, 5, 6];
+  protected color(level: number, alpha: number) {
+    return `hsl(${hue(level)} 95% 66% / ${Math.min(1, alpha)})`;
+  }
 
   private readonly now = signal(Date.now());
   protected readonly shown = signal(0);
