@@ -53,7 +53,7 @@ import { compressImage } from '../image';
 
         <app-my-protests class="protests" [profileId]="me.id" />
 
-        <app-pilot-showcase class="showcase" [pilot]="me" [runs]="runs()" [team]="team()" [wins]="wins()" />
+        <app-pilot-showcase class="showcase" [pilot]="me" [runs]="runs()" [team]="team()" [wins]="wins()" [legacy]="me.legacy" />
 
         <div class="grid top-row">
           <app-stage-signup class="card" [profileId]="me.id" [hasNumber]="!!me.start_number" />

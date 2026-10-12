@@ -3,6 +3,7 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { Auth, supabase } from '../auth';
+import { Legacy } from '../scoring/scoring';
 
 interface Pilot {
   id: string;
@@ -11,6 +12,7 @@ interface Pilot {
   avatar_url: string | null;
   start_number: number | null;
   role: 'admin' | 'staff' | 'pilot';
+  legacy: Legacy | null;
 }
 interface Sanction {
   id: number;
@@ -53,8 +55,27 @@ const TYPE: Record<Sanction['type'], string> = { warning: 'Предупрежд�
               <option value="admin">Организатор</option>
             </select>
             <button class="btn btn-ghost" (click)="open.set(open() === p.id ? null : p.id)">{{ open() === p.id ? 'Скрыть' : 'Санкции' }}</button>
+            @if (isAdmin()) { <button class="btn btn-ghost" (click)="editLegacy(p)">{{ legacyFor() === p.id ? 'Скрыть' : 'До сайта' }}</button> }
             @if (isAdmin() && p.role === 'pilot') { <button class="btn btn-ghost danger" (click)="remove(p)" [disabled]="busy()" title="Удалить пилота">Удалить</button> }
           </div>
+
+          @if (legacyFor() === p.id) {
+            <form class="legacy" (ngSubmit)="saveLegacy(p)">
+              <p class="muted lh">Статистика до появления сайта — идёт в карточку и «паутинку» вместе с оценками на сайте (пропорционально числу заездов). Пусто или 0 заездов — не учитывается.</p>
+              <div class="lg">
+                <label>Зачётных заездов<input class="input mono" type="number" min="0" name="runs" [(ngModel)]="lg.runs" /></label>
+                <label>Угол, %<input class="input mono" type="number" min="0" max="100" name="angle" [(ngModel)]="lg.angle" /></label>
+                <label>Стиль, %<input class="input mono" type="number" min="0" max="100" name="style" [(ngModel)]="lg.style" /></label>
+                <label>Траектория, %<input class="input mono" type="number" min="0" max="100" name="line" [(ngModel)]="lg.line" /></label>
+                <label>Общий рейтинг (0–100)<input class="input mono" type="number" min="0" max="100" name="overall" [(ngModel)]="lg.overall" /></label>
+                <label>Побед на этапах<input class="input mono" type="number" min="0" name="wins" [(ngModel)]="lg.wins" /></label>
+              </div>
+              <div class="row">
+                <button class="btn btn-primary" type="submit" [disabled]="busy()">Сохранить</button>
+                <button class="btn btn-ghost" type="button" (click)="clearLegacy(p)" [disabled]="busy() || !p.legacy">Очистить</button>
+              </div>
+            </form>
+          }
 
           @if (open() === p.id) {
             <div class="sanctions">
@@ -114,6 +135,10 @@ const TYPE: Record<Sanction['type'], string> = { warning: 'Предупрежд�
     .add { display: flex; flex-wrap: wrap; gap: 8px; select { width: auto; } }
     .reason { flex: 1; min-width: 200px; }
     .warn { margin: 0; font-size: 13px; color: var(--warning); }
+    .legacy { display: grid; gap: 12px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--hairline); }
+    .lh { margin: 0; font-size: 13px; }
+    .lg { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+    .lg label { display: grid; gap: 4px; font-size: 12px; color: var(--ink-subtle); }
     .ok { color: var(--primary); }
     .bad { color: var(--error); }
   `,
@@ -144,7 +169,7 @@ export class AdminPilots implements OnInit {
 
   private async load() {
     const [p, s, st] = await Promise.all([
-      supabase.from('profiles').select('id, steam_id, nickname, avatar_url, start_number, role').order('nickname'),
+      supabase.from('profiles').select('*').order('nickname'),
       supabase.from('sanctions').select('id, profile_id, type, reason, created_at, stage:stages(title_ru)').order('created_at', { ascending: false }),
       supabase.from('stages').select('id, title_ru').order('id', { ascending: false }),
     ]);
@@ -212,6 +237,28 @@ export class AdminPilots implements OnInit {
     const typed = prompt(`Удалить ВСЕХ пилотов (${n})? Штаб и организаторы останутся.\nПропадут профили, номера, заявки, оценки, результаты и санкции. Отменить нельзя.\n\nЧтобы подтвердить, введите УДАЛИТЬ`);
     if (typed?.trim().toUpperCase() !== 'УДАЛИТЬ') return;
     return this.invoke({ action: 'remove-all' }, (d) => `Удалено пилотов: ${d.deleted}`);
+  }
+
+  protected readonly legacyFor = signal<string | null>(null);
+  protected lg: Legacy = {};
+
+  editLegacy(p: Pilot) {
+    if (this.legacyFor() === p.id) return this.legacyFor.set(null);
+    this.lg = { ...p.legacy };
+    this.legacyFor.set(p.id);
+  }
+
+  saveLegacy(p: Pilot) {
+    const n = (v: unknown, max = Infinity) => (v === null || v === undefined || v === '' ? null : Math.min(max, Math.max(0, Math.round(Number(v)))));
+    const lg: Legacy = { runs: n(this.lg.runs), angle: n(this.lg.angle, 100), style: n(this.lg.style, 100), line: n(this.lg.line, 100), overall: n(this.lg.overall, 100), wins: n(this.lg.wins) };
+    const empty = Object.values(lg).every((v) => !v);
+    return this.run(supabase.from('profiles').update({ legacy: empty ? null : lg }).eq('id', p.id), `${p.nickname}: данные до сайта сохранены`);
+  }
+
+  clearLegacy(p: Pilot) {
+    if (!confirm(`Очистить данные до сайта у ${p.nickname}?`)) return;
+    this.lg = {};
+    return this.run(supabase.from('profiles').update({ legacy: null }).eq('id', p.id), `${p.nickname}: данные до сайта очищены`);
   }
 
   removeSanction(s: Sanction) {

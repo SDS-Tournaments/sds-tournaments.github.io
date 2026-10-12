@@ -15,6 +15,7 @@ import {
   seasonStandings,
   seatInto,
   skills,
+  mergeSkills,
   seedOrder,
   stagePlaces,
   stagePoints,
@@ -237,6 +238,14 @@ describe('навыки пилота', () => {
   });
   it('нет зачётных попыток — нет навыков', () => {
     expect(skills([])).toBeNull();
+  });
+  it('данные до сайта смешиваются с сайтом пропорционально заездам', () => {
+    const site = { angle: 90, style: 60, line: 80, overall: 80, runs: 2 };
+    const legacy = { runs: 6, angle: 70, style: 80, line: 60, overall: 68, wins: 3 };
+    expect(mergeSkills(site, legacy)).toEqual({ angle: 75, style: 75, line: 65, overall: 71, runs: 8 });
+    expect(mergeSkills(null, legacy)).toEqual({ angle: 70, style: 80, line: 60, overall: 68, runs: 6 });
+    expect(mergeSkills(site, null)).toBe(site);
+    expect(mergeSkills(site, { runs: 0, angle: 99 })).toBe(site);
   });
 });
 

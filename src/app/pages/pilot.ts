@@ -5,7 +5,7 @@ import { supabase } from '../auth';
 import { Loader } from '../components/loader';
 import { loadSkillRuns, PilotShowcase } from '../components/pilot-showcase';
 import { currentSeason } from '../data/standings';
-import { SkillRun } from '../scoring/scoring';
+import { Legacy, SkillRun } from '../scoring/scoring';
 
 interface Profile {
   id: string;
@@ -19,6 +19,7 @@ interface Profile {
   power_hp: number | null;
   bio_ru: string | null;
   bio_en: string | null;
+  legacy?: Legacy | null;
 }
 interface Result {
   stage_id: number;
@@ -65,7 +66,7 @@ const ACH_ORDER = ['win', 'first_win', 'hat_trick', 'podium', 'qual_king', 'perf
             }
           </div>
 
-          <app-pilot-showcase [pilot]="p" [runs]="runs()" [team]="team()" [wins]="wins()" />
+          <app-pilot-showcase [pilot]="p" [runs]="runs()" [team]="team()" [wins]="wins()" [legacy]="p.legacy" />
           @if (achievements().length) {
             <h2 class="h sec">{{ 'pilot.achievements' | transloco }}</h2>
             <div class="ach">
@@ -163,7 +164,7 @@ export class PilotPage implements OnInit {
     const r = this.results();
     return [
       { k: 'pilot.stages', v: r.length },
-      { k: 'pilot.wins', v: r.filter((x) => x.stage_place === 1).length },
+      { k: 'pilot.wins', v: this.wins() + (this.p()?.legacy?.wins ?? 0) }, // + победы до сайта
       { k: 'pilot.podiums', v: r.filter((x) => x.stage_place <= 3).length },
       { k: 'pilot.best', v: r.length ? Math.min(...r.map((x) => x.stage_place)) : '—' },
       { k: 'pilot.points', v: r.reduce((s, x) => s + x.total, 0) },
@@ -181,7 +182,7 @@ export class PilotPage implements OnInit {
   async ngOnInit() {
     const { data: p } = await supabase
       .from('profiles')
-      .select('id, nickname, avatar_url, start_number, livery_url, car, engine, gearbox, power_hp, bio_ru, bio_en')
+      .select('*')
       .eq('steam_id', this.steamId())
       .maybeSingle();
     if (p) {

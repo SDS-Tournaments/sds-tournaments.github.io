@@ -3,6 +3,7 @@ import { toObservable } from '@angular/core/rxjs-interop';
 import { CanActivateFn, Router } from '@angular/router';
 import { createClient, Session } from '@supabase/supabase-js';
 import { filter, firstValueFrom } from 'rxjs';
+import type { Legacy } from './scoring/scoring';
 import { SUPABASE_KEY, SUPABASE_URL } from './supabase.config';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -23,6 +24,7 @@ export interface Profile {
   power_hp: number | null;
   bio_ru: string | null;
   bio_en: string | null;
+  legacy?: Legacy | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -76,7 +78,7 @@ export class Auth {
     if (!id) return this.profile.set(null);
     const { data } = await supabase
       .from('profiles')
-      .select('id, steam_id, nickname, avatar_url, role, start_number, number_season_id, livery_url, car, engine, gearbox, power_hp, bio_ru, bio_en')
+      .select('*') // все колонки: если миграция ещё не запущена, вход не ломается
       .eq('id', id)
       .single();
     this.profile.set(data);

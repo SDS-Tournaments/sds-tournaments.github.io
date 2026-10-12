@@ -303,6 +303,28 @@ export function skills(runs: SkillRun[]): { angle: number; style: number; line: 
   return { angle: pct('angle'), style: pct('style'), line: pct('line'), overall, runs: ok.length };
 }
 
+export type Skills = NonNullable<ReturnType<typeof skills>>;
+/** Статистика до сайта, которую вписал организатор (profiles.legacy) */
+export interface Legacy {
+  runs?: number | null;
+  angle?: number | null;
+  style?: number | null;
+  line?: number | null;
+  overall?: number | null;
+  wins?: number | null;
+}
+
+/** Навыки до сайта + навыки с сайта: среднее, взвешенное по числу зачётных заездов */
+export function mergeSkills(site: Skills | null, legacy: Legacy | null | undefined): Skills | null {
+  const n = legacy?.runs ?? 0;
+  if (n <= 0) return site;
+  const old: Skills = { angle: legacy!.angle ?? 0, style: legacy!.style ?? 0, line: legacy!.line ?? 0, overall: legacy!.overall ?? 0, runs: n };
+  if (!site) return old;
+  const m = site.runs;
+  const mix = (k: 'angle' | 'style' | 'line' | 'overall') => Math.round((old[k] * n + site[k] * m) / (n + m));
+  return { angle: mix('angle'), style: mix('style'), line: mix('line'), overall: mix('overall'), runs: n + m };
+}
+
 export interface TeamStageInput {
   teamId: string | null;
   total: number;

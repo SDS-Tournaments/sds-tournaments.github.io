@@ -4,7 +4,7 @@ import { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '../auth';
 import { BracketTree, TreeBattle, TreePilot } from '../components/bracket-tree';
 import { CardData, PilotCard } from '../components/pilot-card';
-import { qualStandings, Round, SkillRun, skills } from '../scoring/scoring';
+import { Legacy, mergeSkills, qualStandings, Round, SkillRun, skills } from '../scoring/scoring';
 import { compareRow } from './compare';
 import { DEFAULT_STATE, OVERLAY_TEXT, OverlayState, Widget } from './state';
 
@@ -441,17 +441,18 @@ export class Overlay implements OnInit {
     const ids = [d.leader_id!, d.chaser_id!];
     if (this.mu()?.ids === ids.join('|')) return;
     const [profiles, runs, wins] = await Promise.all([
-      supabase.from('profiles').select('id, nickname, start_number, avatar_url, livery_url, car').in('id', ids),
+      supabase.from('profiles').select('*').in('id', ids),
       supabase.from('qual_runs').select('profile_id, attempt, angle, style, line, spin, stage:stages(weights)').in('profile_id', ids),
       supabase.from('stage_results').select('profile_id').in('profile_id', ids).eq('stage_place', 1),
     ]);
     const cards: Record<string, CardData> = {};
     for (const p of profiles.data ?? []) {
-      const sk = skills(
+      const legacy = (p as { legacy?: Legacy | null }).legacy;
+      const sk = mergeSkills(skills(
         ((runs.data ?? []) as unknown as (Omit<SkillRun, 'weights'> & { profile_id: string; stage: { weights: SkillRun['weights'] } | null })[])
           .filter((r) => r.profile_id === p.id)
           .map((r) => ({ ...r, weights: r.stage?.weights ?? { angle: 40, style: 30, line: 30 } })),
-      );
+      ), legacy);
       cards[p.id] = {
         nickname: p.nickname,
         start_number: p.start_number,
@@ -463,7 +464,7 @@ export class Overlay implements OnInit {
         angle: sk?.angle ?? null,
         style: sk?.style ?? null,
         line: sk?.line ?? null,
-        wins: (wins.data ?? []).filter((w) => w.profile_id === p.id).length,
+        wins: (wins.data ?? []).filter((w) => w.profile_id === p.id).length + (legacy?.wins ?? 0),
       };
     }
     this.mu.set({ ids: ids.join('|'), cards });

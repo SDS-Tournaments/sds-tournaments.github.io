@@ -2,7 +2,7 @@ import { Component, computed, inject, input } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { supabase } from '../auth';
-import { SkillRun, skills } from '../scoring/scoring';
+import { Legacy, mergeSkills, SkillRun, skills } from '../scoring/scoring';
 import { CardData, PilotCard } from './pilot-card';
 import { Radar } from './radar';
 
@@ -41,11 +41,13 @@ export class PilotShowcase {
   readonly runs = input<SkillRun[]>([]);
   readonly team = input<string | null>(null);
   readonly wins = input(0);
+  /** статистика до сайта (Админка → Пилоты) */
+  readonly legacy = input<Legacy | null | undefined>(null);
 
   private readonly t = inject(TranslocoService);
   private readonly lang = toSignal(this.t.langChanges$);
 
-  protected readonly sk = computed(() => skills(this.runs()));
+  protected readonly sk = computed(() => mergeSkills(skills(this.runs()), this.legacy()));
   protected readonly radarLabels = computed(() => {
     this.lang();
     return ['angle', 'style', 'line'].map((k) => this.t.translate('pilot.crit.' + k));
@@ -59,7 +61,7 @@ export class PilotShowcase {
       angle: s?.angle ?? null,
       style: s?.style ?? null,
       line: s?.line ?? null,
-      wins: this.wins(),
+      wins: this.wins() + (this.legacy()?.wins ?? 0),
     };
   });
 }
