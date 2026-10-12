@@ -36,6 +36,20 @@ export function rankOf(tier: Tier | null) {
 const KEY = 'sds-theme';
 
 /**
+ * Трансляция всегда в фирменном NOIR, независимо от стиля сайта: на время пульта/оверлея стиль снимается,
+ * при уходе со страницы возвращается. Возвращает функцию «вернуть как было».
+ */
+export function forceNoir() {
+  const root = document.documentElement;
+  const prev = root.dataset['theme'];
+  root.dataset['theme'] = 'noir';
+  return () => {
+    if (prev) root.dataset['theme'] = prev;
+    else delete root.dataset['theme'];
+  };
+}
+
+/**
  * Стиль сайта под уровень FIFA-карточки: открыт свой уровень и все ниже (LEGEND — все, ELITE — все кроме LEGEND…).
  * Гостям и пилотам без рейтинга — только NOIR; штабу — все (проверять стили).
  * shortcut: доступ проверяется в браузере — это косметика, защищать нечего.

@@ -6,6 +6,7 @@ import { BracketTree, TreeBattle, TreePilot } from '../components/bracket-tree';
 import { CardData, PilotCard } from '../components/pilot-card';
 import { Legacy, mergeSkills, qualStandings, Round, SkillRun, skills } from '../scoring/scoring';
 import { compareRow } from './compare';
+import { forceNoir } from '../theme';
 import { mockStage } from './mock';
 import { DEFAULT_STATE, LANG_SWAP_MS, OVERLAY_TEXT, OverlayState, Widget } from './state';
 
@@ -373,6 +374,8 @@ export class Overlay implements OnInit {
   protected readonly podiumOrder = computed(() => [2, 1, 3].map((pl) => this.podium().find((x) => x.place === pl)).filter((x) => !!x));
 
   constructor() {
+    // трансляция всегда NOIR — стиль сайта (в т.ч. в превью пульта) на плашки не влияет
+    const restoreTheme = forceNoir();
     // прозрачная страница для OBS
     const root = document.documentElement;
     const prev = [root.style.background, document.body.style.background];
@@ -391,6 +394,7 @@ export class Overlay implements OnInit {
       clearInterval(tick);
       clearInterval(rot);
       clearInterval(swap);
+      restoreTheme();
       if (this.channel) supabase.removeChannel(this.channel);
     });
   }

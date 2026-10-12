@@ -36,16 +36,17 @@
   border-radius: 10px;
   background: #000;
   border: 2px solid var(--primary);
-  font: 600 italic 52px var(--mono);
+  font: 400 50px/1 'Russo One', var(--font);
+  letter-spacing: 0.02em;
   color: #fff;
-  text-shadow: 3px 3px 0 var(--primary);
+  text-shadow: 0 0 14px rgba(10, 186, 181, 0.55);
   box-shadow: 0 0 24px -6px var(--primary-glow);
 }
 .plate.small {
   min-width: 56px;
   height: 44px;
-  font-size: 26px;
-  text-shadow: 2px 2px 0 var(--primary);
+  font-size: 24px;
+  text-shadow: 0 0 10px rgba(10, 186, 181, 0.5);
 }
 // общий «стеклянный» фон плашки
 %glass {
@@ -278,7 +279,7 @@
   }
   .n {
     color: var(--primary);
-    font: italic 600 20px var(--mono);
+    font: 400 18px 'Russo One', var(--font);
   }
   .nick {
     overflow: hidden;

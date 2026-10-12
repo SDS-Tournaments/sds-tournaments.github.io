@@ -1,8 +1,9 @@
-import { Component, computed, OnInit, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer } from '@angular/platform-browser';
 import { inject } from '@angular/core';
 import { supabase } from '../auth';
+import { forceNoir } from '../theme';
 import { DEFAULT_STATE, OverlayState, Widget, WIDGET_LABEL, WIDGETS } from './state';
 
 // Пульт управляющего трансляцией: этап, какие плашки показаны, язык, превью и ссылка для OBS. Только RU.
@@ -129,6 +130,11 @@ export class Broadcast implements OnInit {
   protected readonly label = WIDGET_LABEL;
   protected readonly obsUrl = `${location.origin}/overlay`;
   protected readonly previewUrl = inject(DomSanitizer).bypassSecurityTrustResourceUrl('/overlay?preview=1');
+
+  constructor() {
+    // пульт трансляции всегда в NOIR, как и сами плашки
+    inject(DestroyRef).onDestroy(forceNoir());
+  }
 
   async ngOnInit() {
     const [{ data: st }, { data: stages }] = await Promise.all([
