@@ -10,7 +10,7 @@ const pt = (a: number, r: number) => `${(C + Math.cos(a) * r).toFixed(1)},${(C +
 @Component({
   selector: 'app-radar',
   template: `
-    <svg viewBox="0 0 260 260" role="img" [attr.aria-label]="labels()[0] + ' ' + values()[0] + '%, ' + labels()[1] + ' ' + values()[1] + '%, ' + labels()[2] + ' ' + values()[2] + '%'">
+    <svg viewBox="0 0 260 260" role="img" [style.--heat]="avg() + '%'" [attr.aria-label]="labels()[0] + ' ' + values()[0] + '%, ' + labels()[1] + ' ' + values()[1] + '%, ' + labels()[2] + ' ' + values()[2] + '%'">
       @for (lvl of [0.25, 0.5, 0.75, 1]; track lvl) {
         <polygon class="grid" [attr.points]="ring(lvl)" />
       }
@@ -19,12 +19,12 @@ const pt = (a: number, r: number) => `${(C + Math.cos(a) * r).toFixed(1)},${(C +
       }
       <polygon class="shape" [attr.points]="shape()" />
       @for (p of dots(); track $index) {
-        <circle class="dot" [attr.cx]="p.x" [attr.cy]="p.y" r="4" />
+        <circle class="dot" [attr.cx]="p.x" [attr.cy]="p.y" r="4" [style.--heat]="p.v + '%'" />
       }
       @for (a of axes; track $index; let i = $index) {
         <text class="lbl" [attr.x]="label(a).x" [attr.y]="label(a).y" text-anchor="middle">
           <tspan class="name">{{ labels()[i] }}</tspan>
-          <tspan class="val" [attr.x]="label(a).x" dy="16">{{ values()[i] }}%</tspan>
+          <tspan class="val" [attr.x]="label(a).x" dy="16" [style.--heat]="values()[i] + '%'">{{ values()[i] }}%</tspan>
         </text>
       }
     </svg>
@@ -34,16 +34,19 @@ const pt = (a: number, r: number) => `${(C + Math.cos(a) * r).toFixed(1)},${(C +
     svg { width: 100%; max-width: 320px; display: block; margin: 0 auto; overflow: visible; }
     .grid { fill: none; stroke: var(--hairline-strong); stroke-width: 1; }
     .axis { stroke: var(--hairline-strong); stroke-width: 1; }
+    /* «жар»: чем ближе к 100%, тем цвет дальше от акцента к красному — как на дороге сезона и в оценке на стриме */
+    svg, .dot, .val { --hot: color-mix(in oklch longer hue, var(--primary), var(--error) var(--heat, 0%)); }
+    :host-context([data-theme]:not([data-theme='noir'])) :is(svg, .dot, .val) { --hot: color-mix(in oklch shorter hue, var(--primary), var(--error) var(--heat, 0%)); }
     .shape {
-      fill: rgba(var(--accent-rgb), 0.22); stroke: var(--primary); stroke-width: 2; stroke-linejoin: round;
-      filter: drop-shadow(0 0 12px var(--primary-glow));
+      fill: color-mix(in oklab, var(--hot), transparent 78%); stroke: var(--hot); stroke-width: 2; stroke-linejoin: round;
+      filter: drop-shadow(0 0 12px color-mix(in oklab, var(--hot), transparent 45%));
       transform-origin: 130px 130px; animation: grow 900ms var(--ease-out) both;
     }
-    .dot { fill: var(--primary); animation: grow 900ms var(--ease-out) both; transform-origin: 130px 130px; }
+    .dot { fill: var(--hot); filter: drop-shadow(0 0 6px var(--hot)); animation: grow 900ms var(--ease-out) both; transform-origin: 130px 130px; }
     @keyframes grow { from { transform: scale(0); opacity: 0; } }
     .lbl { font-family: var(--font); }
     .name { fill: var(--ink-subtle); font-size: 11px; letter-spacing: 1px; text-transform: uppercase; }
-    .val { fill: var(--ink); font-family: var(--mono); font-size: 14px; }
+    .val { fill: color-mix(in oklab, var(--hot) calc(var(--heat, 0%) * 0.9), var(--ink)); font-family: var(--mono); font-size: 14px; }
   `,
 })
 export class Radar {
@@ -67,7 +70,8 @@ export class Radar {
   protected readonly dots = computed(() =>
     AXES.map((a, i) => {
       const r = (R * Math.min(100, this.values()[i] ?? 0)) / 100;
-      return { x: C + Math.cos(a) * r, y: C + Math.sin(a) * r };
+      return { x: C + Math.cos(a) * r, y: C + Math.sin(a) * r, v: Math.min(100, this.values()[i] ?? 0) };
     }),
   );
+  protected readonly avg = computed(() => Math.min(100, this.values().reduce((s, v) => s + (v ?? 0), 0) / (this.values().length || 1)));
 }
