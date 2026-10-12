@@ -157,7 +157,7 @@ const ATTEMPTS = [
             }
 
             <div class="incidents">
-              <button class="btn btn-ghost" (click)="disconnect(c)" [disabled]="busy()">Дисконнект → в конец очереди</button>
+              <button class="btn btn-ghost" (click)="disconnect(c)" [disabled]="busy()">Дисконнект → в конец группы</button>
               <button class="btn btn-ghost danger" (click)="techLoss(c)" [disabled]="busy()">Техпоражение</button>
             </div>
             @if (msg()) { <p [class]="ok() ? 'ok' : 'bad'">{{ msg() }}</p> }
@@ -457,17 +457,24 @@ export class AdminJudge implements OnInit, OnDestroy {
 
   /** Регламент 5.1: перезаезд — в конец очереди, оставшиеся попытки после всех */
   async disconnect(c: Reg) {
-    if (!confirm(`${c.profile?.nickname}: дисконнект — переставить в конец очереди?`)) return;
-    const last = this.queue().at(-1);
+    if (!confirm(`${c.profile?.nickname}: дисконнект — переставить в конец его группы?`)) return;
+    // пилот встаёт последним в своей группе; остальные пилоты группы сдвигаются на одно место вперёд
+    const q = this.queue();
+    const group = q.filter((r) => r.group_no === c.group_no);
+    const reordered = [...group.filter((r) => r.profile_id !== c.profile_id), c];
+    const slots = group.map((r) => r.queue_order ?? 0).sort((x, y) => x - y);
+    const changes = reordered.map((r, i) => ({ r, order: slots[i] })).filter(({ r, order }) => r.queue_order !== order);
     this.busy.set(true);
-    const { error } = await supabase
-      .from('registrations')
-      .update({ queue_order: (last?.queue_order ?? 0) + 1, group_no: last?.group_no ?? c.group_no })
-      .match({ stage_id: Number(this.id()), profile_id: c.profile_id });
+    const results = await Promise.all(
+      changes.map(({ r, order }) =>
+        supabase.from('registrations').update({ queue_order: order }).match({ stage_id: Number(this.id()), profile_id: r.profile_id }),
+      ),
+    );
     this.busy.set(false);
+    const error = results.find((x) => x.error)?.error;
     if (error) return this.note(error.message, false);
     await this.load();
-    this.note(`${c.profile?.nickname} переставлен в конец очереди`, true);
+    this.note(`${c.profile?.nickname} переставлен в конец группы ${c.group_no ?? ''}`, true);
     this.advance();
   }
 
