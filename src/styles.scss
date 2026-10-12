@@ -68,6 +68,8 @@
   --primary-soft: rgba(201, 162, 39, 0.14);
   --primary-glow: rgba(214, 169, 53, 0.38);
   --accent-rgb: 201, 158, 40;
+  /* шкала прокрутки — темнее акцента, иначе не видна на перламутре */
+  --rail-rgb: 148, 112, 15;
   --btn-fill: linear-gradient(135deg, #fbe7a1 0%, #e2b84a 45%, #c79a2c 70%, #f3d27a 100%);
 
   --ink: #14110b;

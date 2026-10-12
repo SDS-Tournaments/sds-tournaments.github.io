@@ -19,39 +19,46 @@ import { Component, DestroyRef, ElementRef, inject, signal } from '@angular/core
     </div>
   `,
   styles: `
+    /* --rc — цвет шкалы (r, g, b): акцент стиля; в LEGEND темнее (styles.scss, --rail-rgb), иначе теряется на перламутре */
     :host {
-      position: fixed; z-index: 40; right: 3px; top: 96px; bottom: 28px; width: 16px;
+      --rc: var(--rail-rgb, var(--accent-rgb));
+      --tw: 12px;   /* ширина шкалы (длинное деление) */
+      --ds: 10px;   /* размер точки */
+      position: fixed; z-index: 40; right: 4px; top: 96px; bottom: 28px; width: 18px;
       cursor: pointer; touch-action: none; opacity: 0; pointer-events: none;
       transition: opacity 0.4s var(--ease-out);
     }
-    :host(.show) { opacity: 0.55; pointer-events: auto; }
+    /* широкие экраны — крупнее и дальше от края */
+    @media (min-width: 1440px) { :host { --tw: 16px; --ds: 12px; right: 10px; width: 24px; } }
+    :host(.show) { opacity: 0.8; pointer-events: auto; }
     :host(.show.active), :host(.show:hover) { opacity: 1; }
     @media (max-width: 767px) { :host { display: none; } }
 
     .track {
-      position: absolute; inset: 0 0 0 auto; width: 10px;
-      /* деления: каждые 12px короткое, каждое пятое — длиннее */
+      position: absolute; inset: 0 0 0 auto; width: var(--tw);
+      /* ось по правому краю + деления: каждые 12px короткое, каждое пятое — длинное */
       background:
-        repeating-linear-gradient(to bottom, rgba(var(--accent-rgb), 0.5) 0 1px, transparent 1px 60px) right / 10px 100% no-repeat,
-        repeating-linear-gradient(to bottom, rgba(var(--accent-rgb), 0.28) 0 1px, transparent 1px 12px) right / 5px 100% no-repeat;
+        linear-gradient(rgba(var(--rc), 0.35), rgba(var(--rc), 0.35)) right / 1px 100% no-repeat,
+        repeating-linear-gradient(to bottom, rgba(var(--rc), 0.85) 0 1px, transparent 1px 60px) right / var(--tw) 100% no-repeat,
+        repeating-linear-gradient(to bottom, rgba(var(--rc), 0.5) 0 1px, transparent 1px 12px) right / calc(var(--tw) / 2) 100% no-repeat;
     }
-    /* пройденная часть — тонкая светящаяся линия по правому краю */
+    /* пройденная часть — светящаяся линия по оси */
     .done {
-      position: absolute; right: 0; top: 0; width: 1px;
-      background: linear-gradient(to bottom, transparent, rgba(var(--accent-rgb), 0.9));
-      box-shadow: 0 0 6px rgba(var(--accent-rgb), 0.6);
+      position: absolute; right: 0; top: 0; width: 2px; margin-right: -0.5px;
+      background: linear-gradient(to bottom, transparent, rgba(var(--rc), 1));
+      box-shadow: 0 0 8px rgba(var(--rc), 0.7);
     }
     .dot {
-      position: absolute; right: -4px; width: 9px; height: 9px; margin-top: -4.5px; border-radius: 50%;
-      background: var(--primary);
-      box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.18), 0 0 12px rgba(var(--accent-rgb), 0.8);
+      position: absolute; right: calc(var(--ds) / -2 + 0.5px); width: var(--ds); height: var(--ds); margin-top: calc(var(--ds) / -2);
+      border-radius: 50%; background: rgb(var(--rc));
+      box-shadow: 0 0 0 3px rgba(var(--rc), 0.22), 0 0 14px rgba(var(--rc), 0.9);
       transition: transform var(--fast);
     }
-    :host(.active) .dot { transform: scale(1.25); }
+    :host(.active) .dot { transform: scale(1.3); }
     .pct {
-      position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
-      padding: 2px 6px; border-radius: var(--r-pill); background: var(--glass-strong); border: 1px solid rgba(var(--accent-rgb), 0.3);
-      font: 500 10px var(--mono); color: var(--primary); letter-spacing: 0.05em;
+      position: absolute; right: calc(var(--ds) + 8px); top: 50%; transform: translateY(-50%);
+      padding: 2px 6px; border-radius: var(--r-pill); background: var(--glass-strong); border: 1px solid rgba(var(--rc), 0.4);
+      font: 500 10px var(--mono); color: rgb(var(--rc)); letter-spacing: 0.05em; white-space: nowrap;
       opacity: 0; transition: opacity var(--fast); pointer-events: none;
     }
     :host(.active) .pct, :host(:hover) .pct { opacity: 1; }
