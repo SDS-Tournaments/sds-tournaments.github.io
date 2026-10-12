@@ -122,6 +122,15 @@ const FLASH_MS = 10_000;
               @if (moves().get(q.id); as mv) { <span class="mv" [class.up]="mv > 0">{{ mv > 0 ? '▲' : '▼' }}{{ mv > 0 ? mv : -mv }}</span> }
               <span class="best">{{ q.best }}</span>
             </div>
+          } @empty {
+            <!-- никто ещё не проехал: заглушка + «скелет» будущей таблицы (как в блоке LIVE на сайте) -->
+            <div class="empty">
+              <span class="pulse"></span>
+              <span><b>{{ t().noScores }}</b><small>{{ t().noScoresHint }}</small></span>
+            </div>
+            @for (i of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]; track i) {
+              <div class="row ghost"><span class="pl">{{ i }}</span><span class="bar" [style.width.%]="92 - i * 7" [style.animation-delay.ms]="i * 120"></span></div>
+            }
           }
         </div>
       }
