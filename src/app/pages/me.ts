@@ -54,14 +54,18 @@ import { compressImage } from '../image';
 
         <app-my-protests class="protests" [profileId]="me.id" />
 
-        <!-- 1. Сезон: главные действия — запись на этап и команда -->
+        <!-- 1. Карточка и навыки -->
+        <p class="eyebrow sec">{{ 'me.secCard' | transloco }}</p>
+        <app-pilot-showcase [pilot]="me" [runs]="runs()" [team]="team()" [wins]="wins()" [legacy]="me.legacy" />
+
+        <!-- 2. Сезон: главные действия — запись на этап и команда -->
         <p class="eyebrow sec">{{ 'me.secSeason' | transloco }}</p>
         <div class="cols eq">
           <app-stage-signup class="card" [profileId]="me.id" [hasNumber]="!!me.start_number" [number]="me.start_number" [numberLocked]="numberLocked()" (changed)="loadLock(me.id)" />
           <app-my-team class="card" [profileId]="me.id" />
         </div>
 
-        <!-- 2. Профиль пилота: номер, машина, о себе, ливрея -->
+        <!-- 3. Профиль пилота: номер, машина, о себе, ливрея -->
         <p class="eyebrow sec">{{ 'me.secProfile' | transloco }}</p>
         <form class="cols" (ngSubmit)="save()">
           <div class="card stack" [class.wide]="pickingNumber()">
@@ -159,9 +163,6 @@ import { compressImage } from '../image';
           </div>
         </form>
 
-        <!-- 3. Карточка и навыки -->
-        <p class="eyebrow sec">{{ 'me.secCard' | transloco }}</p>
-        <app-pilot-showcase [pilot]="me" [runs]="runs()" [team]="team()" [wins]="wins()" [legacy]="me.legacy" />
       } @else {
         <div class="card guest">
           <h1 class="display-md">{{ 'nav.me' | transloco }}</h1>
@@ -215,9 +216,9 @@ import { compressImage } from '../image';
 
     /* разделы кабинета: подпись + две колонки */
     .sec { margin: 40px 0 16px; }
-    .cols { display: grid; gap: 24px; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
-    .cols.eq { align-items: stretch; }
-    .cols.eq > * { align-content: start; } /* одна высота у карточек, но содержимое сверху */
+    /* карточки в ряду одной высоты, содержимое прижато кверху */
+    .cols { display: grid; gap: 24px; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; }
+    .cols > * { align-content: start; }
     @media (max-width: 860px) { .cols { grid-template-columns: 1fr; } }
     .wide { grid-column: 1 / -1; }
     .fit { justify-self: start; }
@@ -247,7 +248,7 @@ import { compressImage } from '../image';
     .h { font-size: 20px; }
     label { display: grid; gap: 6px; }
     .lbl { font-size: 13px; color: var(--ink-muted); }
-    textarea { resize: vertical; }
+    textarea { resize: none; height: 96px; overflow-y: auto; }
     .hint { font-size: 13px; }
     .ok { color: var(--primary); }
     .bad { color: var(--error); }

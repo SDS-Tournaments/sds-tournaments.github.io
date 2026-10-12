@@ -28,7 +28,11 @@ export type ShowcasePilot = Pick<CardData, 'nickname' | 'start_number' | 'avatar
     </div>
   `,
   styles: `
-    :host { display: grid; gap: 24px; grid-template-columns: 1fr 1fr; align-items: start; }
+    :host { display: grid; gap: 24px; grid-template-columns: 1fr 1fr; align-items: stretch; }
+    .card { display: grid; align-content: start; }
+    /* паутинка — по центру своей (более высокой из-за соседней карточки) колонки */
+    .card:first-child { grid-template-rows: auto 1fr auto; align-content: stretch; }
+    app-radar { align-self: center; }
     @media (max-width: 860px) { :host { grid-template-columns: 1fr; } }
     .h { font-size: 18px; margin-bottom: 16px; }
     .small { font-size: 12px; }
