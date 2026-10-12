@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '../auth';
-import { qualStandings } from '../scoring/scoring';
+import { Fail, qualStandings } from '../scoring/scoring';
 import { AdminBattles } from './battles';
 import { STAGE_STATUS } from './labels';
 
@@ -30,6 +30,7 @@ interface Run {
   style: number | null;
   line: number | null;
   spin: boolean;
+  fail: Fail | null;
   total: number;
 }
 
@@ -122,7 +123,7 @@ const ATTEMPTS = [
               @for (a of attempts; track a.n) {
                 <button role="tab" class="tab" [class.on]="attempt() === a.n" [class.has]="hasRun(c.profile_id, a.n)" [attr.aria-selected]="attempt() === a.n" (click)="pickAttempt(a.n)">
                   {{ a.label }}
-                  @if (runOf(c.profile_id, a.n); as r) { <span class="mono">{{ a.n ? (r.spin ? 'СПИН' : r.total) : '✓' }}</span> }
+                  @if (runOf(c.profile_id, a.n); as r) { <span class="mono">{{ a.n ? (r.spin ? failLabel(r) : r.total) : '✓' }}</span> }
                 </button>
               }
             </div>
@@ -133,7 +134,7 @@ const ATTEMPTS = [
                 <button class="btn btn-primary big" (click)="saveWarmup()" [disabled]="busy()">Прогрев проехал → к попытке 1</button>
               </div>
             } @else {
-              <form class="scores" (ngSubmit)="save(false)">
+              <form class="scores" (ngSubmit)="save(null)">
                 @for (c of crits; track c.key) {
                   <label class="score">
                     <span class="lbl">{{ c.label }} <span class="subtle">· {{ st.judges[c.key] || 'судья' }}</span></span>
@@ -148,7 +149,9 @@ const ATTEMPTS = [
                 </div>
                 <div class="actions">
                   <button class="btn btn-primary big" type="submit" [disabled]="busy() || overMax() || !filled()">Сохранить ⏎</button>
-                  <button class="btn btn-secondary" type="button" (click)="save(true)" [disabled]="busy()">Спин (0)</button>
+                  @for (f of fails; track f.key) {
+                    <button class="btn btn-secondary" type="button" (click)="save(f.key)" [disabled]="busy()" [title]="f.hint">{{ f.label }} (0)</button>
+                  }
                 </div>
               </form>
             }
@@ -363,7 +366,7 @@ export class AdminJudge implements OnInit, OnDestroy {
     const id = Number(this.id());
     const [regs, runs, warns] = await Promise.all([
       supabase.from('registrations').select('profile_id, group_no, queue_order, status, profile:profiles(nickname, start_number, avatar_url, car)').eq('stage_id', id),
-      supabase.from('qual_runs').select('profile_id, attempt, angle, style, line, spin, total').eq('stage_id', id),
+      supabase.from('qual_runs').select('profile_id, attempt, angle, style, line, spin, fail, total').eq('stage_id', id),
       supabase.from('sanctions').select('profile_id').eq('type', 'warning'),
     ]);
     this.regs.set((regs.data ?? []) as unknown as Reg[]);
@@ -424,17 +427,30 @@ export class AdminJudge implements OnInit, OnDestroy {
   }
 
   async saveWarmup() {
-    if (await this.upsertRun({ angle: null, style: null, line: null, spin: false })) {
+    if (await this.upsertRun({ angle: null, style: null, line: null, spin: false, fail: null })) {
       this.note('Прогрев отмечен', true);
       this.advance();
     }
   }
 
-  async save(spin: boolean) {
+  /** нулевые попытки: что случилось */
+  protected readonly fails: { key: Fail; label: string; hint: string }[] = [
+    { key: 'spin', label: 'Спин', hint: 'Развернуло' },
+    { key: 'crash', label: 'Авария', hint: 'Разбился об отбойник или стену' },
+    { key: 'straight', label: 'Выпрямление', hint: 'Выпрямился, проехал без заноса' },
+    { key: 'offtrack', label: 'Вылет', hint: '4 колеса за пределами трассы' },
+  ];
+  protected failLabel(r: Run) {
+    return (this.fails.find((f) => f.key === (r.fail ?? 'spin'))?.label ?? 'Спин').toUpperCase();
+  }
+
+  async save(fail: Fail | null) {
+    const spin = !!fail;
     const c = this.current();
     const scores = spin ? { angle: null, style: null, line: null } : { angle: Number(this.form.angle), style: Number(this.form.style), line: Number(this.form.line) };
-    if (await this.upsertRun({ ...scores, spin })) {
-      this.note(`${c?.profile?.nickname}: попытка ${this.attempt()} — ${spin ? 'спин, 0' : this.formTotal()}`, true);
+    if (await this.upsertRun({ ...scores, spin, fail })) {
+      const label = this.fails.find((f) => f.key === fail)?.label.toLowerCase();
+      this.note(`${c?.profile?.nickname}: попытка ${this.attempt()} — ${spin ? label + ', 0' : this.formTotal()}`, true);
       this.advance();
     }
   }

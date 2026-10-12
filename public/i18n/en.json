@@ -219,7 +219,10 @@
     "sniper": { "icon": "🎯", "name": "Sniper", "desc": "Two qualifying runs within 0.5 points of each other" },
     "wooden": { "icon": "🪵", "name": "Wooden medal", "desc": "Finish a round in 4th place" },
     "spinner": { "icon": "🌀", "name": "Spinning top", "desc": "Spin on both qualifying runs" },
-    "throw_322": { "icon": "💀", "name": "322", "desc": "Top qualifying, then lose to the lowest seed" }
+    "throw_322": { "icon": "💀", "name": "322", "desc": "Top qualifying, then lose to the lowest seed" },
+    "straight2": { "icon": "📏", "name": "Straight shooter", "desc": "Straighten up on both qualifying runs" },
+    "offtrack2": { "icon": "🪱", "name": "Worm digger", "desc": "Go off track on both qualifying runs" },
+    "crash2": { "icon": "💸", "name": "Money is no object", "desc": "Crash on both qualifying runs" }
   },
   "standings": {
     "pilot": "Driver",
@@ -251,6 +254,7 @@
     "run": "Run {{n}}",
     "best": "Best",
     "spin": "spin",
+    "fail": { "spin": "spin", "crash": "crash", "straight": "straightened", "offtrack": "off track" },
     "notFound": "Round not found."
   },
   "road": {

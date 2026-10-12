@@ -14,7 +14,7 @@ export async function finishStage(stageId: number): Promise<string | null> {
   const [season, regs, runs, battles, members, prevStages] = await Promise.all([
     supabase.from('seasons').select('qual_points, battle_points').eq('id', stage.season_id).single(),
     supabase.from('registrations').select('profile_id, queue_order, status').eq('stage_id', stageId),
-    supabase.from('qual_runs').select('profile_id, attempt, total, spin').eq('stage_id', stageId),
+    supabase.from('qual_runs').select('profile_id, attempt, total, spin, fail').eq('stage_id', stageId),
     supabase.from('battles').select('round, leader_id, chaser_id, winner_id, result, omt_count').eq('stage_id', stageId),
     supabase.from('team_members').select('profile_id, team_id').eq('season_id', stage.season_id).eq('status', 'approved'),
     supabase.from('stages').select('id').eq('season_id', stage.season_id).eq('status', 'finished').lt('ord', stage.ord).order('ord'),
@@ -78,7 +78,7 @@ export async function finishStage(stageId: number): Promise<string | null> {
       stagePlace: p.stagePlace,
       qualPlace: p.qualPlace,
       best: best.get(p.id) ?? 0,
-      runs: (runs.data ?? []).filter((x) => x.profile_id === p.id && x.attempt > 0).map((x) => ({ total: Number(x.total), spin: x.spin })),
+      runs: (runs.data ?? []).filter((x) => x.profile_id === p.id && x.attempt > 0).map((x) => ({ total: Number(x.total), spin: x.spin, fail: x.fail })),
     })),
     prevWinners,
     new Set((everWins.data ?? []).map((w) => w.profile_id)),

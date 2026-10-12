@@ -207,10 +207,15 @@ export function finishesFrom(battles: BattleResult[]): Map<string, Finish> {
   return m;
 }
 
+/** Причина нулевой попытки (qual_runs.fail): спин, авария, выпрямление, вылет (4 колеса за трассой) */
+export const FAILS = ['spin', 'crash', 'straight', 'offtrack'] as const;
+export type Fail = (typeof FAILS)[number];
+
 export const ACHIEVEMENTS = [
   'win', 'first_win', 'back_to_back', 'hat_trick', 'flawless', 'podium', 'underdog',
   'qual_king', 'perfect_100', 'omt2', 'regicide', 'giant_slayer', 'debut',
   'revenge', 'last_wagon', 'marathon', 'sniper', 'wooden', 'spinner', 'throw_322',
+  'straight2', 'offtrack2', 'crash2',
 ] as const;
 export type Achievement = (typeof ACHIEVEMENTS)[number];
 
@@ -232,7 +237,7 @@ export interface AchContext {
  * `everWon` — кто уже побеждал на этапах раньше, `duels` — дуэли этапа, `veterans` — кто уже ездил этапы раньше.
  */
 export function stageAchievements(
-  rows: { id: string; stagePlace: number; qualPlace: number; best: number; runs?: { total: number; spin: boolean }[] }[],
+  rows: { id: string; stagePlace: number; qualPlace: number; best: number; runs?: { total: number; spin: boolean; fail?: Fail | null }[] }[],
   prevWinners: string[],
   everWon: Set<string>,
   duels: Duel[],
@@ -271,7 +276,12 @@ export function stageAchievements(
     const runs = r.runs ?? [];
     if (runs.length === 2 && runs.every((x) => !x.spin && x.total > 0) && Math.abs(runs[0].total - runs[1].total) <= 0.5) add('sniper');
     if (r.stagePlace === 4 && seeded.length >= 4) add('wooden');
-    if (runs.length === 2 && runs.every((x) => x.spin)) add('spinner');
+    // обе зачётные попытки — ноль по одной и той же причине (старые записи без причины считаем спином)
+    const both = (f: Fail) => runs.length === 2 && runs.every((x) => x.spin && (x.fail ?? 'spin') === f);
+    if (both('spin')) add('spinner');
+    if (both('straight')) add('straight2');
+    if (both('offtrack')) add('offtrack2');
+    if (both('crash')) add('crash2');
     // «322»: первый квалификации вылетает от последнего номера посева
     if (r.qualPlace === 1 && lastSeed && duels.some((d) => d.loser === r.id && d.winner === lastSeed)) add('throw_322');
   }

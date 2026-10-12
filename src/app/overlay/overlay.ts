@@ -4,7 +4,7 @@ import { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '../auth';
 import { BracketTree, TreeBattle, TreePilot } from '../components/bracket-tree';
 import { CardData, PilotCard } from '../components/pilot-card';
-import { Legacy, mergeSkills, qualStandings, Round, SkillRun, skills } from '../scoring/scoring';
+import { Fail, Legacy, mergeSkills, qualStandings, Round, SkillRun, skills } from '../scoring/scoring';
 import { compareRow } from './compare';
 import { forceNoir } from '../theme';
 import { mockStage } from './mock';
@@ -27,6 +27,7 @@ interface Run {
   style: number | null;
   line: number | null;
   spin: boolean;
+  fail?: Fail | null;
   total: number;
   created_at: string;
 }
@@ -96,7 +97,7 @@ const FLASH_MS = 10_000;
             <span class="label">{{ t().run }} {{ r.attempt }}</span>
           </div>
           @if (r.spin) {
-            <div class="spin">{{ t().spin }} · 0</div>
+            <div class="spin">{{ t().fail[r.fail ?? 'spin'] }} · 0</div>
           } @else {
             @for (k of crits; track k) {
               <div class="bar">
@@ -278,7 +279,7 @@ export class Overlay implements OnInit {
     const s = this.stage();
     if (!s) return '';
     if (s.status === 'battles') return this.duel() ? this.t()[this.duel()!.round] : this.t().battles;
-    return (this.t() as Record<string, string>)[s.status] ?? '';
+    return (this.t() as unknown as Record<string, string>)[s.status] ?? '';
   });
 
   private readonly queue = computed(() => [...this.regs()].sort((a, b) => (a.queue_order ?? 1e9) - (b.queue_order ?? 1e9)));
@@ -348,7 +349,7 @@ export class Overlay implements OnInit {
   });
 
   protected label(key: string) {
-    return (this.t() as Record<string, string>)[key] ?? key;
+    return (this.t() as unknown as Record<string, string>)[key] ?? key;
   }
 
   /** Масштаб сетки, чтобы Top 32/16/8 целиком влезала в 1920×1080 (размеры — из BracketTree: колонка 168 + 40, строка 34) */
@@ -508,7 +509,7 @@ export class Overlay implements OnInit {
     if (!stage) return;
     const [regs, runs, battles, results, teams] = await Promise.all([
       supabase.from('registrations').select('profile_id, group_no, queue_order, profile:profiles(nickname, start_number, avatar_url, car)').eq('stage_id', id).eq('status', 'registered'),
-      supabase.from('qual_runs').select('profile_id, attempt, angle, style, line, spin, total, created_at').eq('stage_id', id),
+      supabase.from('qual_runs').select('profile_id, attempt, angle, style, line, spin, fail, total, created_at').eq('stage_id', id),
       supabase.from('battles').select('id, round, slot, leader_id, chaser_id, winner_id, omt_count, status, result, decided_at').eq('stage_id', id),
       supabase.from('stage_results').select('profile_id, stage_place').eq('stage_id', id).lte('stage_place', 3),
       supabase.from('team_members').select('profile_id, team:teams(name)').eq('season_id', stage.season_id).eq('status', 'approved'),

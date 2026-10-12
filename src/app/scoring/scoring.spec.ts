@@ -248,6 +248,24 @@ describe('итоги этапа', () => {
     expect(of('w4')).toEqual(['revenge', 'wooden', 'spinner']);
   });
 
+  it('достижения за нули: выпрямление, вылет, авария дважды; разные причины — не в зачёт', () => {
+    const z = (fail: 'spin' | 'crash' | 'straight' | 'offtrack') => ({ total: 0, spin: true, fail });
+    const rows = [
+      { id: 's', stagePlace: 1, qualPlace: 1, best: 0, runs: [z('straight'), z('straight')] },
+      { id: 'o', stagePlace: 2, qualPlace: 2, best: 0, runs: [z('offtrack'), z('offtrack')] },
+      { id: 'c', stagePlace: 3, qualPlace: 3, best: 0, runs: [z('crash'), z('crash')] },
+      { id: 'm', stagePlace: 4, qualPlace: 4, best: 0, runs: [z('crash'), z('spin')] },
+      { id: 'old', stagePlace: 5, qualPlace: 5, best: 0, runs: [{ total: 0, spin: true }, { total: 0, spin: true }] },
+    ];
+    const got = stageAchievements(rows, [], new Set(['s']), [], new Set(rows.map((r) => r.id)));
+    const zeros = (id: string) => got.filter((a) => a.id === id && ['spinner', 'straight2', 'offtrack2', 'crash2'].includes(a.code)).map((a) => a.code);
+    expect(zeros('s')).toEqual(['straight2']);
+    expect(zeros('o')).toEqual(['offtrack2']);
+    expect(zeros('c')).toEqual(['crash2']);
+    expect(zeros('m')).toEqual([]);
+    expect(zeros('old')).toEqual(['spinner']);
+  });
+
   it('достижения: король пал, Давид и Голиаф, из низов, чистая победа, дебют', () => {
     const rows = [
       { id: 'u', stagePlace: 1, qualPlace: 12, best: 80 },

@@ -28,6 +28,7 @@ interface Run {
   attempt: number;
   total: number;
   spin: boolean;
+  fail?: string | null;
 }
 interface Result {
   profile_id: string;
@@ -106,7 +107,7 @@ type Tab = 'results' | 'bracket' | 'qual';
                       <td><span class="mono n">{{ p(q.id).start_number ?? '' }}</span> {{ p(q.id).nickname }}</td>
                       @for (a of [1, 2]; track a) {
                         @let r = runOf(q.id, a);
-                        <td class="num muted">{{ r ? (r.spin ? ('stage.spin' | transloco) : r.total) : '—' }}</td>
+                        <td class="num muted">{{ r ? (r.spin ? ('stage.fail.' + (r.fail ?? 'spin') | transloco) : r.total) : '—' }}</td>
                       }
                       <td class="num total">{{ q.best }}</td>
                     </tr>
@@ -216,7 +217,7 @@ export class StagePage implements OnInit {
     const id = Number(this.id());
     const [regs, runs, battles, results] = await Promise.all([
       supabase.from('registrations').select('profile_id, queue_order, profile:profiles(nickname, start_number)').eq('stage_id', id).eq('status', 'registered'),
-      supabase.from('qual_runs').select('profile_id, attempt, total, spin').eq('stage_id', id),
+      supabase.from('qual_runs').select('profile_id, attempt, total, spin, fail').eq('stage_id', id),
       supabase.from('battles').select('id, round, slot, leader_id, chaser_id, winner_id, omt_count, status, result').eq('stage_id', id),
       supabase.from('stage_results').select('profile_id, stage_place, qual_points, battle_points, total, team:teams(name), pilot:profiles(nickname, start_number)').eq('stage_id', id).order('stage_place'),
     ]);
