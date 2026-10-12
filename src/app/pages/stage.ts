@@ -8,6 +8,7 @@ import { BracketTree, TreeBattle, TreePilot } from '../components/bracket-tree';
 import { LiveStage } from '../components/live-stage';
 import { Loader } from '../components/loader';
 import { qualStandings, Round } from '../scoring/scoring';
+import { pageTitle } from '../title';
 
 interface Stage {
   id: number;
@@ -198,6 +199,7 @@ export class StagePage implements OnInit {
     await this.load();
     // показываем этап, когда данные уже на месте — без мелькания «нет оценок»
     this.stage.set(s as unknown as Stage);
+    pageTitle((s as unknown as Stage).title_ru);
     // по умолчанию — самое интересное: итоги, иначе сетка, иначе квалификация
     this.tab.set(this.tabs()[0]);
     if (this.live()) {

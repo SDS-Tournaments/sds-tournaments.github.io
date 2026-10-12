@@ -5,20 +5,21 @@ import { Home } from './pages/home';
 
 export const routes: Routes = [
   { path: '', component: Home },
-  { path: 'standings', loadComponent: () => import('./pages/standings').then((m) => m.Standings) },
-  { path: 'stages', loadComponent: () => import('./pages/stages').then((m) => m.Stages) },
+  { path: 'standings', title: 'Зачёт сезона', loadComponent: () => import('./pages/standings').then((m) => m.Standings) },
+  { path: 'stages', title: 'Этапы сезона', loadComponent: () => import('./pages/stages').then((m) => m.Stages) },
   { path: 'stages/:id', loadComponent: () => import('./pages/stage').then((m) => m.StagePage) },
-  { path: 'pilots', loadComponent: () => import('./pages/pilots').then((m) => m.Pilots) },
+  { path: 'pilots', title: 'Пилоты', loadComponent: () => import('./pages/pilots').then((m) => m.Pilots) },
   { path: 'pilots/:steamId', loadComponent: () => import('./pages/pilot').then((m) => m.PilotPage) },
-  { path: 'teams', loadComponent: () => import('./pages/teams').then((m) => m.Teams) },
+  { path: 'teams', title: 'Команды', loadComponent: () => import('./pages/teams').then((m) => m.Teams) },
   { path: 'teams/:id', loadComponent: () => import('./pages/team').then((m) => m.TeamPage) },
-  { path: 'archive', loadComponent: () => import('./pages/archive').then((m) => m.Archive) },
-  { path: 'rules', loadComponent: () => import('./pages/rules').then((m) => m.Rules) },
-  { path: 'me', loadComponent: () => import('./pages/me').then((m) => m.Me) },
+  { path: 'archive', title: 'Архив сезонов', loadComponent: () => import('./pages/archive').then((m) => m.Archive) },
+  { path: 'rules', title: 'Регламент', loadComponent: () => import('./pages/rules').then((m) => m.Rules) },
+  { path: 'me', title: 'Личный кабинет', loadComponent: () => import('./pages/me').then((m) => m.Me) },
   { path: 'auth/callback', loadComponent: () => import('./pages/auth-callback').then((m) => m.AuthCallback) },
   { path: 'auth/steam', loadComponent: () => import('./pages/auth-callback').then((m) => m.SteamReturn) },
   {
     path: 'admin',
+    title: 'Админка',
     canActivate: [staffGuard],
     loadComponent: () => import('./admin/shell').then((m) => m.AdminShell),
     children: [

@@ -32,6 +32,8 @@ jobs:
       - run: npm run build
       # SPA: прямые ссылки (/pilots/…, /admin) — GitHub Pages отдаёт 404.html, а это то же приложение
       - run: cp dist/sds/browser/index.html dist/sds/browser/404.html
+      # основные разделы отдаются с кодом 200 — их индексируют поисковики (страницы пилотов/этапов — через 404.html)
+      - run: for p in stages standings pilots teams rules archive me; do mkdir -p dist/sds/browser/$p && cp dist/sds/browser/index.html dist/sds/browser/$p/index.html; done
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist/sds/browser

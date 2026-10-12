@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /judge
+Disallow: /broadcast
+Disallow: /overlay
+Disallow: /me
+Disallow: /auth/
+
+Sitemap: https://sds-tournaments.github.io/sitemap.xml

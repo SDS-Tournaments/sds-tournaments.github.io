@@ -5,6 +5,7 @@ import { supabase } from '../auth';
 import { Loader } from '../components/loader';
 import { currentSeason, loadStandings } from '../data/standings';
 import { teamStage } from '../scoring/scoring';
+import { pageTitle } from '../title';
 
 interface Member {
   profile_id: string;
@@ -137,6 +138,7 @@ export class TeamPage implements OnInit {
     }
     this.season.set(season?.title ?? '');
     this.team.set(team);
+    if (team) pageTitle(`${team.name} — команда`);
     this.ready.set(true);
   }
 

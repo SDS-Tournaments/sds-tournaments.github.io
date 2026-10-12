@@ -4,6 +4,7 @@ import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { supabase } from '../auth';
 import { Loader } from '../components/loader';
 import { CAR_PROTOTYPES } from '../catalog';
+import { pageTitle } from '../title';
 import { loadSkillRuns, PilotShowcase } from '../components/pilot-showcase';
 import { currentSeason } from '../data/standings';
 import { Legacy, SkillRun } from '../scoring/scoring';
@@ -200,6 +201,7 @@ export class PilotPage implements OnInit {
       this.achRows.set((ach.data ?? []).map((a) => a.code));
       this.team.set(((member.data as { team: { name: string } | null } | null)?.team?.name) ?? null);
       this.p.set(p);
+      pageTitle(`${p.nickname} — пилот`);
     }
     this.ready.set(true);
   }
