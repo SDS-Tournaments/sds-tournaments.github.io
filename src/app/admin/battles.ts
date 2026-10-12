@@ -6,6 +6,7 @@ import { canChange, reseat, targetsOf } from './bracket-ops';
 import { finishStage } from './finish';
 import { notify } from '../notify';
 import { BracketTree } from '../components/bracket-tree';
+import { RouterLink } from '@angular/router';
 
 interface Battle {
   id: number;
@@ -36,7 +37,7 @@ const RESULT_LABEL: Record<string, string> = { normal: '', tech_loss: 'техп�
 // Пульт судьи — сетка и парные заезды (spec §5.2–5.3). Только RU.
 @Component({
   selector: 'app-admin-battles',
-  imports: [BracketTree],
+  imports: [BracketTree, RouterLink],
   template: `
     @if (!battles().length) {
       <section class="card empty">
@@ -116,10 +117,17 @@ const RESULT_LABEL: Record<string, string> = { normal: '', tech_loss: 'техп�
             @if (msg()) { <p [class]="ok() ? 'ok' : 'bad'">{{ msg() }}</p> }
           } @else {
             <div class="champ">
-              <p class="eyebrow">Этап завершён</p>
-              <h2>🏆 {{ info(champion()).nickname }}</h2>
-              <p class="muted">Все дуэли проведены.</p>
-              <button class="btn btn-primary big" (click)="finish()" [disabled]="busy()">Подвести итоги и завершить этап</button>
+              @if (finished()) {
+                <p class="eyebrow">Этап завершён</p>
+                <h2>🏆 {{ info(champion()).nickname }}</h2>
+                <p class="muted">Итоги подведены — <a [routerLink]="['/stages', stageId()]">таблица на странице этапа</a>.</p>
+                <!-- на случай исправлений после завершения (протест, ошибка судьи) -->
+                <button class="btn btn-ghost small" (click)="finish(true)" [disabled]="busy()">↻ Пересчитать итоги</button>
+              } @else {
+                <p class="eyebrow">Все дуэли проведены</p>
+                <h2>🏆 {{ info(champion()).nickname }}</h2>
+                <button class="btn btn-primary big" (click)="finish()" [disabled]="busy()">Подвести итоги и завершить этап</button>
+              }
               @if (msg()) { <p [class]="ok() ? 'ok' : 'bad'">{{ msg() }}</p> }
             </div>
           }
@@ -192,7 +200,7 @@ const RESULT_LABEL: Record<string, string> = { normal: '', tech_loss: 'техп�
     .danger { color: var(--error); }
     .decided { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; p { margin: 0; flex-basis: 100%; } }
     .win { color: var(--primary); }
-    .champ { text-align: center; padding: 32px 0; h2 { font-size: 32px; color: var(--primary); } }
+    .champ { display: grid; justify-items: center; gap: 12px; text-align: center; padding: 32px 0; h2 { margin: 0; font-size: 32px; color: var(--primary); } p { margin: 0; } }
     .ok { color: var(--primary); margin: 0; }
     .bad { color: var(--error); margin: 0; }
 
@@ -257,7 +265,11 @@ export class AdminBattles implements OnInit, OnDestroy {
   protected readonly champion = computed(() => this.battles().find((b) => b.round === 'final')?.winner_id ?? null);
   protected readonly allVoted = computed(() => CRITS.every((c) => this.votes()[c.key]));
 
+  /** этап уже завершён (итоги подведены) */
+  protected readonly finished = signal(false);
+
   async ngOnInit() {
+    supabase.from('stages').select('status').eq('id', this.stageId()).single().then(({ data }) => this.finished.set(data?.status === 'finished'));
     await this.load();
     this.channel = supabase
       .channel(`battles-${this.stageId()}`)
@@ -401,12 +413,14 @@ export class AdminBattles implements OnInit, OnDestroy {
     this.note('Решение отменено', true);
   }
 
-  async finish() {
+  async finish(again = false) {
+    if (again && !confirm('Пересчитать итоги этапа заново? Места, очки и ачивки будут посчитаны с нуля по текущей сетке.')) return;
     if (this.protested().length && !confirm('Есть протесты на рассмотрении. Всё равно подвести итоги?')) return;
     this.busy.set(true);
     const err = await finishStage(this.stageId());
     this.busy.set(false);
-    this.note(err ?? 'Итоги посчитаны, этап завершён — таблица на странице этапа', !err);
+    if (!err) this.finished.set(true);
+    this.note(err ?? (again ? 'Итоги пересчитаны' : 'Итоги посчитаны, этап завершён'), !err);
   }
 
   async testProtest() {
