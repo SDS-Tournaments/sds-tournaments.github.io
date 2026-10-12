@@ -1,11 +1,11 @@
 // Машины CarX Drift Racing Online 2 — со скриншотов гаража от организатора (по маркам, по алфавиту)
 export const CARS = [
-  'BNM 30E', 'BNM 36E', 'BNM B46', 'BNM BM2', 'BNM M92',
+  'BNM 30E', 'BNM 36E', 'BNM B46', 'BNM BM2', 'BNM M4R', 'BNM M92',
   'Covert CC6', 'Covert CMR19', 'Covert CMR70',
   'Dole M8R',
-  "Joe's MST90",
-  'Kyoto E86', 'Kyoto G86', 'Kyoto R86', 'Kyoto S80', 'Kyoto S90', 'Kyoto SRR', 'Kyoto TM28', 'Kyoto YSR',
-  'Nishimo 32R', 'Nishimo 34R', 'Nishimo 35R', 'Nishimo LRL33', 'Nishimo SI5', 'Nishimo Z37', 'Nishimo Z40',
+  "Joe's MST20", "Joe's MST90",
+  'Kyoto E86', 'Kyoto G86', 'Kyoto R86', 'Kyoto S80', 'Kyoto S90', 'Kyoto SRR', 'Kyoto TC100', 'Kyoto TM28', 'Kyoto XS100', 'Kyoto YSR',
+  'Nishimo 30S', 'Nishimo 32R', 'Nishimo 34R', 'Nishimo 35R', 'Nishimo LRL33', 'Nishimo LRL35', 'Nishimo S18', 'Nishimo SI3', 'Nishimo SI4', 'Nishimo SI5', 'Nishimo Z37', 'Nishimo Z40',
   'Vankel R7D',
 ];
 
