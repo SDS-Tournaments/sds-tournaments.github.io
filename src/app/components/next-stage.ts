@@ -6,7 +6,8 @@ import { hype } from './hype';
 const pad = (n: number) => String(n).padStart(2, '0');
 
 /** Цвет уровня: 1 — голубой, 7 — ярко-розово-фиолетовый */
-const hue = (level: number) => 200 + ((Math.max(1, level) - 1) / 6) * 100;
+/** доля уровня 0…1 (1-й уровень — 0, 7-й — 1); сам оттенок задаёт тема: --hype-h0 и --hype-span */
+const step = (level: number) => (Math.max(1, level) - 1) / 6;
 
 // Карточка ближайшего этапа: таймер до старта + сколько пилотов уже записалось.
 // «Хайп»: чем больше записавшихся, тем ярче свечение и чаще пульсация карточки (уровни — hype.ts)
@@ -173,7 +174,7 @@ export class NextStage {
   }
   protected readonly segs = [0, 1, 2, 3, 4, 5, 6];
   protected color(level: number, alpha: number) {
-    return `hsl(${hue(level)} 95% var(--hype-l, 66%) / ${Math.min(1, alpha)})`;
+    return `hsl(calc(var(--hype-h0, 200) + ${step(level)} * var(--hype-span, 100)) 95% var(--hype-l, 66%) / ${Math.min(1, alpha)})`;
   }
 
   private readonly now = signal(Date.now());

@@ -166,19 +166,34 @@ main {
   }
 }
 
+/* «✦ LEGEND»: переключатель режима LEGEND (светлая тема); во включённом — золотой перелив */
 .theme {
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  border: 0;
-  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px 0 10px;
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--r-pill);
   background: none;
   color: var(--ink-muted);
+  font: 400 11px/1 'Russo One', var(--font);
+  letter-spacing: 0.14em;
   cursor: pointer;
-  transition: color var(--fast), background-color var(--fast);
-  svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-  &:hover { color: var(--primary); background: var(--surface-1); }
+  transition: color var(--fast), border-color var(--fast), background-color var(--fast);
+  svg { fill: currentColor; }
+  &:hover { color: #ffd36e; border-color: rgba(255, 211, 110, 0.5); }
+  &.on {
+    color: #1a1405;
+    border-color: rgba(148, 112, 15, 0.5);
+    background: var(--gold-fill, #ffd36e);
+    box-shadow: 0 0 14px -4px rgba(214, 169, 53, 0.7);
+  }
+  &.on:hover { color: #1a1405; }
+}
+@media (max-width: 560px) {
+  .theme { padding: 0 9px; }
+  .theme .tl { display: none; }
 }
 
 

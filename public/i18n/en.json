@@ -290,8 +290,8 @@
     "takenBy": "Taken by {{name}}"
   },
   "theme": {
-    "light": "LEGEND mode",
-    "dark": "Dark theme"
+    "light": "Turn on LEGEND mode",
+    "dark": "Turn off LEGEND mode"
   },
   "common": {
     "soon": "Coming soon.",

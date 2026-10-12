@@ -290,8 +290,8 @@
     "takenBy": "Занят: {{name}}"
   },
   "theme": {
-    "light": "Режим LEGEND",
-    "dark": "Тёмная тема"
+    "light": "Включить режим LEGEND",
+    "dark": "Выключить режим LEGEND"
   },
   "common": {
     "soon": "Раздел в разработке.",
