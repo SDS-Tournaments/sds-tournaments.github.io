@@ -75,7 +75,6 @@ export class UiShowcase {
     nickname: ['Kaido', 'NightOwl', 'Hachiroku', 'Touge_Ghost', 'Sadlerk'][i],
     start_number: [101, 103, 105, 102, 21][i],
     avatar_url: null,
-    livery_url: null,
     team: i > 2 ? '21 Project' : null,
     car: 'Kami S15',
     overall,

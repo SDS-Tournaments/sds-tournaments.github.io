@@ -6,7 +6,6 @@ export interface CardData {
   nickname: string;
   start_number: number | null;
   avatar_url: string | null;
-  livery_url: string | null;
   team: string | null;
   car: string | null;
   overall: number | null;
@@ -30,7 +29,6 @@ export function tierOf(overall: number | null): Tier {
   imports: [TranslocoPipe],
   template: `
     <div #card class="fut" [class]="tier()">
-      <div class="bg" [style.background-image]="d().livery_url ? 'url(' + d().livery_url + ')' : null"></div>
       <div class="shade"></div>
       @if (tier() === 'elite' || tier() === 'legend') { <div class="shine"></div> }
       @if (tier() === 'legend') {
@@ -84,9 +82,8 @@ export function tierOf(overall: number | null): Tier {
       background: linear-gradient(var(--body), var(--body)) padding-box, var(--frame) border-box;
       box-shadow: 0 24px 60px -24px var(--glow);
     }
-    .bg { position: absolute; inset: 0; background: center / cover no-repeat; opacity: 0.85; }
     .shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.6) 45%, var(--body) 86%); }
-    .fut > :not(.bg):not(.shade):not(.shine):not(.spark):not(.ribbon) { position: relative; }
+    .fut > :not(.shade):not(.shine):not(.spark):not(.ribbon) { position: relative; }
     .top { width: 100%; display: flex; justify-content: space-between; align-items: start; }
     .ovr { display: grid; justify-items: center; line-height: 1; }
     .big { font: 600 48px var(--mono); color: var(--accent); }
@@ -105,7 +102,6 @@ export function tierOf(overall: number | null): Tier {
     .tiername { text-transform: uppercase; letter-spacing: 2px; color: var(--accent); }
 
     /* BRONZE — простая */
-    .bronze .bg { opacity: 0.45; filter: sepia(0.6); }
 
     /* SILVER — холодный металл, минимальная окантовка */
     .silver {
@@ -114,7 +110,6 @@ export function tierOf(overall: number | null): Tier {
       --muted: #b7bec2;
       --glow: rgba(220, 230, 235, 0.25);
     }
-    .silver .bg { opacity: 0.55; filter: grayscale(0.6); }
 
     /* GOLD — двойная окантовка и металлический перелив */
     .gold {
@@ -140,7 +135,6 @@ export function tierOf(overall: number | null): Tier {
       --glow: rgba(160, 90, 255, 0.6);
       animation: spin 6s linear infinite;
     }
-    .elite .bg { filter: hue-rotate(40deg) saturate(1.2); }
     .elite .big, .legend .big { font-family: 'Russo One', var(--font); font-weight: 400; font-size: 52px; }
     .elite .big { background: linear-gradient(180deg, #fff, #c79bff); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 0 12px rgba(199, 155, 255, 0.6)); }
     .elite .nick, .legend .nick { font-family: 'Russo One', var(--font); font-weight: 400; letter-spacing: 0.04em; text-transform: uppercase; font-size: 22px; }
@@ -158,7 +152,6 @@ export function tierOf(overall: number | null): Tier {
       --glow: rgba(255, 255, 255, 0.55);
       animation: spin 4s linear infinite;
     }
-    .legend .bg { opacity: 0.35; filter: grayscale(1) contrast(1.1); }
     .legend .shade { background: linear-gradient(180deg, rgba(244, 242, 238, 0.4) 0%, rgba(244, 242, 238, 0.75) 45%, var(--body) 86%); }
     .legend .big { background: linear-gradient(120deg, #111, #6b5d45 40%, #111); -webkit-background-clip: text; background-clip: text; color: transparent; }
     .legend .brand { visibility: hidden; } /* место под ленту LEGEND */

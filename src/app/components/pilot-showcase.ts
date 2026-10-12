@@ -6,7 +6,7 @@ import { Legacy, mergeSkills, SkillRun, skills } from '../scoring/scoring';
 import { CardData, PilotCard } from './pilot-card';
 import { Radar } from './radar';
 
-export type ShowcasePilot = Pick<CardData, 'nickname' | 'start_number' | 'avatar_url' | 'livery_url' | 'car'>;
+export type ShowcasePilot = Pick<CardData, 'nickname' | 'start_number' | 'avatar_url' | 'car'>;
 
 // «Паутинка» навыков + FIFA-карточка — в публичном профиле и в личном кабинете
 @Component({

@@ -457,7 +457,6 @@ export class Overlay implements OnInit {
         nickname: p.nickname,
         start_number: p.start_number,
         avatar_url: p.avatar_url,
-        livery_url: p.livery_url,
         team: this.p(p.id).team,
         car: p.car,
         overall: sk?.overall ?? null,
