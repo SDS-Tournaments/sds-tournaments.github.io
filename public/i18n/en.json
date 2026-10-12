@@ -76,6 +76,10 @@
   },
   "me": {
     "profile": "Profile",
+    "unsaved": "You have unsaved changes",
+    "allSaved": "All changes saved",
+    "discard": "Discard",
+    "bioPh": "A few words about you",
     "secSeason": "Season",
     "secProfile": "Driver profile",
     "secCard": "Card & skills",

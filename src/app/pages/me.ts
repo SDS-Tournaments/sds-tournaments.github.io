@@ -123,15 +123,17 @@ import { compressImage } from '../image';
             </label>
           </div>
 
-          <div class="card stack">
+          <div class="card stack about">
             <h2 class="h">{{ 'me.about' | transloco }}</h2>
-            <label>
+            <label class="bio">
               <span class="lbl">{{ 'me.bioRu' | transloco }}</span>
-              <textarea class="input" name="bioRu" rows="3" maxlength="500" [(ngModel)]="bioRu"></textarea>
+              <textarea class="input" name="bioRu" maxlength="500" [placeholder]="'me.bioPh' | transloco" [(ngModel)]="bioRu"></textarea>
+              <span class="count mono">{{ bioRu.length }} / 500</span>
             </label>
-            <label>
+            <label class="bio">
               <span class="lbl">{{ 'me.bioEn' | transloco }}</span>
-              <textarea class="input" name="bioEn" rows="3" maxlength="500" [(ngModel)]="bioEn"></textarea>
+              <textarea class="input" name="bioEn" maxlength="500" placeholder="A few words about you" [(ngModel)]="bioEn"></textarea>
+              <span class="count mono">{{ bioEn.length }} / 500</span>
             </label>
             <app-content-rules />
           </div>
@@ -154,12 +156,18 @@ import { compressImage } from '../image';
             <app-content-rules />
           </div>
 
-          <div class="savebar wide">
-            <button class="btn btn-primary" type="submit" [disabled]="saving() || !dirty()">
-              {{ (saving() ? 'me.saving' : 'me.save') | transloco }}
-            </button>
-            @if (saved()) { <span class="hint ok">✓ {{ 'me.saved' | transloco }}</span> }
-            @if (error()) { <span class="hint bad">{{ error() }}</span> }
+          <div class="savebar wide" [class.on]="dirty()" [class.err]="!!error()" role="status">
+            @if (error()) {
+              <span class="sb-text bad">{{ error() }}</span>
+            } @else if (dirty()) {
+              <span class="sb-text"><i class="sb-dot"></i>{{ 'me.unsaved' | transloco }}</span>
+            } @else {
+              <span class="sb-text ok">✓ {{ 'me.allSaved' | transloco }}</span>
+            }
+            @if (dirty()) {
+              <button class="btn btn-ghost" type="button" (click)="resetForm()" [disabled]="saving()">{{ 'me.discard' | transloco }}</button>
+              <button class="btn btn-primary" type="submit" [disabled]="saving()">{{ (saving() ? 'me.saving' : 'me.save') | transloco }}</button>
+            }
           </div>
         </form>
 
@@ -243,25 +251,36 @@ import { compressImage } from '../image';
     .protests { display: block; margin-top: 24px; }
     .protests:empty { display: none; }
     .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    /* «О себе»: поля делят высоту карточки поровну, длинный текст прокручивается внутри */
+    .about { grid-template-rows: auto 1fr 1fr auto; align-content: stretch; }
+    .bio { position: relative; grid-template-rows: auto 1fr; }
+    .bio textarea { height: 100%; min-height: 96px; resize: none; overflow-y: auto; padding-bottom: 26px; }
+    .count { position: absolute; right: 12px; bottom: 8px; font-size: 11px; color: var(--ink-tertiary); pointer-events: none; }
+
+    /* Сохранение — плавающая капсула по центру снизу, как острова шапки */
     .savebar {
-      position: sticky;
-      bottom: 16px;
-      z-index: 5;
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 12px;
-      padding: 12px 16px;
-      border: 1px solid var(--hairline-strong);
-      border-radius: var(--r-lg);
-      background: rgba(10, 10, 10, 0.8);
-      backdrop-filter: blur(10px);
+      position: sticky; bottom: 20px; z-index: 5;
+      justify-self: center; width: fit-content; max-width: 100%;
+      display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px;
+      padding: 8px 8px 8px 20px;
+      border: 1px solid var(--hairline); border-radius: var(--r-pill);
+      background: rgba(8, 8, 8, 0.85); backdrop-filter: blur(14px);
+      transition: border-color var(--base), box-shadow var(--base);
     }
+    .savebar:not(.on) { padding: 10px 20px; }
+    .savebar.on {
+      border-color: rgba(10, 186, 181, 0.6);
+      box-shadow: 0 0 0 1px rgba(10, 186, 181, 0.2), 0 10px 40px rgba(0, 0, 0, 0.6), 0 0 32px var(--primary-glow);
+      animation: rise 300ms var(--ease-out) both;
+    }
+    .savebar.err { border-color: rgba(255, 92, 92, 0.6); }
+    .savebar .btn { border-radius: var(--r-pill); }
+    .sb-text { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink); }
+    .sb-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warning); box-shadow: 0 0 8px var(--warning); }
     .stack { display: grid; gap: 18px; }
     .h { font-size: 20px; }
     label { display: grid; gap: 6px; }
     .lbl { font-size: 13px; color: var(--ink-muted); }
-    textarea { resize: none; height: 96px; overflow-y: auto; }
     .hint { font-size: 13px; }
     .ok { color: var(--primary); }
     .bad { color: var(--error); }
@@ -358,13 +377,7 @@ export class Me {
     effect(() => {
       const p = this.auth.profile();
       if (!p) return;
-      this.number.set(p.start_number);
-      this.car = p.car ?? '';
-      this.engine = p.engine ?? '';
-      this.gearbox = p.gearbox ?? '';
-      this.power = p.power_hp;
-      this.bioRu = p.bio_ru ?? '';
-      this.bioEn = p.bio_en ?? '';
+      this.resetForm();
       this.loadTaken(p.id);
     });
     // id пилота не меняется — витрину грузим один раз на пилота
@@ -372,6 +385,21 @@ export class Me {
       const id = this.auth.profile()?.id;
       if (id) this.loadShowcase(id);
     });
+  }
+
+  /** форма = сохранённый профиль (при загрузке и по «Отменить») */
+  protected resetForm() {
+    const p = this.auth.profile();
+    if (!p) return;
+    this.number.set(p.start_number);
+    this.car = p.car ?? '';
+    this.engine = p.engine ?? '';
+    this.gearbox = p.gearbox ?? '';
+    this.power = p.power_hp;
+    this.bioRu = p.bio_ru ?? '';
+    this.bioEn = p.bio_en ?? '';
+    this.editNumber.set(false);
+    this.error.set(null);
   }
 
   private loadedFor?: string;
