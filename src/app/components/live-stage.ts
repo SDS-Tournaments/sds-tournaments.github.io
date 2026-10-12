@@ -145,8 +145,9 @@ const ORDER = ['r32', 'r16', 'qf', 'sf', 'third', 'final'];
     .pulse { position: relative; flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--primary); }
     .pulse::after { content: ''; position: absolute; inset: 0; border-radius: 50%; background: var(--primary); animation: ring-out 1.8s ease-out infinite; }
     @keyframes ring-out { from { transform: scale(1); opacity: 0.6; } to { transform: scale(3); opacity: 0; } }
-    .top li.ghost { grid-template-columns: 24px 1fr; box-shadow: none; opacity: 0.55; }
-    .ghost .bar { height: 8px; border-radius: 4px; background: color-mix(in oklab, var(--ink), transparent 85%); animation: ghost 1.6s ease-in-out infinite; }
+    .top li.ghost { grid-template-columns: 24px 1fr; box-shadow: none; opacity: 0.7; }
+    /* «строки-скелеты»: полоска на всю высоту строки, длина убывает — как будущая таблица */
+    .ghost .bar { height: 14px; border-radius: 4px; background: color-mix(in oklab, var(--ink), transparent 72%); animation: ghost 1.6s ease-in-out infinite; }
     .ghost:nth-child(2) .bar { width: 72%; }
     .ghost:nth-child(3) .bar { width: 56%; animation-delay: 0.2s; }
     .ghost:nth-child(4) .bar { width: 40%; animation-delay: 0.4s; }
