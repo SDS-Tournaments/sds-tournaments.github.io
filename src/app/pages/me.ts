@@ -57,7 +57,7 @@ import { compressImage } from '../image';
         <app-pilot-showcase class="showcase" [pilot]="me" [runs]="runs()" [team]="team()" [wins]="wins()" [legacy]="me.legacy" />
 
         <div class="grid top-row">
-          <app-stage-signup class="card" [profileId]="me.id" [hasNumber]="!!me.start_number" />
+          <app-stage-signup class="card" [profileId]="me.id" [hasNumber]="!!me.start_number" [number]="me.start_number" [numberLocked]="numberLocked()" (changed)="loadLock(me.id)" />
           <app-my-team class="card" [profileId]="me.id" />
         </div>
 
@@ -71,7 +71,7 @@ import { compressImage } from '../image';
               </div>
             } @else {
               <p class="muted small">{{ 'me.numberHint' | transloco }}</p>
-              <p class="warn small">{{ 'me.numberOnce' | transloco }}</p>
+              <p class="warn small">{{ 'me.numberUntilSignup' | transloco }}</p>
               <app-number-picker [(value)]="number" [taken]="taken()" [nickname]="me.nickname" />
             }
           </div>
@@ -285,11 +285,20 @@ export class Me {
   protected readonly runs = signal<SkillRun[]>([]);
   protected readonly team = signal<string | null>(null);
   protected readonly wins = signal(0);
-  /** id активного сезона: номер, выбранный в нём, пилот уже не меняет (0009) */
+  /** id активного сезона */
   private readonly seasonId = signal<number | null>(null);
-  protected numberLocked() {
-    const p = this.auth.profile();
-    return !!p?.start_number && p.number_season_id === this.seasonId();
+  /** пилот уже записывался на этап активного сезона — номер меняет только админ (0011) */
+  protected readonly numberLocked = signal(false);
+
+  async loadLock(id: string) {
+    const season = this.seasonId();
+    if (!season) return this.numberLocked.set(false);
+    const { count } = await supabase
+      .from('registrations')
+      .select('stage_id, stage:stages!inner(season_id)', { count: 'exact', head: true })
+      .eq('profile_id', id)
+      .eq('stage.season_id', season);
+    this.numberLocked.set(!!count && !!this.auth.profile()?.start_number);
   }
   /** «Сохранить» активна, только если что-то изменилось */
   protected dirty() {
@@ -335,6 +344,7 @@ export class Me {
     const seasons = await publicSeasons();
     const season = seasons.find((s) => s.status === 'active') ?? null;
     this.seasonId.set(season?.id ?? null);
+    this.loadLock(id);
     const [runs, wins, member] = await Promise.all([
       loadSkillRuns(id),
       supabase.from('stage_results').select('stage_id', { count: 'exact', head: true }).eq('profile_id', id).eq('stage_place', 1),
@@ -353,8 +363,6 @@ export class Me {
   async save() {
     const me = this.auth.profile();
     if (!me) return;
-    const pickNumber = !this.numberLocked() && this.number() !== me.start_number && this.number() !== null;
-    if (pickNumber && !confirm(this.transloco.translate('me.numberConfirm', { n: this.number() }))) return;
     this.saving.set(true);
     this.saved.set(false);
     this.error.set(null);

@@ -15,8 +15,6 @@ export interface Profile {
   avatar_url: string | null;
   role: 'admin' | 'staff' | 'pilot';
   start_number: number | null;
-  /** сезон, в котором пилот выбрал номер (0009): в этом сезоне сменить его может только админ */
-  number_season_id: number | null;
   livery_url: string | null;
   car: string | null;
   engine: string | null;

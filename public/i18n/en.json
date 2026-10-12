@@ -76,9 +76,8 @@
     "number": "Race number",
     "numberHint": "1 to 999. Numbers are unique across the championship — it goes on your rear window.",
     "numberTaken": "Someone just took this number — pick another one",
-    "numberOnce": "You pick your number once per season: after saving, only an admin can change it.",
-    "numberLocked": "This number is locked to you for the season. Only an admin can change it.",
-    "numberConfirm": "Lock #{{n}} for the whole season? Only an admin can change it later.",
+    "numberLocked": "You have signed up for a round this season, so your number is locked until the season ends. Only an admin can change it.",
+    "numberUntilSignup": "Your number stays with you between seasons. You can change it until you sign up for a round this season — after that it is locked for the season and only an admin can change it.",
     "car": "Car",
     "carModel": "Car",
     "engine": "Engine",
@@ -106,7 +105,8 @@
     "join": "Register",
     "leave": "Withdraw",
     "none": "No rounds are open for registration right now.",
-    "needNumber": "Pick and save a race number below to register."
+    "needNumber": "Pick and save a race number below to register.",
+    "lockConfirm": "Signing up locks #{{n}} for the rest of the season — only an admin can change it after that. Sign up?"
   },
   "team": {
     "title": "My team",

@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { Component, inject, input, OnInit, signal } from '@angular/core';
+import { Component, inject, input, OnInit, output, signal } from '@angular/core';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { supabase } from '../auth';
 import { Loader } from './loader';
@@ -67,6 +67,11 @@ interface OpenStage {
 export class StageSignup implements OnInit {
   readonly profileId = input.required<string>();
   readonly hasNumber = input(false);
+  readonly number = input<number | null>(null);
+  /** номер уже закреплён в этом сезоне — предупреждать при записи не нужно */
+  readonly numberLocked = input(false);
+  /** запись изменилась — кабинет пересчитывает блокировку номера */
+  readonly changed = output<void>();
   protected readonly stages = signal<OpenStage[]>([]);
   protected readonly busy = signal(false);
   protected readonly loading = signal(true);
@@ -102,6 +107,8 @@ export class StageSignup implements OnInit {
   }
 
   async set(s: OpenStage, status: 'registered' | 'withdrawn') {
+    // первая запись в сезоне закрепляет номер до конца сезона (0011)
+    if (status === 'registered' && !this.numberLocked() && !confirm(this.transloco.translate('signup.lockConfirm', { n: this.number() }))) return;
     this.busy.set(true);
     this.error.set(null);
     const row = { stage_id: s.id, profile_id: this.profileId() };
@@ -113,5 +120,6 @@ export class StageSignup implements OnInit {
     this.busy.set(false);
     if (error) return this.error.set(error.message);
     await this.load();
+    this.changed.emit();
   }
 }
