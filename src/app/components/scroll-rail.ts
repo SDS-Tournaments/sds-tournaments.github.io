@@ -84,13 +84,14 @@ export class ScrollRail {
     addEventListener('scroll', onScroll, { passive: true });
     addEventListener('resize', update);
     // высота страницы меняется при загрузке данных и смене страниц
-    const ro = new ResizeObserver(update);
-    ro.observe(document.body);
+    // (в тестовой среде ResizeObserver нет)
+    const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(update);
+    ro?.observe(document.body);
     update();
     inject(DestroyRef).onDestroy(() => {
       removeEventListener('scroll', onScroll);
       removeEventListener('resize', update);
-      ro.disconnect();
+      ro?.disconnect();
       clearTimeout(this.idle);
     });
   }
