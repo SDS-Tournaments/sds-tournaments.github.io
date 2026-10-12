@@ -4,8 +4,9 @@ export const CARS = [
   'Covert CC6', 'Covert CMR19', 'Covert CMR70',
   'Dole M8R',
   "Joe's MST90",
-  'Kyoto E86', 'Kyoto G86', 'Kyoto R86', 'Kyoto S80', 'Kyoto SRR', 'Kyoto TM28', 'Kyoto YSR',
+  'Kyoto E86', 'Kyoto G86', 'Kyoto R86', 'Kyoto S80', 'Kyoto S90', 'Kyoto SRR', 'Kyoto TM28', 'Kyoto YSR',
   'Nishimo 32R', 'Nishimo 34R', 'Nishimo 35R', 'Nishimo LRL33', 'Nishimo SI5', 'Nishimo Z37', 'Nishimo Z40',
+  'Vankel R7D',
 ];
 
 // Двигатели и коробки — со скриншотов меню свапа, в том же порядке, что в игре
