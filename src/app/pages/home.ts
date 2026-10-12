@@ -206,7 +206,8 @@ import { Reveal } from '../reveal';
     }
 
     h1 { margin: 20px 0 24px; }
-    :host-context([data-theme='light']) .accent { background-image: linear-gradient(100deg, #078985 0%, #19c9c3 45%, #078985 60%, #05605d 100%); filter: none; }
+    :host-context([data-theme='light']) .kanji { -webkit-text-stroke-color: rgba(11, 13, 16, 0.22); }
+    :host-context([data-theme='light']) .accent { background-image: linear-gradient(100deg, #0aa39e 0%, #12c4be 40%, #0b0d10 75%, #0aa39e 100%); filter: none; }
     .accent {
       background: linear-gradient(100deg, #0abab5 0%, #7ff5ef 45%, #0abab5 60%, #067f7b 100%);
       background-size: 250% 100%;

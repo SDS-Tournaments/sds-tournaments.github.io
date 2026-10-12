@@ -53,37 +53,46 @@
   color-scheme: dark;
 }
 
-/* Светлая тема: светлый холст с бирюзовым отливом, белые карточки, акцент чуть глубже — ради контраста */
+/* Светлая тема «ливрея»: холодное серебро, чёрная графика, яркая бирюза, перламутровые блики */
 :root[data-theme='light'] {
-  --primary: #0a9b97;
-  --on-primary: #fff;
-  --primary-hover: #0bb3ae;
-  --primary-pressed: #08807c;
-  --primary-soft: rgba(10, 155, 151, 0.1);
-  --primary-glow: rgba(10, 155, 151, 0.28);
+  --primary: #0aa39e;
+  --on-primary: #000;
+  --primary-hover: #12c4be;
+  --primary-pressed: #088a86;
+  --primary-soft: rgba(10, 163, 158, 0.12);
+  --primary-glow: rgba(18, 196, 190, 0.35);
 
-  --ink: #0f1a1a;
-  --ink-muted: #46524f;
-  --ink-subtle: #6b7774;
-  --ink-tertiary: #9aa5a2;
+  --ink: #0b0d10;
+  --ink-muted: #3d434b;
+  --ink-subtle: #656c75;
+  --ink-tertiary: #9aa0a8;
 
-  --canvas: #eef3f2;
-  --surface-1: #ffffff;
-  --surface-2: #f3f7f6;
-  --surface-3: #e5ecea;
-  --hairline: #dbe4e2;
-  --hairline-strong: #c4d1ce;
+  --canvas: #e8eaee;
+  --surface-1: #f9fafb;
+  --surface-2: #eef0f3;
+  --surface-3: #dfe2e7;
+  --hairline: #d3d7dd;
+  --hairline-strong: #b4bac3;
 
   --error: #d63b3b;
   --warning: #b9770e;
-  --overlay: rgba(15, 26, 26, 0.45);
+  --overlay: rgba(11, 13, 16, 0.45);
 
-  --glass: rgba(255, 255, 255, 0.72);
-  --glass-strong: rgba(255, 255, 255, 0.92);
-  --shade: 238, 243, 242;
-  --grid-line: rgba(15, 60, 58, 0.06);
+  --glass: rgba(249, 250, 251, 0.75);
+  --glass-strong: rgba(249, 250, 251, 0.94);
+  --shade: 232, 234, 238;
+  --grid-line: rgba(11, 13, 16, 0.05);
 
   color-scheme: light;
+}
+/* фон: бирюзовое свечение + лавандовый перламутр, вместо сетки — косые гоночные полосы */
+:root[data-theme='light'] .backdrop {
+  --g1: rgba(18, 196, 190, 0.22);
+  --g2: rgba(196, 160, 255, 0.22);
+  .grid {
+    background-image: repeating-linear-gradient(-55deg, rgba(11, 13, 16, 0.045) 0 2px, transparent 2px 26px);
+    background-size: auto;
+  }
 }
 
 @media (max-width: 767px) {
