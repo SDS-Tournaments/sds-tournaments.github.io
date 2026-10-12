@@ -187,8 +187,9 @@ export class MyTeam implements OnInit {
     this.seasonId.set(season?.id ?? null);
     if (season) {
       const me = this.profileId();
+      // '*' в team_members — не ломается, пока миграция 0013 (invited) не выполнена
       const [mine, own, all] = await Promise.all([
-        supabase.from('team_members').select('*, team:teams(id, name, logo_url, captain_id)') // '*' — не ломается, пока миграция 0013 не выполнена.eq('season_id', season.id).eq('profile_id', me).maybeSingle(),
+        supabase.from('team_members').select('*, team:teams(id, name, logo_url, captain_id)').eq('season_id', season.id).eq('profile_id', me).maybeSingle(),
         supabase.from('teams').select('id, name, logo_url, captain_id').eq('captain_id', me).maybeSingle(),
         supabase.from('teams').select('id, name, logo_url, captain_id').order('name'),
       ]);
