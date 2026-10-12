@@ -102,7 +102,7 @@ const FLASH_MS = 10_000;
               <div class="bar">
                 <span class="k">{{ t()[k] }}</span>
                 <span class="track"><span class="fill" [style.--w]="pct(r, k) + '%'" [style.--heat]="pct(r, k) + '%'"></span></span>
-                <span class="v">{{ r[k] }}</span>
+                <span class="v" [class.max]="pct(r, k) >= 100">{{ r[k] }}</span>
               </div>
             }
             <div class="total" [style.--heat]="maxPct(r) + '%'"><span>{{ t().total }}</span><b [class.max]="maxPct(r) >= 100">{{ scoreShown() }}</b></div>

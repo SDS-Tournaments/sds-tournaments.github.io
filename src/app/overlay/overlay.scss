@@ -899,7 +899,7 @@
   .table .row:first-of-type { background: rgba(10, 186, 181, 0.18); border-radius: 0; }
 }
 
-/* ───────── Стиль «HUD» — телеметрия: тонкие уголки-скобки, моноширинный шрифт, развёртка ───────── */
+/* ───────── Стиль «HUD» — тонкие рамки с бирюзовыми уголками, фирменные шрифты ───────── */
 .screen[data-skin='hud'] {
   .stage-chip,
   .on-track,
@@ -914,34 +914,29 @@
       linear-gradient(var(--primary), var(--primary)) left top / 2px 18px no-repeat,
       linear-gradient(var(--primary), var(--primary)) right bottom / 18px 2px no-repeat,
       linear-gradient(var(--primary), var(--primary)) right bottom / 2px 18px no-repeat,
-      repeating-linear-gradient(0deg, rgba(10, 186, 181, 0.04) 0 1px, transparent 1px 4px),
-      rgba(2, 10, 10, 0.82);
+      rgba(4, 10, 10, 0.86);
     backdrop-filter: blur(6px);
     box-shadow: 0 0 40px -12px var(--primary-glow);
   }
   .on-track { border-left: 1px solid rgba(10, 186, 181, 0.3); }
-  * { font-family: var(--mono) !important; }
   .table h3,
   .label { color: var(--primary); }
-  .table h3::before { content: '> '; }
   .plate {
     border-radius: 2px;
     background: transparent;
     border: 1px solid var(--primary);
-    color: var(--primary);
+    color: #fff;
     text-shadow: 0 0 12px var(--primary-glow);
   }
   .on-track b,
   .duel b,
-  .score b { text-transform: uppercase; letter-spacing: 0.04em; font-weight: 500; }
+  .score b { font-family: 'Russo One', var(--font); font-weight: 400; letter-spacing: 0.02em; }
+  .score .v,
+  .score .total b,
+  .table .best { font-family: 'Russo One', var(--font); font-weight: 400; }
   .score .total b { color: var(--primary); }
   .score .track { border-radius: 0; height: 8px; }
   .score .fill { background: var(--primary); box-shadow: 0 0 10px var(--primary-glow); }
-  /* мигающий курсор у заголовка таблицы */
-  .table h3::after { content: '_'; animation: blink 1s steps(1) infinite; }
-}
-@keyframes blink {
-  50% { opacity: 0; }
 }
 
 /* ───────── Оценка: чем выше, тем «горячее» цвет — как огонёк на дороге сезона ───────── */
@@ -959,7 +954,12 @@
   color: var(--hot) !important;
   text-shadow: 0 0 26px color-mix(in oklab, var(--hot), transparent 40%) !important;
 }
-/* максимальный балл — цифра трясётся и вспыхивает */
+/* максимальный балл (итог или отдельный критерий) — цифра трясётся и вспыхивает */
+.screen .score .v.max {
+  display: inline-block;
+  color: #ff5c5c;
+  animation: max-shake 0.5s linear infinite, max-glow 1.2s ease-in-out infinite;
+}
 .screen .score .total b.max {
   display: inline-block;
   animation: max-shake 0.5s linear infinite, max-glow 1.2s ease-in-out infinite;
