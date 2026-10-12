@@ -13,17 +13,15 @@
       @for (item of nav; track item) {
         <a [routerLink]="'/' + item" routerLinkActive="active" (click)="menuOpen.set(false)">{{ 'nav.' + item | transloco }}</a>
       }
-      <!-- на телефоне переключатель LEGEND живёт в меню: в шапке не хватает места -->
-      <button type="button" class="nav-theme" [class.on]="light()" (click)="toggleTheme(); menuOpen.set(false)" [attr.aria-pressed]="light()">LEGEND</button>
+      <!-- на телефоне выбор стиля живёт в меню: в шапке не хватает места -->
+      <app-theme-picker class="tp-mob" [inline]="true" />
       @if (auth.profile()?.role === 'admin' || auth.profile()?.role === 'staff') {
         <a routerLink="/admin" routerLinkActive="active" class="admin-link" (click)="menuOpen.set(false)">{{ 'nav.admin' | transloco }}</a>
       }
     </nav>
 
     <div class="actions">
-      <button type="button" class="theme" [class.on]="light()" (click)="toggleTheme()" [attr.aria-pressed]="light()" [title]="(light() ? 'theme.dark' : 'theme.light') | transloco">
-        <span class="tl">LEGEND</span>
-      </button>
+      <app-theme-picker class="tp-desk" />
       <div class="lang" role="group" aria-label="Language">
         <button type="button" [class.on]="lang() === 'ru'" [attr.aria-pressed]="lang() === 'ru'" (click)="setLang('ru')">RU</button>
         <button type="button" [class.on]="lang() === 'en'" [attr.aria-pressed]="lang() === 'en'" (click)="setLang('en')">EN</button>

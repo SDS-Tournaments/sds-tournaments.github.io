@@ -166,39 +166,12 @@ main {
   }
 }
 
-/* «LEGEND»: простая надпись в стиле RU/EN; наведение и включённый режим — золото */
-.theme {
-  height: 30px;
-  padding: 0 10px;
-  border: 0;
-  border-radius: var(--r-pill);
-  background: none;
-  color: var(--ink-subtle);
-  font: 500 12px var(--mono);
-  letter-spacing: 0.08em;
-  cursor: pointer;
-  transition: color var(--fast), background-color var(--fast);
-  &:hover { color: #e2b84a; }
-  &.on { color: #94700f; background: rgba(201, 158, 40, 0.14); }
-}
-.nav-theme { display: none; }
+/* выбор стиля: в шапке на компьютере, в меню на телефоне */
+.tp-mob { display: none; }
 @media (max-width: 560px) {
-  .actions .theme { display: none; }
-  .nav-theme {
-    display: block;
-    padding: 12px;
-    border: 0;
-    border-radius: var(--r-pill);
-    background: none;
-    text-align: left;
-    color: var(--ink-subtle);
-    font: 500 14px var(--mono);
-    letter-spacing: 0.08em;
-    cursor: pointer;
-    &.on { color: #94700f; background: rgba(201, 158, 40, 0.14); }
-  }
+  .tp-desk { display: none; }
+  .tp-mob { display: block; padding: 4px 4px 0; }
 }
-
 
 .lang {
   display: flex;
@@ -216,7 +189,7 @@ main {
     cursor: pointer;
     transition: background-color var(--base) var(--ease-out), color var(--fast);
     &.on {
-      background: var(--gold-fill, var(--primary));
+      background: var(--btn-fill, var(--primary));
       color: var(--on-primary);
     }
   }

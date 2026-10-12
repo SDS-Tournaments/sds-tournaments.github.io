@@ -290,8 +290,10 @@
     "takenBy": "Taken by {{name}}"
   },
   "theme": {
-    "light": "Turn on LEGEND mode",
-    "dark": "Turn off LEGEND mode"
+    "title": "Site style",
+    "need": "{{tier}} card",
+    "note": "Styles unlock with your driver card tier: yours and every tier below.",
+    "guest": "Sign in with Steam — styles unlock with your driver card tier."
   },
   "common": {
     "soon": "Coming soon.",

@@ -6,7 +6,7 @@
   --primary-pressed: #08938f;
   --primary-soft: rgba(var(--accent-rgb), 0.12);
   --primary-glow: rgba(var(--accent-rgb), 0.35);
-  /* акцент (r, g, b) для подсветок и рамок: бирюза, в режиме LEGEND — золото */
+  /* акцент (r, g, b) для подсветок и рамок: у каждого стиля свой (NOIR — бирюза) */
   --accent-rgb: 10, 186, 181;
 
   --ink: #f5f5f5;
@@ -55,9 +55,12 @@
   color-scheme: dark;
 }
 
-/* Режим LEGEND (светлая тема): белый перламутр карточки LEGEND, золото вместо бирюзы, голографические блики */
-:root[data-theme='light'] {
-  /* текст, ссылки, рамки — тёмное золото (читается на перламутре); заливки — металлический перелив --gold-fill */
+/* ───────── Стили сайта по уровням карточки (открываются уровнем пилота, theme.ts) ─────────
+   NOIR — по умолчанию (бирюза, :root выше). Остальные повторяют свою FIFA-карточку. */
+
+/* LEGEND (светлый): белый перламутр карточки LEGEND, золото вместо бирюзы, голографические блики */
+:root[data-theme='legend'] {
+  /* текст, ссылки, рамки — тёмное золото (читается на перламутре); заливки — металлический перелив --btn-fill */
   --primary: #94700f;
   --on-primary: #1a1405;
   --primary-hover: #b08a1c;
@@ -65,7 +68,7 @@
   --primary-soft: rgba(201, 162, 39, 0.14);
   --primary-glow: rgba(214, 169, 53, 0.38);
   --accent-rgb: 201, 158, 40;
-  --gold-fill: linear-gradient(135deg, #fbe7a1 0%, #e2b84a 45%, #c79a2c 70%, #f3d27a 100%);
+  --btn-fill: linear-gradient(135deg, #fbe7a1 0%, #e2b84a 45%, #c79a2c 70%, #f3d27a 100%);
 
   --ink: #14110b;
   --ink-muted: #3a352b;
@@ -95,7 +98,7 @@
   color-scheme: light;
 }
 /* фон: золотое свечение + голографический перелив, тонкие косые штрихи */
-:root[data-theme='light'] .backdrop {
+:root[data-theme='legend'] .backdrop {
   --g1: rgba(244, 196, 80, 0.3);
   --g2: rgba(178, 141, 255, 0.2);
   .grid {
@@ -103,11 +106,71 @@
     background-size: auto;
   }
 }
-/* золотые заливки: главная кнопка и активный язык */
-:root[data-theme='light'] .btn-primary {
-  background: var(--gold-fill);
+:root[data-theme='legend'] .btn-primary {
   box-shadow: 0 0 0 1px rgba(148, 112, 15, 0.45) inset, 0 6px 18px -8px rgba(148, 112, 15, 0.6);
 }
+
+/* BRONZE: медь на чёрном */
+:root[data-theme='bronze'] {
+  --primary: #d89155;
+  --primary-hover: #ecaa6c;
+  --primary-pressed: #a8683a;
+  --on-primary: #1a0e05;
+  --accent-rgb: 216, 145, 85;
+  --btn-fill: linear-gradient(135deg, #8a5427 0%, #e8ad72 45%, #b8763f 70%, #f0c08c 100%);
+  --hype-h0: 30;
+  --hype-span: -35;
+}
+:root[data-theme='bronze'] .backdrop { --g2: rgba(255, 170, 110, 0.06); }
+
+/* SILVER: холодный металл */
+:root[data-theme='silver'] {
+  --primary: #c9d3d9;
+  --primary-hover: #e8eef1;
+  --primary-pressed: #9aa6ad;
+  --on-primary: #0b0d10;
+  --accent-rgb: 201, 211, 217;
+  --btn-fill: linear-gradient(135deg, #8c969c 0%, #f4f7f8 45%, #aab3b9 70%, #e3e8eb 100%);
+  --hype-h0: 195;
+  --hype-span: 45;
+}
+:root[data-theme='silver'] .backdrop { --g1: rgba(201, 211, 217, 0.14); --g2: rgba(170, 200, 230, 0.07); }
+
+/* GOLD: металлическое золото на чёрном */
+:root[data-theme='gold'] {
+  --primary: #f2cf6b;
+  --primary-hover: #ffe08e;
+  --primary-pressed: #c9a227;
+  --on-primary: #1a1405;
+  --accent-rgb: 242, 207, 107;
+  --btn-fill: linear-gradient(135deg, #7a5a14 0%, #f8e08e 30%, #c9a227 55%, #fff2b8 75%, #b8902c 100%);
+  --hype-h0: 48;
+  --hype-span: -55;
+}
+:root[data-theme='gold'] .backdrop { --g2: rgba(255, 230, 160, 0.06); }
+
+/* ELITE: фиолетовый неон, тёмно-лиловый холст */
+:root[data-theme='elite'] {
+  --primary: #c79bff;
+  --primary-hover: #dcbcff;
+  --primary-pressed: #9a6ae0;
+  --on-primary: #12051f;
+  --accent-rgb: 199, 155, 255;
+  --btn-fill: linear-gradient(135deg, #6a2cff 0%, #c79bff 50%, #ff4fd8 100%);
+  --hype-h0: 262;
+  --hype-span: 68;
+
+  --canvas: #07040d;
+  --surface-1: #0e0818;
+  --surface-2: #150d24;
+  --surface-3: #1d1330;
+  --hairline: #241838;
+  --hairline-strong: #352650;
+  --glass: rgba(14, 8, 24, 0.62);
+  --glass-strong: rgba(18, 10, 30, 0.9);
+  --shade: 7, 4, 13;
+}
+:root[data-theme='elite'] .backdrop { --g2: rgba(255, 79, 216, 0.1); }
 
 @media (max-width: 767px) {
   :root {
@@ -349,7 +412,7 @@ h3 {
 .btn-primary {
   position: relative;
   overflow: hidden;
-  background-color: var(--primary);
+  background: var(--btn-fill, var(--primary));
   color: var(--on-primary);
   box-shadow: 0 0 0 1px rgba(127, 245, 239, 0.4) inset;
   // Блик пробегает по кнопке при наведении

@@ -110,8 +110,8 @@ export function roadProgress(stages: { status: string; starts_at: string | null 
       padding: 0;
       list-style: none;
     }
-    /* LEGEND: жар золото → янтарь → красный короткой дугой (длинная прошла бы через зелёный) */
-    :host-context([data-theme='light']) .tl { --hot: color-mix(in oklch shorter hue, var(--primary), var(--error) var(--heat, 0%)); }
+    /* цветные стили: жар от акцента к красному короткой дугой (длинная прошла бы через зелёный) */
+    :host-context([data-theme]:not([data-theme='noir'])) .tl { --hot: color-mix(in oklch shorter hue, var(--primary), var(--error) var(--heat, 0%)); }
 
     /* Линия от первого до последнего этапа; бирюзовая часть дорисовывается при появлении */
     .rail {

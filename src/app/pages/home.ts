@@ -206,10 +206,10 @@ import { Reveal } from '../reveal';
     }
 
     h1 { margin: 20px 0 24px; }
-    :host-context([data-theme='light']) .kanji { -webkit-text-stroke-color: rgba(148, 112, 15, 0.3); }
-    :host-context([data-theme='light']) .accent { background-image: linear-gradient(100deg, #94700f 0%, #e2b84a 40%, #6b4f08 70%, #94700f 100%); filter: drop-shadow(0 0 18px rgba(226, 184, 74, 0.35)); }
+    :host-context([data-theme='legend']) .kanji { -webkit-text-stroke-color: rgba(148, 112, 15, 0.3); }
+    :host-context([data-theme='legend']) .accent { background-image: linear-gradient(100deg, #94700f 0%, #e2b84a 40%, #6b4f08 70%, #94700f 100%); filter: drop-shadow(0 0 18px rgba(226, 184, 74, 0.35)); }
     .accent {
-      background: linear-gradient(100deg, #0abab5 0%, #7ff5ef 45%, #0abab5 60%, #067f7b 100%);
+      background: linear-gradient(100deg, var(--primary) 0%, var(--primary-hover) 45%, var(--primary) 60%, var(--primary-pressed) 100%);
       background-size: 250% 100%;
       -webkit-background-clip: text;
       background-clip: text;

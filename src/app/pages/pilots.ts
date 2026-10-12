@@ -111,13 +111,13 @@ const ORDER: Rank[] = ['legend', 'elite', 'gold', 'silver', 'bronze', 'unrated']
     .legend img { box-shadow: 0 0 0 2px #fff, 0 0 20px rgba(255, 211, 110, 0.6); }
     @keyframes holo { to { background-position: -200% 0; } }
     .unrated { --t: var(--ink-subtle); }
-    :host-context([data-theme='light']) .silver { --t: #6f7a80; }
-    :host-context([data-theme='light']) .gold .tname { background-image: linear-gradient(135deg, #8a6a1c, #c9a227 45%, #8a6a1c); filter: none; }
-    :host-context([data-theme='light']) .elite .tname { background-image: linear-gradient(90deg, #6a2cff, #b04fd8); filter: none; }
-    :host-context([data-theme='light']) .legend { --t: #8a6a1c; }
-    :host-context([data-theme='light']) .legend .tname { background-image: linear-gradient(90deg, #c2187a, #b87400, #0f8f5c, #0a7fa8, #6a3fd0, #c2187a); }
-    :host-context([data-theme='light']) .num { -webkit-text-stroke-color: rgba(11, 13, 16, 0.12); }
-    :host-context([data-theme='light']) .ovr { box-shadow: inset 0 0 0 1px rgba(11, 13, 16, 0.15); }
+    :host-context([data-theme='legend']) .silver { --t: #6f7a80; }
+    :host-context([data-theme='legend']) .gold .tname { background-image: linear-gradient(135deg, #8a6a1c, #c9a227 45%, #8a6a1c); filter: none; }
+    :host-context([data-theme='legend']) .elite .tname { background-image: linear-gradient(90deg, #6a2cff, #b04fd8); filter: none; }
+    :host-context([data-theme='legend']) .legend { --t: #8a6a1c; }
+    :host-context([data-theme='legend']) .legend .tname { background-image: linear-gradient(90deg, #c2187a, #b87400, #0f8f5c, #0a7fa8, #6a3fd0, #c2187a); }
+    :host-context([data-theme='legend']) .num { -webkit-text-stroke-color: rgba(11, 13, 16, 0.12); }
+    :host-context([data-theme='legend']) .ovr { box-shadow: inset 0 0 0 1px rgba(11, 13, 16, 0.15); }
     .unrated .tname { font-family: var(--font); font-weight: 500; font-size: 15px; letter-spacing: 0.1em; }
     .unrated .tline { opacity: 0.3; }
     @media (prefers-reduced-motion: reduce) { .legend .tname { animation: none; } }

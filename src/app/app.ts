@@ -6,9 +6,11 @@ import { Auth, supabase } from './auth';
 import { ProtestBell } from './components/protest-bell';
 import { Lang, saveLang } from './i18n';
 import { Live } from './live';
+import { ThemePicker } from './components/theme-picker';
+import { Theme } from './theme';
 
 @Component({
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, TranslocoPipe, ProtestBell],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, TranslocoPipe, ProtestBell, ThemePicker],
   selector: 'app-root',
   styleUrl: './app.scss',
   templateUrl: './app.html',
@@ -18,6 +20,8 @@ export class App {
   private transloco = inject(TranslocoService);
   protected readonly auth = inject(Auth);
   protected readonly live = inject(Live);
+  /** стиль сайта под уровень карточки пилота (theme.ts) */
+  protected readonly theme = inject(Theme);
   protected readonly lang = toSignal(this.transloco.langChanges$, { initialValue: this.transloco.getActiveLang() });
   protected readonly menuOpen = signal(false);
   /** страница прокручена — острова шапки плотнее, под ними мягкое затемнение */
@@ -50,18 +54,6 @@ export class App {
   protected onScroll() {
     this.scrolled.set(scrollY > 8);
     this.shade.set(Math.min(scrollY / 160, 1));
-  }
-
-  /** светлая/тёмная тема; выбор помнит браузер (ставится ещё в index.html, до отрисовки) */
-  protected readonly light = signal(document.documentElement.dataset['theme'] === 'light');
-  protected toggleTheme() {
-    const light = !this.light();
-    this.light.set(light);
-    document.documentElement.dataset['theme'] = light ? 'light' : 'dark';
-    document.querySelector('meta[name=theme-color]')?.setAttribute('content', light ? '#eef3f2' : '#000000');
-    try {
-      localStorage.setItem('sds-theme', light ? 'light' : 'dark');
-    } catch {}
   }
 
   setLang(lang: Lang) {
