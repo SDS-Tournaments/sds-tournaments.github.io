@@ -23,11 +23,11 @@ main {
     // длинный растянутый спад — без заметного края
     background: linear-gradient(
       to bottom,
-      rgba(0, 0, 0, 0.9) 0%,
-      rgba(0, 0, 0, 0.8) 35%,
-      rgba(0, 0, 0, 0.55) 60%,
-      rgba(0, 0, 0, 0.25) 80%,
-      rgba(0, 0, 0, 0.08) 92%,
+      rgba(var(--shade), 0.9) 0%,
+      rgba(var(--shade), 0.8) 35%,
+      rgba(var(--shade), 0.55) 60%,
+      rgba(var(--shade), 0.25) 80%,
+      rgba(var(--shade), 0.08) 92%,
       transparent
     );
     opacity: var(--shade, 0);
@@ -35,13 +35,13 @@ main {
 }
 %island {
   pointer-events: auto;
-  background: rgba(8, 8, 8, 0.62);
+  background: var(--glass);
   backdrop-filter: blur(14px);
   border: 1px solid var(--hairline);
   border-radius: var(--r-pill);
   transition: background-color 400ms var(--ease-out), border-color 400ms var(--ease-out);
   .scrolled & {
-    background-color: rgba(14, 14, 14, 0.9);
+    background-color: var(--glass-strong);
     border-color: var(--hairline-strong);
   }
 }
@@ -112,7 +112,7 @@ main {
   height: 48px;
   padding: 0 18px;
   color: var(--ink);
-  background: rgba(8, 8, 8, 0.62);
+  background: var(--glass);
   .logo-mark {
     transition: text-shadow var(--base) var(--ease-out);
   }
@@ -164,6 +164,21 @@ main {
       transform: none; // внутри острова кнопки не прыгают — только подсветка
     }
   }
+}
+
+.theme {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--ink-muted);
+  cursor: pointer;
+  transition: color var(--fast), background-color var(--fast);
+  svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  &:hover { color: var(--primary); background: var(--surface-1); }
 }
 
 .lang {
@@ -229,7 +244,7 @@ main {
     flex-direction: column;
     padding: 8px;
     border-radius: var(--r-lg);
-    background: rgba(8, 8, 8, 0.92);
+    background: var(--glass-strong);
     opacity: 0;
     transform: translateY(-8px);
     pointer-events: none;

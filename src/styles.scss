@@ -22,6 +22,12 @@
   --error: #ff5c5c;
   --warning: #f5b942;
   --overlay: rgba(0, 0, 0, 0.7);
+  /* полупрозрачные панели (острова шапки, карточка этапа, капсула сохранения) */
+  --glass: rgba(8, 8, 8, 0.62);
+  --glass-strong: rgba(10, 10, 10, 0.9);
+  /* цвет затемнения под шапкой (r, g, b) и линии сетки фона */
+  --shade: 0, 0, 0;
+  --grid-line: rgba(255, 255, 255, 0.028);
 
   --font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --mono: 'JetBrains Mono', ui-monospace, Consolas, monospace;
@@ -45,6 +51,39 @@
   --section: 128px;
 
   color-scheme: dark;
+}
+
+/* Светлая тема: светлый холст с бирюзовым отливом, белые карточки, акцент чуть глубже — ради контраста */
+:root[data-theme='light'] {
+  --primary: #0a9b97;
+  --on-primary: #fff;
+  --primary-hover: #0bb3ae;
+  --primary-pressed: #08807c;
+  --primary-soft: rgba(10, 155, 151, 0.1);
+  --primary-glow: rgba(10, 155, 151, 0.28);
+
+  --ink: #0f1a1a;
+  --ink-muted: #46524f;
+  --ink-subtle: #6b7774;
+  --ink-tertiary: #9aa5a2;
+
+  --canvas: #eef3f2;
+  --surface-1: #ffffff;
+  --surface-2: #f3f7f6;
+  --surface-3: #e5ecea;
+  --hairline: #dbe4e2;
+  --hairline-strong: #c4d1ce;
+
+  --error: #d63b3b;
+  --warning: #b9770e;
+  --overlay: rgba(15, 26, 26, 0.45);
+
+  --glass: rgba(255, 255, 255, 0.72);
+  --glass-strong: rgba(255, 255, 255, 0.92);
+  --shade: 238, 243, 242;
+  --grid-line: rgba(15, 60, 58, 0.06);
+
+  color-scheme: light;
 }
 
 @media (max-width: 767px) {
@@ -117,8 +156,8 @@ img {
   .grid {
     inset: 0;
     background-image:
-      linear-gradient(rgba(255, 255, 255, 0.028) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255, 255, 255, 0.028) 1px, transparent 1px);
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
     background-size: 72px 72px;
     mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, #000 20%, transparent 75%);
   }

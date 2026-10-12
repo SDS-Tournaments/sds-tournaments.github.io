@@ -28,7 +28,7 @@ import { supabase } from '../auth';
     .n { position: absolute; top: 2px; right: 0; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; background: var(--warning); color: #000; font-size: 11px; line-height: 18px; text-align: center; }
     .toast {
       position: fixed; right: 24px; bottom: 24px; z-index: 100; display: grid; gap: 4px; width: min(360px, calc(100vw - 32px));
-      padding: 16px 20px; border: 1px solid var(--warning); border-radius: var(--r-lg); background: rgba(10, 10, 10, 0.95);
+      padding: 16px 20px; border: 1px solid var(--warning); border-radius: var(--r-lg); background: var(--glass-strong);
       color: var(--ink); box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6), 0 0 32px -12px var(--warning); backdrop-filter: blur(10px);
       animation: in 400ms var(--ease-out);
     }

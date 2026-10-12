@@ -111,6 +111,10 @@ const ORDER: Rank[] = ['legend', 'elite', 'gold', 'silver', 'bronze', 'unrated']
     .legend img { box-shadow: 0 0 0 2px #fff, 0 0 20px rgba(255, 211, 110, 0.6); }
     @keyframes holo { to { background-position: -200% 0; } }
     .unrated { --t: var(--ink-subtle); }
+    :host-context([data-theme='light']) .silver { --t: #6f7a80; }
+    :host-context([data-theme='light']) .gold .tname { background-image: linear-gradient(135deg, #8a6a1c, #c9a227 45%, #8a6a1c); filter: none; }
+    :host-context([data-theme='light']) .elite .tname { background-image: linear-gradient(90deg, #6a2cff, #b04fd8); filter: none; }
+    :host-context([data-theme='light']) .legend { --t: #8a6a1c; }
     .unrated .tname { font-family: var(--font); font-weight: 500; font-size: 15px; letter-spacing: 0.1em; }
     .unrated .tline { opacity: 0.3; }
     @media (prefers-reduced-motion: reduce) { .legend .tname { animation: none; } }

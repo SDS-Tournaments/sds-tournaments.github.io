@@ -289,6 +289,10 @@
     "selected": "your pick",
     "takenBy": "Taken by {{name}}"
   },
+  "theme": {
+    "light": "Light theme",
+    "dark": "Dark theme"
+  },
   "common": {
     "soon": "Coming soon.",
     "loading": "Loading…"

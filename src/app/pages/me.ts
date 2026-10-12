@@ -264,7 +264,7 @@ import { compressImage } from '../image';
       display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px;
       padding: 8px 8px 8px 20px;
       border: 1px solid var(--hairline); border-radius: var(--r-pill);
-      background: rgba(8, 8, 8, 0.85); backdrop-filter: blur(14px);
+      background: var(--glass-strong); backdrop-filter: blur(14px);
       transition: border-color var(--base), box-shadow var(--base);
     }
     .savebar:not(.on) { padding: 10px 20px; }

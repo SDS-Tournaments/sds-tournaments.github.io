@@ -6,6 +6,10 @@
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#000000">
+  <script>
+    // выбранная тема — сразу, до отрисовки (без вспышки тёмной)
+    try { if (localStorage.getItem('sds-theme') === 'light') { document.documentElement.dataset.theme = 'light'; document.querySelector('meta[name=theme-color]').content = '#eef3f2'; } } catch (e) {}
+  </script>
   <meta name="description" content="Sad Drift Series — онлайн-чемпионат по дрифту в CarX Drift Racing Online 2">
   <link rel="icon" type="image/png" href="icon.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
