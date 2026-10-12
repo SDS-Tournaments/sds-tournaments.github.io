@@ -6,11 +6,12 @@ import { Auth, supabase } from './auth';
 import { ProtestBell } from './components/protest-bell';
 import { Lang, saveLang } from './i18n';
 import { Live } from './live';
+import { ScrollRail } from './components/scroll-rail';
 import { ThemePicker } from './components/theme-picker';
 import { Theme } from './theme';
 
 @Component({
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, TranslocoPipe, ProtestBell, ThemePicker],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, TranslocoPipe, ProtestBell, ThemePicker, ScrollRail],
   selector: 'app-root',
   styleUrl: './app.scss',
   templateUrl: './app.html',

@@ -198,9 +198,14 @@ body {
 /* холст — на <html>; body прозрачный, чтобы фон .backdrop был виден под контентом */
 html {
   background: var(--canvas);
-  /* полоса прокрутки: тонкая, ползунок — цвет текущего стиля, дорожка прозрачная */
+  /* телефон: системная полоса — тонкая, цвета стиля */
   scrollbar-width: thin;
   scrollbar-color: rgba(var(--accent-rgb), 0.45) transparent;
+}
+/* компьютер: системная полоса скрыта — вместо неё шкала с точкой (components/scroll-rail.ts) */
+@media (min-width: 768px) {
+  html { scrollbar-width: none; }
+  html::-webkit-scrollbar { display: none; }
 }
 
 img {
