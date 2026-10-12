@@ -1,3 +1,4 @@
+import { isDevMode } from '@angular/core';
 import { Routes } from '@angular/router';
 import { staffGuard } from './auth';
 import { Home } from './pages/home';
@@ -37,6 +38,7 @@ export const routes: Routes = [
   { path: 'broadcast', canActivate: [staffGuard], loadComponent: () => import('./overlay/broadcast').then((m) => m.Broadcast) },
   // Плашки для OBS — публичная страница без шапки и подвала
   { path: 'overlay', loadComponent: () => import('./overlay/overlay').then((m) => m.Overlay) },
-  { path: 'dev/ui', loadComponent: () => import('./pages/ui-showcase').then((m) => m.UiShowcase) },
+  // UI kit — только в локальной разработке; на опубликованном сайте адрес ведёт на главную
+  { path: 'dev/ui', canMatch: [() => isDevMode()], loadComponent: () => import('./pages/ui-showcase').then((m) => m.UiShowcase) },
   { path: '**', redirectTo: '' },
 ];
