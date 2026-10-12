@@ -8,7 +8,7 @@ import { Legacy, mergeSkills, qualStandings, Round, SkillRun, skills } from '../
 import { compareRow } from './compare';
 import { forceNoir } from '../theme';
 import { mockStage } from './mock';
-import { DEFAULT_STATE, LANG_SWAP_MS, OVERLAY_TEXT, OverlayState, Widget } from './state';
+import { DEFAULT_STATE, LANG_SWAP_FULL_MS, LANG_SWAP_MS, OVERLAY_TEXT, OverlayState, Widget } from './state';
 
 interface Pilot extends TreePilot {
   avatar_url: string | null;
@@ -422,12 +422,16 @@ export class Overlay implements OnInit {
     const tick = setInterval(() => this.now.set(Date.now()), 1000);
     const rot = setInterval(() => this.sponsorIdx.update((i) => i + 1), 6000);
     // RU ⇄ EN: гасим текст, меняем язык посередине, проявляем
+    let ticks = 0;
     const swap = setInterval(() => {
       if (this.state().lang !== 'auto') return;
+      const full = this.show('matchup') || this.show('bracket') || this.show('podium');
+      if (!full && ++ticks * LANG_SWAP_FULL_MS < LANG_SWAP_MS) return;
+      ticks = 0;
       this.flip.set(true);
       setTimeout(() => this.autoLang.update((l) => (l === 'ru' ? 'en' : 'ru')), 250);
       setTimeout(() => this.flip.set(false), 600);
-    }, LANG_SWAP_MS);
+    }, LANG_SWAP_FULL_MS);
     inject(DestroyRef).onDestroy(() => {
       [root.style.background, document.body.style.background] = prev;
       clearInterval(tick);

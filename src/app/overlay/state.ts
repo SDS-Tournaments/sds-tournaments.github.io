@@ -20,7 +20,9 @@ export const SKINS = ['classic', 'arena', 'race', 'hud'] as const;
 export type Skin = (typeof SKINS)[number];
 export const SKIN_LABEL: Record<Skin, string> = { classic: 'Классика', arena: 'Арена', race: 'Гонка', hud: 'HUD' };
 
-export const LANG_SWAP_MS = 4000;
+export const LANG_SWAP_MS = 8000;
+/** полноэкранные плашки (сетка, подиум, представление пары) меняют язык чаще */
+export const LANG_SWAP_FULL_MS = 4000;
 
 export const DEFAULT_STATE: OverlayState = { lang: 'ru', stageId: null, visible: {}, autoScore: true, skin: 'hud' };
 
