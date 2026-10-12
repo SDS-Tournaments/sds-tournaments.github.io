@@ -63,9 +63,11 @@
   --primary-glow: rgba(18, 196, 190, 0.35);
 
   --ink: #0b0d10;
-  --ink-muted: #3d434b;
-  --ink-subtle: #656c75;
-  --ink-tertiary: #9aa0a8;
+  --ink-muted: #31373e;
+  --ink-subtle: #545b64;
+  --ink-tertiary: #7b828b;
+  /* светлота цветов «хайпа» этапа: на светлом фоне — темнее */
+  --hype-l: 44%;
 
   --canvas: #e8eaee;
   --surface-1: #f9fafb;

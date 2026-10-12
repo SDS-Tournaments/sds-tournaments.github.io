@@ -173,7 +173,7 @@ export class NextStage {
   }
   protected readonly segs = [0, 1, 2, 3, 4, 5, 6];
   protected color(level: number, alpha: number) {
-    return `hsl(${hue(level)} 95% 66% / ${Math.min(1, alpha)})`;
+    return `hsl(${hue(level)} 95% var(--hype-l, 66%) / ${Math.min(1, alpha)})`;
   }
 
   private readonly now = signal(Date.now());
