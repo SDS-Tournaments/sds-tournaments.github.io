@@ -8,7 +8,7 @@ export const CARS = [
   'Nishimo 32R', 'Nishimo 34R', 'Nishimo 35R', 'Nishimo LRL33', 'Nishimo SI5', 'Nishimo Z37', 'Nishimo Z40',
 ];
 
-// shortcut: тестовые списки; заменить на настоящие из CarX Drift Racing Online 2, когда организатор пришлёт
-export const ENGINES = ['2.0 I4 Turbo', '2.5 I6 Turbo', '2.6 I6 Twin-Turbo', '3.0 I6 Turbo', '1.3 Rotary Turbo', '4.0 V8', '5.0 V8 Supercharged'];
+// Двигатели и коробки — со скриншотов меню свапа, в том же порядке, что в игре
+export const ENGINES = ['A4EG', 'RS20', 'L3S', 'J2Z', 'BR26', 'RV38', 'R13'];
 
-export const GEARBOXES = ['5-ст. механика', '6-ст. механика', '6-ст. секвентальная', '4-ст. секвентальная'];
+export const GEARBOXES = ['F5S', '158R', 'GT-rag 160v', 'Evy SL', 'Supersonic v1', 'Supersonic v2'];
