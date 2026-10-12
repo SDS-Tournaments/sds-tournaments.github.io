@@ -198,6 +198,9 @@ body {
 /* холст — на <html>; body прозрачный, чтобы фон .backdrop был виден под контентом */
 html {
   background: var(--canvas);
+  /* полоса прокрутки: тонкая, ползунок — цвет текущего стиля, дорожка прозрачная */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(var(--accent-rgb), 0.45) transparent;
 }
 
 img {
