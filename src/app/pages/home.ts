@@ -71,7 +71,7 @@ import { Reveal } from '../reveal';
             @for (p of pilots(); track p.id; let i = $index) {
               <li [class.first]="i === 0">
                 <span class="mono place">{{ p.place }}</span>
-                @if (p.avatar_url) { <img [src]="p.avatar_url" alt="" width="36" height="36" /> } @else { <span class="ph"></span> }
+                @if (p.avatar_url) { <img [src]="p.avatar_url" alt="" width="36" height="36" loading="lazy" decoding="async" /> } @else { <span class="ph"></span> }
                 <span class="who"><b>{{ p.nickname }}</b><span class="subtle">{{ p.team ?? '' }}</span></span>
                 <span class="mono pts">{{ p.points }}</span>
               </li>
@@ -149,6 +149,7 @@ import { Reveal } from '../reveal';
     /* Во время этапа надпись загорается неоном и пульсирует; на событие эфира — вспышка */
     :host-context(html.live) .kanji {
       -webkit-text-stroke: 1.5px rgba(var(--accent-rgb), 0.8);
+      filter: drop-shadow(0 0 16px rgba(var(--accent-rgb), 0.7)) drop-shadow(0 0 46px rgba(255, 92, 92, 0.25));
       animation: kanji-live 2.4s var(--ease-in-out) infinite;
     }
     :host-context(html.pulse) .kanji {
@@ -156,8 +157,8 @@ import { Reveal } from '../reveal';
       filter: drop-shadow(0 0 24px rgba(255, 92, 92, 0.8));
     }
     @keyframes kanji-live {
-      0%, 100% { opacity: 0.55; filter: drop-shadow(0 0 6px rgba(var(--accent-rgb), 0.3)); }
-      50% { opacity: 1; filter: drop-shadow(0 0 22px rgba(var(--accent-rgb), 0.9)) drop-shadow(0 0 60px rgba(255, 92, 92, 0.35)); }
+      0%, 100% { opacity: 0.45; }
+      50% { opacity: 1; }
     }
     @media (prefers-reduced-motion: reduce) {
       :host-context(html.live) .kanji { animation: none; }
@@ -198,12 +199,10 @@ import { Reveal } from '../reveal';
       height: 8px;
       border-radius: 50%;
       background: var(--primary);
-      animation: pulse 2s ease-out infinite;
     }
-    @keyframes pulse {
-      from { box-shadow: 0 0 0 0 var(--primary-glow); }
-      to { box-shadow: 0 0 0 10px transparent; }
-    }
+    .dot { position: relative; }
+.dot::after { content: ''; position: absolute; inset: 0; border-radius: 50%; background: var(--primary); animation: ring-out 2s ease-out infinite; }
+    @keyframes ring-out { from { transform: scale(1); opacity: 0.6; } to { transform: scale(3.4); opacity: 0; } }
 
     h1 { margin: 20px 0 24px; }
     :host-context([data-theme='legend']) .kanji { -webkit-text-stroke-color: rgba(148, 112, 15, 0.3); }

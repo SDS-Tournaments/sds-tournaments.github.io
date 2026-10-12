@@ -79,8 +79,10 @@ interface StageRow {
     .st-draft, .st-finished { background: var(--surface-3); color: var(--ink-muted); }
     .st-registration { background: rgba(var(--accent-rgb), 0.15); color: var(--primary); }
     .st-qualifying, .st-battles { background: rgba(255, 92, 92, 0.15); color: var(--error); }
-    .pip { width: 7px; height: 7px; border-radius: 50%; background: currentColor; animation: pip 1.4s ease-out infinite; }
-    @keyframes pip { from { box-shadow: 0 0 0 0 currentColor; } to { box-shadow: 0 0 0 6px transparent; } }
+    .pip { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+    .pip { position: relative; }
+.pip::after { content: ''; position: absolute; inset: 0; border-radius: 50%; background: currentColor; animation: ring-out 1.4s ease-out infinite; }
+    @keyframes ring-out { from { transform: scale(1); opacity: 0.6; } to { transform: scale(2.7); opacity: 0; } }
     .cta { margin-top: 10px !important; font-size: 14px; font-weight: 500; }
 
 

@@ -89,7 +89,6 @@ export function tierOf(overall: number | null): Tier {
     @if (error()) { <p class="bad">{{ error() }}</p> }
   `,
   styles: `
-    @property --ang { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
     :host { display: grid; gap: 12px; justify-items: center; }
 
     /* Общая форма. Рамка — градиент в border-box под тёмной подложкой */
@@ -118,14 +117,16 @@ export function tierOf(overall: number | null): Tier {
     .champ { box-shadow: 0 24px 70px -18px color-mix(in srgb, var(--champ), transparent 35%); }
     /* фольга: косая штриховка + бегущий перелив */
     .foil {
-      position: absolute; inset: 0; pointer-events: none;
-      background:
-        linear-gradient(115deg, transparent 30%, color-mix(in srgb, var(--champ), transparent 72%) 45%, transparent 60%) 0 0 / 300% 100%,
-        repeating-linear-gradient(115deg, transparent 0 11px, color-mix(in srgb, var(--champ), transparent 88%) 11px 12px);
+      position: absolute; inset: 0; overflow: hidden; pointer-events: none;
+      background: repeating-linear-gradient(115deg, transparent 0 11px, color-mix(in srgb, var(--champ), transparent 88%) 11px 12px);
       mask-image: linear-gradient(180deg, #000 0%, rgba(0, 0, 0, 0.55) 55%, transparent 80%);
+    }
+    .foil::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(115deg, transparent 30%, color-mix(in srgb, var(--champ), transparent 72%) 45%, transparent 60%);
       animation: foil 5s linear infinite;
     }
-    @keyframes foil { from { background-position: 100% 0, 0 0; } to { background-position: -200% 0, 0 0; } }
+    @keyframes foil { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
     /* корона + звёзды побед */
     .champ-badge {
       position: absolute; top: 16px; left: 50%; z-index: 2; transform: translateX(-50%);
@@ -190,29 +191,44 @@ export function tierOf(overall: number | null): Tier {
     /* ELITE — фиолетовый неон, вращающаяся рамка, спортивный шрифт */
     .elite {
       --accent: #c79bff;
-      --frame: conic-gradient(from var(--ang), #6a2cff, #c79bff, #ff4fd8, #0abab5, #6a2cff);
+      --spin: conic-gradient(#6a2cff, #c79bff, #ff4fd8, #0abab5, #6a2cff);
+      --spin-s: 6s;
       --bw: 3px;
       --body: #0b0614;
       --muted: #b6a3d6;
       --glow: rgba(160, 90, 255, 0.6);
-      animation: spin 6s linear infinite;
+    }
+    /* рамка без border: снизу вращается конический градиент, сверху — тело карточки с отступом в толщину рамки */
+    .elite, .legend {
+      border: 0; isolation: isolate; background: none;
+      padding: calc(22px + var(--bw)) calc(22px + var(--bw)) calc(16px + var(--bw));
+    }
+    .elite::before, .legend::before {
+      content: ''; position: absolute; inset: -60%; z-index: -2; background: var(--spin);
+      animation: spin var(--spin-s) linear infinite;
+    }
+    .elite::after, .legend::after { content: ''; position: absolute; z-index: -1; background: var(--body); }
+    /* тело и слои, которые раньше лежали внутри border, — внутрь рамки */
+    .elite::after, .legend::after, .elite .shade, .legend .shade, .elite .foil, .legend .foil {
+      inset: var(--bw);
+      border-radius: calc(22px - var(--bw)) calc(22px - var(--bw)) calc(60px - var(--bw)) calc(60px - var(--bw)) / calc(22px - var(--bw)) calc(22px - var(--bw)) calc(40px - var(--bw)) calc(40px - var(--bw));
     }
     .elite .big, .legend .big { font-family: 'Russo One', var(--font); font-weight: 400; font-size: 52px; }
     .elite .big { background: linear-gradient(180deg, #fff, #c79bff); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 0 12px rgba(199, 155, 255, 0.6)); }
     .elite .nick, .legend .nick { font-family: 'Russo One', var(--font); font-weight: 400; letter-spacing: 0.04em; text-transform: uppercase; font-size: 22px; }
     .elite .face { box-shadow: 0 0 0 3px var(--body), 0 0 0 5px var(--accent), 0 0 28px rgba(199, 155, 255, 0.6); }
-    @keyframes spin { to { --ang: 360deg; } }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
     /* LEGEND — белый перламутр, голографическая рамка, блеск, искры, лента */
     .legend {
       --accent: #2b2b2b;
-      --frame: conic-gradient(from var(--ang), #ff6ec7, #ffd36e, #7dffb0, #6ee7ff, #b28dff, #ff6ec7);
+      --spin: conic-gradient(#ff6ec7, #ffd36e, #7dffb0, #6ee7ff, #b28dff, #ff6ec7);
+      --spin-s: 4s;
       --bw: 4px;
       --body: #f4f2ee;
       --ink: #111;
       --muted: #6f6a63;
       --glow: rgba(255, 255, 255, 0.55);
-      animation: spin 4s linear infinite;
     }
     .legend .shade { background: linear-gradient(180deg, rgba(244, 242, 238, 0.4) 0%, rgba(244, 242, 238, 0.75) 45%, var(--body) 86%); }
     .legend .big { background: linear-gradient(120deg, #111, #6b5d45 40%, #111); -webkit-background-clip: text; background-clip: text; color: transparent; }
@@ -241,7 +257,7 @@ export function tierOf(overall: number | null): Tier {
     .legend .shine { background: linear-gradient(105deg, transparent 40%, rgba(255, 255, 255, 0.7) 50%, transparent 60%); }
     @keyframes sweep { from { transform: translateX(-60%); } to { transform: translateX(60%); } }
 
-    @media (prefers-reduced-motion: reduce) { .elite, .legend, .shine, .spark, .foil, .st i { animation: none; } }
+    @media (prefers-reduced-motion: reduce) { .elite, .legend, .elite::before, .legend::before, .shine, .spark, .foil::after, .st i { animation: none; } }
     .bad { color: var(--error); font-size: 13px; margin: 0; }
   `,
 })

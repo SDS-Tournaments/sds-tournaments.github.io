@@ -77,13 +77,20 @@ export class ScrollRail {
   protected readonly round = Math.round;
 
   constructor() {
-    const update = () => {
-      const max = document.documentElement.scrollHeight - innerHeight;
-      this.scrollable.set(max > 40);
+    let max = 0;
+    let frame = 0;
+    const place = () => {
+      frame = 0;
       this.pos.set(max > 0 ? Math.min(1, Math.max(0, scrollY / max)) : 0);
     };
+    // замер высоты (дорогое чтение layout) — только при изменении размеров, не на каждый скролл
+    const update = () => {
+      max = document.documentElement.scrollHeight - innerHeight;
+      this.scrollable.set(max > 40);
+      place();
+    };
     const onScroll = () => {
-      update();
+      frame ||= requestAnimationFrame(place);
       this.active.set(true);
       clearTimeout(this.idle);
       this.idle = setTimeout(() => this.active.set(false), 900);
@@ -97,6 +104,7 @@ export class ScrollRail {
     update();
     inject(DestroyRef).onDestroy(() => {
       removeEventListener('scroll', onScroll);
+      cancelAnimationFrame(frame);
       removeEventListener('resize', update);
       ro?.disconnect();
       clearTimeout(this.idle);

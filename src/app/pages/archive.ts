@@ -34,7 +34,7 @@ interface Archived {
               <div class="champs">
                 @if (s.pilot; as p) {
                   <a class="champ" [routerLink]="['/pilots', p.steam_id]">
-                    @if (p.avatar_url) { <img [src]="p.avatar_url" alt="" width="48" height="48" /> } @else { <span class="ph">{{ p.nickname[0] }}</span> }
+                    @if (p.avatar_url) { <img [src]="p.avatar_url" alt="" width="48" height="48" loading="lazy" decoding="async" /> } @else { <span class="ph">{{ p.nickname[0] }}</span> }
                     <span><span class="eyebrow">🏆 {{ 'archive.champion' | transloco }}</span><b>{{ p.nickname }}</b></span>
                   </a>
                 }

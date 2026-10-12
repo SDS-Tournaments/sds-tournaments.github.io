@@ -37,7 +37,7 @@ interface Member {
         <div class="roster">
           @for (m of members(); track m.profile_id) {
             <a class="card card-hover pilot" [routerLink]="['/pilots', m.pilot?.steam_id]">
-              @if (m.pilot?.avatar_url) { <img [src]="m.pilot!.avatar_url" alt="" width="48" height="48" /> } @else { <span class="ph">{{ m.pilot?.nickname?.[0] }}</span> }
+              @if (m.pilot?.avatar_url) { <img [src]="m.pilot!.avatar_url" alt="" width="48" height="48" loading="lazy" decoding="async" /> } @else { <span class="ph">{{ m.pilot?.nickname?.[0] }}</span> }
               <span class="info">
                 <b><span class="mono n">#{{ m.pilot?.start_number ?? '—' }}</span> {{ m.pilot?.nickname }}</b>
                 <span class="subtle">{{ m.pilot?.car ?? '' }}</span>

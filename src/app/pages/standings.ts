@@ -52,7 +52,7 @@ import { loadStandings, PilotStanding, publicSeasons, Season, StageCol, TeamStan
                   <td class="mono place">{{ p.place }}</td>
                   <td>
                     <span class="who">
-                      @if (p.avatar_url) { <img [src]="p.avatar_url" alt="" width="28" height="28" /> } @else { <span class="ph"></span> }
+                      @if (p.avatar_url) { <img [src]="p.avatar_url" alt="" width="28" height="28" loading="lazy" decoding="async" /> } @else { <span class="ph"></span> }
                       <span class="mono n">{{ p.start_number ?? '' }}</span>
                       <span class="nick">{{ p.nickname }}</span>
                       @if (p.team) { <span class="team subtle">{{ p.team }}</span> }

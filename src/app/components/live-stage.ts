@@ -49,7 +49,7 @@ const ORDER = ['r32', 'r16', 'qf', 'sf', 'third', 'final'];
               @for (pid of [b.leader_id, b.chaser_id]; track $index) {
                 <div class="pl">
                   <span class="role">{{ ($index === 0 ? 'live.leader' : 'live.chaser') | transloco }}</span>
-                  @if (p(pid).avatar_url) { <img [src]="p(pid).avatar_url" alt="" width="44" height="44" /> } @else { <span class="ava"></span> }
+                  @if (p(pid).avatar_url) { <img [src]="p(pid).avatar_url" alt="" width="44" height="44" loading="lazy" decoding="async" /> } @else { <span class="ava"></span> }
                   <span class="plate">#{{ p(pid).start_number ?? '—' }}</span>
                   <span class="nick" [title]="p(pid).nickname">{{ p(pid).nickname }}</span>
                 </div>

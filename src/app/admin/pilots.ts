@@ -47,7 +47,7 @@ const TYPE: Record<Sanction['type'], string> = { warning: 'Предупрежд�
         @let ss = sanctionsOf(p.id);
         <article class="card pilot" [class.banned]="isBanned(p.id)">
           <div class="row">
-            @if (p.avatar_url) { <img [src]="p.avatar_url" alt="" width="40" height="40" /> } @else { <span class="ph">{{ p.nickname[0] }}</span> }
+            @if (p.avatar_url) { <img [src]="p.avatar_url" alt="" width="40" height="40" loading="lazy" decoding="async" /> } @else { <span class="ph">{{ p.nickname[0] }}</span> }
             <a class="nick" [routerLink]="['/pilots', p.steam_id]" target="_blank">{{ p.nickname }}</a>
             @if (isBanned(p.id)) { <span class="badge ban">БАН</span> }
             @else if (ss.length) { <span class="badge warn">санкций: {{ ss.length }}</span> }

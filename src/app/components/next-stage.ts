@@ -24,6 +24,7 @@ const step = (level: number) => (Math.max(1, level) - 1) / 6;
     '[style.--hs]': '3.4 - (hy().level - 1) * 0.38 + "s"',
   },
   template: `
+    <i class="hglow" aria-hidden="true"></i>
     @if (stage(); as s) {
       @if (live()) {
         <p class="eyebrow live"><span class="dot"></span>LIVE · {{ 'home.next.' + status() | transloco }}</p>
@@ -126,12 +127,15 @@ const step = (level: number) => (Math.max(1, level) - 1) / 6;
     .soon { margin: 0; color: var(--ink-muted); }
 
     /* Хайп: рамка, свечение и число — цветом уровня; пульс чаще с ростом уровня */
-    :host(.hype) { border-color: var(--hc); animation: hype-glow var(--hs) ease-in-out infinite; }
-    :host(.hype) .num { color: var(--hc); text-shadow: 0 0 24px var(--hg); }
-    @keyframes hype-glow {
-      0%, 100% { box-shadow: 0 0 var(--hr) var(--hg); }
-      50% { box-shadow: 0 0 calc(var(--hr) * 2.2) var(--hg), inset 0 0 calc(var(--hr) * 1.2) var(--hg); }
+    :host(.hype) { border-color: var(--hc); box-shadow: 0 0 var(--hr) var(--hg); isolation: isolate; }
+    .hglow { display: none; }
+    :host(.hype) .hglow {
+      display: block; position: absolute; inset: -1px; z-index: -1; border-radius: inherit; pointer-events: none;
+      box-shadow: 0 0 calc(var(--hr) * 2.2) var(--hg), inset 0 0 calc(var(--hr) * 1.2) var(--hg);
+      opacity: 0; animation: hype-glow var(--hs) ease-in-out infinite;
     }
+    :host(.hype) .num { color: var(--hc); text-shadow: 0 0 24px var(--hg); }
+    @keyframes hype-glow { 50% { opacity: 1; } }
     /* с 3-го уровня — расходящееся кольцо, с 5-го — второе */
     :host(.r2)::before, :host(.r3)::after {
       content: ''; position: absolute; inset: -1px; border-radius: inherit; border: 1px solid var(--hc);
@@ -149,12 +153,13 @@ const step = (level: number) => (Math.max(1, level) - 1) / 6;
     .hb-note { margin: 0; font-size: 12px; color: var(--ink-muted); }
 
     @media (prefers-reduced-motion: reduce) {
-      :host(.hype), :host(.r2)::before, :host(.r3)::after { animation: none; }
-      :host(.hype) { box-shadow: 0 0 var(--hr) var(--hg); }
+      :host(.hype) .hglow, :host(.r2)::before, :host(.r3)::after, .live .dot::after { animation: none; }
     }
     .live { display: flex; align-items: center; gap: 8px; color: var(--error); }
-    .live .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--error); animation: pulse 1.6s ease-out infinite; }
-    @keyframes pulse { from { box-shadow: 0 0 0 0 rgba(255, 92, 92, 0.6); } to { box-shadow: 0 0 0 10px transparent; } }
+    .live .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--error); }
+    .live .dot { position: relative; }
+.live .dot::after { content: ''; position: absolute; inset: 0; border-radius: 50%; background: var(--error); animation: ring-out 1.6s ease-out infinite; }
+    @keyframes ring-out { from { transform: scale(1); opacity: 0.6; } to { transform: scale(3.4); opacity: 0; } }
   `,
 })
 export class NextStage {
