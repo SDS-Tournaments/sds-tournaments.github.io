@@ -1051,10 +1051,11 @@
   border-radius: 16px;
   background: linear-gradient(110deg, rgba(245, 215, 122, 0.16), rgba(5, 5, 5, 0.92) 55%);
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55), 0 0 30px -10px rgba(245, 215, 122, 0.6);
-  /* выезжает серой, через --d «загорается» золотом */
+  /* выезжает серой, через --d «загорается» золотом, подержавшись — уезжает */
   animation:
     ach-in 500ms var(--ease-spring) both,
-    ach-earn 900ms ease-out var(--d) both;
+    ach-earn 900ms ease-out var(--d) both,
+    ach-out 450ms ease-in calc(var(--d) + 3.5s) forwards;
   .ic {
     font-size: 40px;
     line-height: 1;
@@ -1098,12 +1099,17 @@
     box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55), 0 0 60px 4px rgba(245, 215, 122, 0.8);
   }
 }
+@keyframes ach-out {
+  to { opacity: 0; transform: translateX(-40px) scale(0.95); }
+}
 @keyframes ach-flash {
   to { transform: translateX(120%); }
 }
 /* повторная — сразу цветная, счётчик ×n → ×n+1 */
 .score .ach.repeat {
-  animation: ach-in 500ms var(--ease-spring) both;
+  animation:
+    ach-in 500ms var(--ease-spring) both,
+    ach-out 450ms ease-in calc(var(--d) + 3.5s) forwards;
   &::after { animation: none; }
   .cnt {
     display: grid;
