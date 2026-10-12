@@ -166,34 +166,37 @@ main {
   }
 }
 
-/* «✦ LEGEND»: контурная наклонная надпись — как подсвеченный номер у пилота LEGEND;
-   наведение — золотой контур со свечением, включённый режим — тёмно-золотой контур */
+/* «LEGEND»: простая надпись в стиле RU/EN; наведение и включённый режим — золото */
 .theme {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 32px;
-  padding: 0 8px;
+  height: 30px;
+  padding: 0 10px;
   border: 0;
+  border-radius: var(--r-pill);
   background: none;
-  --lc: #f4f2ee; /* цвет контура и искры */
+  color: var(--ink-subtle);
+  font: 500 12px var(--mono);
+  letter-spacing: 0.08em;
   cursor: pointer;
-  svg { fill: var(--lc); flex-shrink: 0; transition: fill var(--fast); }
-  .tl {
-    font: italic 600 17px/1 var(--font);
-    letter-spacing: 0.04em;
-    color: transparent;
-    -webkit-text-stroke: 1px var(--lc);
-    transition: filter var(--base);
-  }
-  &:hover { --lc: #ffd36e; }
-  &:hover .tl { filter: drop-shadow(0 0 6px rgba(255, 211, 110, 0.55)); }
-  &.on { --lc: #94700f; }
-  &.on:hover { --lc: #b8901f; }
+  transition: color var(--fast), background-color var(--fast);
+  &:hover { color: #e2b84a; }
+  &.on { color: #94700f; background: rgba(201, 158, 40, 0.14); }
 }
+.nav-theme { display: none; }
 @media (max-width: 560px) {
-  .theme { padding: 0 9px; }
-  .theme .tl { display: none; }
+  .actions .theme { display: none; }
+  .nav-theme {
+    display: block;
+    padding: 12px;
+    border: 0;
+    border-radius: var(--r-pill);
+    background: none;
+    text-align: left;
+    color: var(--ink-subtle);
+    font: 500 14px var(--mono);
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    &.on { color: #94700f; background: rgba(201, 158, 40, 0.14); }
+  }
 }
 
 

@@ -13,6 +13,8 @@
       @for (item of nav; track item) {
         <a [routerLink]="'/' + item" routerLinkActive="active" (click)="menuOpen.set(false)">{{ 'nav.' + item | transloco }}</a>
       }
+      <!-- на телефоне переключатель LEGEND живёт в меню: в шапке не хватает места -->
+      <button type="button" class="nav-theme" [class.on]="light()" (click)="toggleTheme(); menuOpen.set(false)" [attr.aria-pressed]="light()">LEGEND</button>
       @if (auth.profile()?.role === 'admin' || auth.profile()?.role === 'staff') {
         <a routerLink="/admin" routerLinkActive="active" class="admin-link" (click)="menuOpen.set(false)">{{ 'nav.admin' | transloco }}</a>
       }
@@ -20,7 +22,6 @@
 
     <div class="actions">
       <button type="button" class="theme" [class.on]="light()" (click)="toggleTheme()" [attr.aria-pressed]="light()" [title]="(light() ? 'theme.dark' : 'theme.light') | transloco">
-        <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M12 2.5l2.2 6.3 6.3 2.2-6.3 2.2L12 19.5l-2.2-6.3L3.5 11l6.3-2.2z" /></svg>
         <span class="tl">LEGEND</span>
       </button>
       <div class="lang" role="group" aria-label="Language">
