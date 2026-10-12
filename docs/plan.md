@@ -44,7 +44,7 @@
 - ☑ 7.4 Английский перевод интерфейса и регламента. Остаётся: каталог машин/двигателей/коробок (тестовый, на русском) — заменить вместе с реальным списком.
 
 ## Этап 8. Запуск
-- ☑ 8.1 Сайт на Netlify: https://sds-tournament.netlify.app (автодеплой из main), вход Steam через сайт (/auth/steam). Свой домен — позже, тогда добавить его в SITE_URLS.
+- ☑ 8.1 Сайт на GitHub Pages: https://sds-tournaments.github.io (репозиторий SDS-Tournaments/sds-tournaments.github.io, публикация — .github/workflows/pages.yml при пуше в main). Netlify (sds-tournament.netlify.app) — старая версия, лимит бесплатного тарифа исчерпан. Вход Steam через сайт (/auth/steam). Свой домен — позже, тогда добавить его в SITE_URLS.
 - ☐ 8.2 Тестовый этап на 20 вымышленных пилотов от регистрации до плашек в OBS.
 
 ## v2 (после запуска)
