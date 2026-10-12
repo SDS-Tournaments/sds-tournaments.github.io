@@ -74,12 +74,17 @@ export class Auth {
 
   private async loadProfile(id?: string) {
     if (!id) return this.profile.set(null);
-    const { data } = await supabase
-      .from('profiles')
-      .select('*') // все колонки: если миграция ещё не запущена, вход не ломается
-      .eq('id', id)
-      .single();
-    this.profile.set(data);
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*') // все колонки: если миграция ещё не запущена, вход не ломается
+        .eq('id', id)
+        .maybeSingle();
+      if (!error) return this.profile.set(data);
+      await new Promise((r) => setTimeout(r, 600 * (attempt + 1)));
+    }
+    // сеть или база мигнули — не «выкидываем» пилота из аккаунта: профиль, что уже был, остаётся
+    if (this.profile()?.id !== id) this.profile.set(null);
   }
 }
 
