@@ -101,11 +101,11 @@ const FLASH_MS = 10_000;
             @for (k of crits; track k) {
               <div class="bar">
                 <span class="k">{{ t()[k] }}</span>
-                <span class="track"><span class="fill" [style.--w]="pct(r, k) + '%'"></span></span>
+                <span class="track"><span class="fill" [style.--w]="pct(r, k) + '%'" [style.--heat]="pct(r, k) + '%'"></span></span>
                 <span class="v">{{ r[k] }}</span>
               </div>
             }
-            <div class="total"><span>{{ t().total }}</span><b>{{ scoreShown() }}</b></div>
+            <div class="total" [style.--heat]="maxPct(r) + '%'"><span>{{ t().total }}</span><b [class.max]="maxPct(r) >= 100">{{ scoreShown() }}</b></div>
           }
         </div>
       }
@@ -257,7 +257,7 @@ export class Overlay implements OnInit {
   private readonly lang = computed(() => (this.state().lang === 'auto' ? this.autoLang() : this.state().lang));
   /** ?skin=arena — посмотреть стиль без пульта */
   private readonly forceSkin = this.route.snapshot.queryParamMap.get('skin');
-  protected readonly skin = computed(() => this.forceSkin ?? this.state().skin ?? 'classic');
+  protected readonly skin = computed(() => this.forceSkin ?? this.state().skin ?? 'hud');
   protected readonly t = computed(() => OVERLAY_TEXT[this.lang() as 'ru' | 'en'] ?? OVERLAY_TEXT.ru);
   protected readonly roundLabels = computed(() => Object.fromEntries(ORDER.map((r) => [r, this.t()[r]])) as Record<Round, string>);
 
@@ -562,6 +562,13 @@ export class Overlay implements OnInit {
   protected sub(id: string) {
     const x = this.p(id);
     return [x.team, x.car].filter(Boolean).join(' · ');
+  }
+
+  /** итог в % от максимума этапа (сумма весов критериев, обычно 100) */
+  protected maxPct(r: Run) {
+    const w = this.stage()?.weights;
+    const max = w ? w.angle + w.style + w.line : 100;
+    return Math.min(100, (r.total / (max || 100)) * 100);
   }
 
   protected pct(r: Run, k: 'angle' | 'style' | 'line') {

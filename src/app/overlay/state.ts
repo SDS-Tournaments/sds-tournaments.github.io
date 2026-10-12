@@ -22,7 +22,7 @@ export const SKIN_LABEL: Record<Skin, string> = { classic: 'Классика', a
 
 export const LANG_SWAP_MS = 8000;
 
-export const DEFAULT_STATE: OverlayState = { lang: 'ru', stageId: null, visible: {}, autoScore: true };
+export const DEFAULT_STATE: OverlayState = { lang: 'ru', stageId: null, visible: {}, autoScore: true, skin: 'hud' };
 
 export const WIDGET_LABEL: Record<Widget, string> = {
   stage: 'Стадия этапа (угол)',

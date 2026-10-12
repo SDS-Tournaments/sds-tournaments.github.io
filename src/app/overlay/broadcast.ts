@@ -47,7 +47,7 @@ import { DEFAULT_STATE, OverlayState, SKIN_LABEL, SKINS, Widget, WIDGET_LABEL, W
           <span class="lbl">Стиль плашек</span>
           <div class="seg">
             @for (k of skins; track k) {
-              <button [class.on]="(state().skin ?? 'classic') === k" (click)="patch({ skin: k })">{{ skinLabel[k] }}</button>
+              <button [class.on]="(state().skin ?? 'hud') === k" (click)="patch({ skin: k })">{{ skinLabel[k] }}</button>
             }
           </div>
         </div>

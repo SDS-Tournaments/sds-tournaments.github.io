@@ -943,3 +943,47 @@
 @keyframes blink {
   50% { opacity: 0; }
 }
+
+/* ───────── Оценка: чем выше, тем «горячее» цвет — как огонёк на дороге сезона ───────── */
+.score {
+  .fill,
+  .total {
+    --hot: color-mix(in oklch longer hue, #0abab5, #ff5c5c var(--heat, 0%));
+  }
+}
+.screen .score .fill {
+  background: linear-gradient(90deg, color-mix(in oklab, var(--hot), transparent 55%), var(--hot)) !important;
+  box-shadow: 0 0 12px color-mix(in oklab, var(--hot), transparent 40%) !important;
+}
+.screen .score .total b {
+  color: var(--hot) !important;
+  text-shadow: 0 0 26px color-mix(in oklab, var(--hot), transparent 40%) !important;
+}
+/* максимальный балл — цифра трясётся и вспыхивает */
+.screen .score .total b.max {
+  display: inline-block;
+  animation: max-shake 0.5s linear infinite, max-glow 1.2s ease-in-out infinite;
+}
+@keyframes max-shake {
+  0%, 100% { transform: translate(0, 0) rotate(0); }
+  20% { transform: translate(-3px, 1px) rotate(-1.5deg); }
+  40% { transform: translate(3px, -1px) rotate(1.5deg); }
+  60% { transform: translate(-2px, -1px) rotate(-1deg); }
+  80% { transform: translate(2px, 1px) rotate(1deg); }
+}
+@keyframes max-glow {
+  50% { text-shadow: 0 0 46px #ff5c5c, 0 0 90px rgba(255, 92, 92, 0.6); }
+}
+
+/* ───────── Правая колонка: партнёры и квалификация одной ширины и по одному краю ───────── */
+.screen .sponsors {
+  right: 56px;
+  width: 440px;
+  box-sizing: border-box;
+  justify-content: space-between;
+}
+.screen .sponsors .logo {
+  min-width: 0;
+  flex: 1;
+  justify-content: end;
+}
