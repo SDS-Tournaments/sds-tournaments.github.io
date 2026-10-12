@@ -17,9 +17,17 @@ import { DEFAULT_STATE, OverlayState, Widget, WIDGET_LABEL, WIDGETS } from './st
 
     <div class="layout">
       <aside class="card controls">
+        <button class="toggle mock" [class.on]="!!state().mock" (click)="patch({ mock: !state().mock })" [attr.aria-pressed]="!!state().mock">
+          <span class="sw"><span></span></span>
+          Тестовые данные
+        </button>
+        @if (state().mock) {
+          <p class="warn">⚠ Вместо этапа показан вымышленный — <b>и в OBS тоже</b>. Выключите перед эфиром.</p>
+        }
+
         <label class="field">
           <span class="lbl">Этап</span>
-          <select class="input" [ngModel]="state().stageId" (ngModelChange)="patch({ stageId: $event })">
+          <select class="input" [ngModel]="state().stageId" (ngModelChange)="patch({ stageId: $event })" [disabled]="!!state().mock">
             <option [ngValue]="null">— не выбран —</option>
             @for (s of stages(); track s.id) { <option [ngValue]="s.id">{{ s.title_ru }} · {{ s.status }}</option> }
           </select>
@@ -30,6 +38,7 @@ import { DEFAULT_STATE, OverlayState, Widget, WIDGET_LABEL, WIDGETS } from './st
           <div class="seg">
             <button [class.on]="state().lang === 'ru'" (click)="patch({ lang: 'ru' })">RU</button>
             <button [class.on]="state().lang === 'en'" (click)="patch({ lang: 'en' })">EN</button>
+            <button [class.on]="state().lang === 'auto'" (click)="patch({ lang: 'auto' })" title="Плашки сами меняют язык каждые 8 секунд">RU⇄EN</button>
           </div>
         </div>
 
@@ -106,6 +115,9 @@ import { DEFAULT_STATE, OverlayState, Widget, WIDGET_LABEL, WIDGETS } from './st
     .frame { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; border-radius: var(--r-lg); border: 1px solid var(--hairline-strong); container-type: inline-size; }
     iframe { position: absolute; top: 0; left: 0; width: 1920px; height: 1080px; border: 0; transform-origin: 0 0; transform: scale(calc(100cqw / 1920px)); }
     .bad { color: var(--error); margin: 0; }
+    .toggle.mock.on { border-color: var(--warning); background: rgba(245, 185, 66, 0.1); }
+    .toggle.mock.on .sw { background: var(--warning); }
+    .warn { margin: -8px 0 0; padding: 10px 12px; border-radius: var(--r-md); font-size: 13px; line-height: 1.45; color: var(--warning); background: rgba(245, 185, 66, 0.08); border: 1px solid rgba(245, 185, 66, 0.3); }
   `,
 })
 export class Broadcast implements OnInit {

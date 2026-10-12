@@ -4,12 +4,17 @@ export const WIDGETS = ['stage', 'onTrack', 'score', 'qualTable', 'duel', 'match
 export type Widget = (typeof WIDGETS)[number];
 
 export interface OverlayState {
-  lang: 'ru' | 'en';
+  /** auto — плашки сами меняют язык RU ⇄ EN каждые LANG_SWAP_MS */
+  lang: 'ru' | 'en' | 'auto';
   stageId: number | null;
   visible: Partial<Record<Widget, boolean>>;
   /** оценка заезда сама появляется на 10 с после каждой новой оценки */
   autoScore: boolean;
+  /** «Тестовые данные»: превью и OBS показывают вымышленный этап (mock.ts) вместо настоящего */
+  mock?: boolean;
 }
+
+export const LANG_SWAP_MS = 8000;
 
 export const DEFAULT_STATE: OverlayState = { lang: 'ru', stageId: null, visible: {}, autoScore: true };
 

@@ -6,7 +6,8 @@ import { BracketTree, TreeBattle, TreePilot } from '../components/bracket-tree';
 import { CardData, PilotCard } from '../components/pilot-card';
 import { Legacy, mergeSkills, qualStandings, Round, SkillRun, skills } from '../scoring/scoring';
 import { compareRow } from './compare';
-import { DEFAULT_STATE, OVERLAY_TEXT, OverlayState, Widget } from './state';
+import { mockStage } from './mock';
+import { DEFAULT_STATE, LANG_SWAP_MS, OVERLAY_TEXT, OverlayState, Widget } from './state';
 
 interface Pilot extends TreePilot {
   avatar_url: string | null;
@@ -49,7 +50,8 @@ const FLASH_MS = 10_000;
   selector: 'app-overlay',
   imports: [BracketTree, PilotCard],
   template: `
-    <div class="screen" [class.preview]="preview">
+    <div class="screen" [class.preview]="preview" [class.flip]="flip()">
+      @if (preview && state().mock) { <div class="mock-badge">ТЕСТ · вымышленные данные (в OBS — без этой метки)</div> }
       <!-- Стадия этапа -->
       @if (show('stage') && stage(); as s) {
         <div class="w stage-chip" animate.enter="in-down" animate.leave="out-up">
@@ -229,6 +231,10 @@ export class Overlay implements OnInit {
   private readonly only = this.route.snapshot.queryParamMap.get('only') as Widget | null;
   /** ?preview=1 — превью в пульте: тёмная подложка вместо прозрачности */
   protected readonly preview = this.route.snapshot.queryParamMap.has('preview');
+  /** язык, которым плашки говорят сейчас (в режиме auto — чередуется) */
+  private readonly autoLang = signal<'ru' | 'en'>('ru');
+  /** мгновение смены языка — текст плашек плавно гаснет и проявляется */
+  protected readonly flip = signal(false);
 
   protected readonly state = signal<OverlayState>(DEFAULT_STATE);
   protected readonly stage = signal<Stage | null>(null);
@@ -244,7 +250,8 @@ export class Overlay implements OnInit {
   private channel?: RealtimeChannel;
   protected readonly crits = ['angle', 'style', 'line'] as const;
 
-  protected readonly t = computed(() => OVERLAY_TEXT[this.state().lang] ?? OVERLAY_TEXT.ru);
+  private readonly lang = computed(() => (this.state().lang === 'auto' ? this.autoLang() : this.state().lang));
+  protected readonly t = computed(() => OVERLAY_TEXT[this.lang() as 'ru' | 'en'] ?? OVERLAY_TEXT.ru);
   protected readonly roundLabels = computed(() => Object.fromEntries(ORDER.map((r) => [r, this.t()[r]])) as Record<Round, string>);
 
   protected show(w: Widget) {
@@ -372,12 +379,34 @@ export class Overlay implements OnInit {
     if (!this.preview) root.style.background = document.body.style.background = 'transparent';
     const tick = setInterval(() => this.now.set(Date.now()), 1000);
     const rot = setInterval(() => this.sponsorIdx.update((i) => i + 1), 6000);
+    // RU ⇄ EN: гасим текст, меняем язык посередине, проявляем
+    const swap = setInterval(() => {
+      if (this.state().lang !== 'auto') return;
+      this.flip.set(true);
+      setTimeout(() => this.autoLang.update((l) => (l === 'ru' ? 'en' : 'ru')), 250);
+      setTimeout(() => this.flip.set(false), 600);
+    }, LANG_SWAP_MS);
     inject(DestroyRef).onDestroy(() => {
       [root.style.background, document.body.style.background] = prev;
       clearInterval(tick);
       clearInterval(rot);
+      clearInterval(swap);
       if (this.channel) supabase.removeChannel(this.channel);
     });
+  }
+
+  /** вымышленный этап вместо настоящего («Тестовые данные» в пульте) */
+  private showMock() {
+    const m = mockStage();
+    this.stage.set(m.stage);
+    this.pilots.set(m.pilots);
+    this.regs.set(m.regs);
+    this.runs.set(m.runs);
+    this.battles.set(m.battles);
+    this.voteRows.set(m.votes);
+    this.results.set(m.results);
+    const d = this.duel()!;
+    this.mu.set({ ids: `${d.leader_id}|${d.chaser_id}`, cards: m.cards });
   }
 
   async ngOnInit() {
@@ -406,12 +435,14 @@ export class Overlay implements OnInit {
   private async applyState(s: OverlayState) {
     if (this.forceStage) s = { ...s, stageId: this.forceStage };
     if (this.forceShow) s = { ...s, visible: Object.fromEntries(this.forceShow.map((w) => [w, true])), autoScore: false };
-    const changed = s.stageId !== this.state().stageId;
+    const changed = s.stageId !== this.state().stageId || !!s.mock !== !!this.state().mock;
     this.state.set(s);
     if (changed) await this.loadStage();
   }
 
   private async loadStage() {
+    // тест: живые изменения настоящего этапа не перебивают вымышленные данные
+    if (this.state().mock) return this.showMock();
     const id = this.state().stageId;
     if (!id) return this.stage.set(null);
     const { data: stage } = await supabase.from('stages').select('id, ord, title_ru, title_en, status, season_id, weights').eq('id', id).single();
@@ -470,6 +501,7 @@ export class Overlay implements OnInit {
   }
 
   private async loadVotes() {
+    if (this.state().mock) return;
     const d = this.duel();
     if (!d) return this.voteRows.set([]);
     const { data } = await supabase.from('battle_votes').select('battle_id, try, judge, vote').eq('battle_id', d.id);
