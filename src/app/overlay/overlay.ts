@@ -87,8 +87,8 @@ const FLASH_MS = 10_000;
 
       <!-- Оценка заезда -->
       @if (scoreVisible() && lastRun(); as r) {
-        <!-- при открытой таблице квалификации — левее неё, а не поверх -->
-        <div class="w score" [class.beside]="show('qualTable')" animate.enter="in-right" animate.leave="out-right">
+        <!-- всегда слева сверху, под стадией этапа: не пересекается ни с таблицей, ни с нижними плашками -->
+        <div class="w score" animate.enter="in-left" animate.leave="out-left">
           @if (newLeader()) { <div class="ribbon">★ {{ t().newLeader }}</div> }
           <div class="score-head">
             <span class="plate small">{{ p(r.profile_id).start_number ?? '—' }}</span>
