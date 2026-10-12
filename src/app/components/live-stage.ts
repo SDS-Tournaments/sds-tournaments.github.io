@@ -35,7 +35,7 @@ const ORDER = ['r32', 'r16', 'qf', 'sf', 'third', 'final'];
         }
       </div>
 
-      <aside class="card side">
+      <aside class="card side" [class.fill]="status() === 'qualifying' && !top().length">
         @if (status() === 'battles') {
           <div class="head">
             <p class="eyebrow">{{ 'live.battle' | transloco }}</p>
@@ -89,8 +89,8 @@ const ORDER = ['r32', 'r16', 'qf', 'sf', 'third', 'final'];
                 <span class="pulse" aria-hidden="true"></span>
                 <span><b>{{ 'live.noScores' | transloco }}</b><small>{{ 'live.noScoresHint' | transloco }}</small></span>
               </li>
-              @for (i of [1, 2, 3]; track i) {
-                <li class="ghost" aria-hidden="true"><span class="mono pl-place">{{ i }}</span><span class="bar"></span></li>
+              @for (i of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]; track i) {
+                <li class="ghost" aria-hidden="true"><span class="mono pl-place">{{ i }}</span><span class="bar" [style.width.%]="84 - i * 7" [style.animation-delay.ms]="i * 120"></span></li>
               }
             }
           </ol>
@@ -145,12 +145,14 @@ const ORDER = ['r32', 'r16', 'qf', 'sf', 'third', 'final'];
     .pulse { position: relative; flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--primary); }
     .pulse::after { content: ''; position: absolute; inset: 0; border-radius: 50%; background: var(--primary); animation: ring-out 1.8s ease-out infinite; }
     @keyframes ring-out { from { transform: scale(1); opacity: 0.6; } to { transform: scale(3); opacity: 0; } }
-    .top li.ghost { grid-template-columns: 24px 1fr; box-shadow: none; opacity: 0.7; }
-    /* «строки-скелеты»: полоска на всю высоту строки, длина убывает — как будущая таблица */
-    .ghost .bar { height: 14px; border-radius: 4px; background: color-mix(in oklab, var(--ink), transparent 72%); animation: ghost 1.6s ease-in-out infinite; }
-    .ghost:nth-child(2) .bar { width: 72%; }
-    .ghost:nth-child(3) .bar { width: 56%; animation-delay: 0.2s; }
-    .ghost:nth-child(4) .bar { width: 40%; animation-delay: 0.4s; }
+    /* пустая таблица — колонка ровно по высоте трансляции, лишние строки-заглушки обрезаются */
+    @media (min-width: 901px) {
+      .side.fill { contain: size; overflow: hidden; }
+      .side.fill .top { flex: 1; min-height: 0; overflow: hidden; align-content: start; mask-image: linear-gradient(180deg, #000 calc(100% - 90px), transparent); }
+    }
+    .top li.ghost { grid-template-columns: 24px 1fr; box-shadow: none; opacity: 0.55; }
+    /* строки-«скелеты» на весь блок (Топ-8), полоски укорачиваются сверху вниз */
+    .ghost .bar { height: 8px; border-radius: 4px; background: color-mix(in oklab, var(--ink), transparent 85%); animation: ghost 1.6s ease-in-out infinite; }
     @keyframes ghost { 50% { opacity: 0.35; } }
     @media (prefers-reduced-motion: reduce) { .pulse::after, .ghost .bar { animation: none; } }
   `,
