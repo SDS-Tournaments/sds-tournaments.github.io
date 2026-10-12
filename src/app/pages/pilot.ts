@@ -6,8 +6,9 @@ import { Loader } from '../components/loader';
 import { CAR_PROTOTYPES } from '../catalog';
 import { pageTitle } from '../title';
 import { loadSkillRuns, PilotShowcase } from '../components/pilot-showcase';
+import { AchievementShelf } from '../components/achievement-shelf';
 import { currentSeason } from '../data/standings';
-import { ACHIEVEMENTS, Legacy, SkillRun } from '../scoring/scoring';
+import { Legacy, SkillRun } from '../scoring/scoring';
 
 interface Profile {
   id: string;
@@ -35,7 +36,7 @@ interface Result {
 // Публичный профиль пилота: обложка-ливрея, машина, статистика, «паутинка», FIFA-карточка, достижения, история
 @Component({
   selector: 'app-pilot',
-  imports: [RouterLink, TranslocoPipe, Loader, PilotShowcase],
+  imports: [RouterLink, TranslocoPipe, Loader, PilotShowcase, AchievementShelf],
   template: `
     @if (!ready()) {
       <app-loader />
@@ -68,16 +69,7 @@ interface Result {
           </div>
 
           <app-pilot-showcase [pilot]="p" [runs]="runs()" [team]="team()" [wins]="wins()" [legacy]="p.legacy" />
-          <h2 class="h sec">{{ 'pilot.achievements' | transloco }} <span class="subtle mono">{{ earned() }}/{{ achievements().length }}</span></h2>
-          <div class="ach">
-            @for (a of achievements(); track a.code) {
-              <div class="ach-i card" [class.off]="!a.n">
-                <span class="e">{{ 'ach.' + a.code + '.icon' | transloco }}</span>
-                <span class="nm">{{ 'ach.' + a.code + '.name' | transloco }}@if (a.n > 1) { <b class="mono">×{{ a.n }}</b> }</span>
-                <span class="ds">{{ 'ach.' + a.code + '.desc' | transloco }}</span>
-              </div>
-            }
-          </div>
+          <app-achievement-shelf [profileId]="p.id" />
 
           <h2 class="h sec">{{ 'pilot.history' | transloco }}</h2>
           <div class="table-wrap card flush">
@@ -129,14 +121,6 @@ interface Result {
     .stat .k { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--ink-subtle); }
     .h { font-size: 18px; margin-bottom: 16px; }
     .sec { margin: 48px 0 16px; }
-    .ach { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
-    .ach-i { display: grid; grid-template-columns: auto 1fr; column-gap: 12px; align-items: center; padding: 14px 16px; border-color: rgba(var(--accent-rgb), 0.35); }
-    .ach-i .e { grid-row: span 2; font-size: 28px; }
-    .ach-i .nm { font-size: 14px; font-weight: 600; }
-    .ach-i .nm b { color: var(--primary); font-weight: 500; margin-left: 6px; }
-    .ach-i .ds { font-size: 12px; color: var(--text-muted, inherit); opacity: 0.75; }
-    .ach-i.off { border-color: var(--hairline); opacity: 0.45; }
-    .ach-i.off .e { filter: grayscale(1); }
     .flush { padding: 0; }
     .top { color: var(--primary); font-weight: 600; }
     .total { color: var(--primary); }
@@ -149,7 +133,6 @@ export class PilotPage implements OnInit {
   protected readonly team = signal<string | null>(null);
   protected readonly results = signal<Result[]>([]);
   protected readonly runs = signal<SkillRun[]>([]);
-  private readonly achRows = signal<string[]>([]);
   private readonly t = inject(TranslocoService);
   private readonly lang = signal(this.t.getActiveLang());
 
@@ -178,12 +161,6 @@ export class PilotPage implements OnInit {
       { k: 'pilot.points', v: r.reduce((s, x) => s + x.total, 0) },
     ];
   });
-  protected readonly achievements = computed(() => {
-    const counts = new Map<string, number>();
-    for (const c of this.achRows()) counts.set(c, (counts.get(c) ?? 0) + 1);
-    return ACHIEVEMENTS.map((code) => ({ code, n: counts.get(code) ?? 0 })).sort((a, b) => +!a.n - +!b.n);
-  });
-  protected readonly earned = computed(() => this.achievements().filter((a) => a.n).length);
   constructor() {
     this.t.langChanges$.subscribe((l) => this.lang.set(l));
   }
@@ -196,15 +173,13 @@ export class PilotPage implements OnInit {
       .maybeSingle();
     if (p) {
       const season = await currentSeason();
-      const [results, runs, ach, member] = await Promise.all([
+      const [results, runs, member] = await Promise.all([
         supabase.from('stage_results').select('stage_id, stage_place, qual_place, total, stage:stages(ord, title_ru, title_en, season:seasons(title))').eq('profile_id', p.id).order('stage_id', { ascending: false }),
         loadSkillRuns(p.id),
-        supabase.from('achievements').select('code').eq('profile_id', p.id),
         season ? supabase.from('team_members').select('team:teams(name)').eq('season_id', season.id).eq('profile_id', p.id).eq('status', 'approved').maybeSingle() : Promise.resolve({ data: null }),
       ]);
       this.results.set((results.data ?? []) as unknown as Result[]);
       this.runs.set(runs);
-      this.achRows.set((ach.data ?? []).map((a) => a.code));
       this.team.set(((member.data as { team: { name: string } | null } | null)?.team?.name) ?? null);
       this.p.set(p);
       pageTitle(`${p.nickname} — пилот`);

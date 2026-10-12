@@ -10,6 +10,7 @@ import { MyTeam } from '../components/my-team';
 import { ContentRules } from '../components/content-rules';
 import { Loader } from '../components/loader';
 import { loadSkillRuns, PilotShowcase } from '../components/pilot-showcase';
+import { AchievementShelf } from '../components/achievement-shelf';
 import { publicSeasons } from '../data/standings';
 import { SkillRun } from '../scoring/scoring';
 import { StageSignup } from '../components/stage-signup';
@@ -18,7 +19,7 @@ import { compressImage } from '../image';
 // Личный кабинет пилота (шаг 2.2). Регистрация на этап и команда — шаги 3.3–3.4.
 @Component({
   selector: 'app-me',
-  imports: [FormsModule, TranslocoPipe, NumberPicker, StageSignup, MyTeam, MyProtests, Loader, PilotShowcase, ContentRules],
+  imports: [FormsModule, TranslocoPipe, NumberPicker, StageSignup, MyTeam, MyProtests, Loader, PilotShowcase, AchievementShelf, ContentRules],
   template: `
     <section class="section container">
       @if (!auth.ready()) {
@@ -57,6 +58,7 @@ import { compressImage } from '../image';
         <!-- 1. Карточка и навыки -->
         <p class="eyebrow sec">{{ 'me.secCard' | transloco }}</p>
         <app-pilot-showcase [pilot]="me" [runs]="runs()" [team]="team()" [wins]="wins()" [legacy]="me.legacy" />
+        <app-achievement-shelf [profileId]="me.id" />
 
         <!-- 2. Сезон: главные действия — запись на этап и команда -->
         <p class="eyebrow sec">{{ 'me.secSeason' | transloco }}</p>
