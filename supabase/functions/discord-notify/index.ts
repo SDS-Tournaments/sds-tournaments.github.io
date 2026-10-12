@@ -1,4 +1,4 @@
-// Оповещения в Discord: регистрация открыта, этап начался, итоги этапа (+ лидер сезона), новый протест.
+// Оповещения в Discord: регистрация открыта, этап начался, итоги этапа (+ лидер сезона), новый протест, тест из настроек.
 // Вебхук — в private_settings (виден только admin). Вызывать может: штаб — любые события, пилот — только свой свежий протест.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
@@ -12,6 +12,8 @@ const AMBER = 0xf5b942;
 
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey, x-client-info' };
 const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { status, headers: { ...cors, 'Content-Type': 'application/json' } });
+/** канал Twitch: в настройках могут вписать и имя, и ссылку twitch.tv/имя */
+const twitchName = (v: string | null | undefined) => v?.trim().replace(/^.*twitch\.tv\//i, '').split(/[/?#]/)[0] || null;
 const date = (iso: string | null) =>
   iso ? new Date(iso).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) + ' МСК' : 'дата уточняется';
 
@@ -37,7 +39,15 @@ Deno.serve(async (req) => {
 
   let embed: Record<string, unknown> | null = null;
 
-  if (type === 'protest') {
+  if (type === 'test') {
+    if (!staff) return json({ error: 'Только для штаба' }, 403);
+    embed = {
+      title: '✅ Вебхук работает',
+      description: 'Тестовое сообщение из «Админка → Настройки». Сюда будут приходить: открытие регистрации, старт этапа, итоги и новые протесты.',
+      color: TIFFANY,
+      url: SITE || undefined,
+    };
+  } else if (type === 'protest') {
     const { data: p } = await db
       .from('protests')
       .select('id, profile_id, created_at, notified_at, reason, video_url, battle:battles(round), pilot:profiles!protests_profile_id_fkey(nickname, start_number), stage:stages(title_ru)')
@@ -63,10 +73,10 @@ Deno.serve(async (req) => {
     const name = `${s.season.title} · ${s.title_ru}${s.track ? ` · ${s.track}` : ''}`;
 
     if (type === 'registration') {
-      embed = { title: '📝 Открыта регистрация', description: `**${name}**\nСтарт: ${date(s.starts_at)}\n\nРегистрация — в личном кабинете на сайте.`, color: TIFFANY, url: SITE ? `${SITE}/me` : undefined };
+      embed = { title: '📝 Открыта регистрация', description: `**${name}**\nСтарт: ${date(s.starts_at)}\n\nРегистрация — в личном кабинете на сайте${SITE ? `: ${SITE}/me` : '.'}`, color: TIFFANY, url: link };
     } else if (type === 'stage_start') {
-      const tw = s.twitch_channel ?? (await db.from('app_settings').select('twitch_channel').eq('id', 1).single()).data?.twitch_channel;
-      embed = { title: '🔴 LIVE — этап начался', description: `**${name}**\nКвалификация уже идёт!${tw ? `\n\n📺 https://twitch.tv/${tw}` : ''}`, color: RED, url: link };
+      const tw = twitchName(s.twitch_channel ?? (await db.from('app_settings').select('twitch_channel').eq('id', 1).single()).data?.twitch_channel);
+      embed = { title: '🔴 LIVE — этап начался', description: `**${name}**\nКвалификация уже идёт!${tw ? `\n\n📺 https://twitch.tv/${tw}` : ''}${link ? `\n🏁 Онлайн-таблица: ${link}` : ''}`, color: RED, url: link };
     } else if (type === 'results') {
       const { data: top } = await db.from('stage_results').select('stage_place, total, pilot:profiles(nickname)').eq('stage_id', id).lte('stage_place', 3).order('stage_place');
       const medals = ['🥇', '🥈', '🥉'];
@@ -97,7 +107,11 @@ Deno.serve(async (req) => {
   const res = await fetch(hook, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username: 'Sad Drift Series', embeds: [{ ...embed, footer: { text: 'sad drift series' }, timestamp: new Date().toISOString() }] }),
+    body: JSON.stringify({
+      username: 'Sad Drift Series',
+      avatar_url: SITE ? `${SITE}/icon.png` : undefined,
+      embeds: [{ ...embed, thumbnail: SITE ? { url: `${SITE}/icon.png` } : undefined, footer: { text: 'Sad Drift Series · CarX Drift Racing Online 2' }, timestamp: new Date().toISOString() }],
+    }),
   });
   return json(res.ok ? { sent: true } : { error: `Discord ответил ${res.status}` }, res.ok ? 200 : 502);
 });

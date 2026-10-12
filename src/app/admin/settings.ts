@@ -44,6 +44,11 @@ import { supabase } from '../auth';
           <span class="lbl">Вебхук канала для оповещений (виден только организатору)</span>
           <input class="input mono" name="dc" type="url" placeholder="https://discord.com/api/webhooks/…" [(ngModel)]="discord" />
         </label>
+        <div class="row">
+          <button class="btn btn-secondary" type="button" (click)="testDiscord()" [disabled]="busy() || !discord.trim()">Отправить тестовое сообщение</button>
+          @if (hookMsg()) { <span [class]="hookOk() ? 'ok' : 'bad'">{{ hookMsg() }}</span> }
+        </div>
+        <p class="muted small">Сначала сохраните вебхук. Сообщения приходят сами: открытие регистрации, старт этапа (квалификация), итоги этапа, новый протест.</p>
       </section>
 
       <div class="row">
@@ -88,6 +93,20 @@ export class AdminSettings implements OnInit {
     this.ru = s.data?.regulation_ru ?? '';
     this.en = s.data?.regulation_en ?? '';
     this.discord = p.data?.discord_webhook_url ?? '';
+  }
+
+  protected readonly hookMsg = signal<string | null>(null);
+  protected readonly hookOk = signal(true);
+
+  /** проверка вебхука: функция отправляет в канал тестовое сообщение и говорит, что ответил Discord */
+  async testDiscord() {
+    this.busy.set(true);
+    this.hookMsg.set(null);
+    const { data, error } = await supabase.functions.invoke('discord-notify', { body: { type: 'test', id: 0 } });
+    this.busy.set(false);
+    const fail = error ? ((await error.context?.json?.().catch(() => null))?.error ?? error.message) : (data?.error ?? (data?.skipped ? 'Вебхук не сохранён — нажмите «Сохранить»' : null));
+    this.hookOk.set(!fail);
+    this.hookMsg.set(fail ?? 'Отправлено — проверьте канал в Discord');
   }
 
   async save() {
