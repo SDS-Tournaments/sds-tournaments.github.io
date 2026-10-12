@@ -24,15 +24,21 @@ import { ACHIEVEMENTS } from '../scoring/scoring';
     :host { display: block; }
     .sec { margin: 40px 0 16px; }
     .ach { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
-    .ach-i { position: relative; display: grid; grid-template-columns: auto 1fr; column-gap: 12px; align-items: center; padding: 14px 16px; border-color: rgba(var(--accent-rgb), 0.35); }
-    .ach-i .e { grid-row: span 2; font-size: 28px; }
-    .ach-i .nm { font-size: 14px; font-weight: 600; padding-right: 36px; }
-    .ach-i .ds { font-size: 12px; opacity: 0.75; }
-    .n {
-      position: absolute; top: 10px; right: 10px; padding: 2px 8px; border-radius: var(--r-pill);
-      background: var(--primary); color: var(--on-primary, #000); font-size: 12px; font-weight: 600;
+    /* иконка | название | счётчик, описание — под названием */
+    .ach-i {
+      display: grid; grid-template-columns: auto 1fr auto; column-gap: 12px; row-gap: 4px; align-items: center; padding: 14px 16px;
+      border-color: rgba(var(--accent-rgb), 0.4);
+      background: linear-gradient(160deg, rgba(var(--accent-rgb), 0.1), transparent 60%), var(--surface-1);
     }
-    .ach-i.off { border-color: var(--hairline); opacity: 0.45; }
+    .ach-i .e { grid-row: 1 / 3; font-size: 28px; }
+    .ach-i .nm { font-size: 14px; font-weight: 600; line-height: 1.25; }
+    .ach-i .ds { grid-column: 2 / 4; font-size: 12px; opacity: 0.75; }
+    .n {
+      grid-column: 3; grid-row: 1; align-self: start; padding: 2px 8px; border-radius: var(--r-pill);
+      border: 1px solid rgba(var(--accent-rgb), 0.45); background: rgba(var(--accent-rgb), 0.14);
+      color: var(--primary); font-size: 12px; font-weight: 600;
+    }
+    .ach-i.off { border-color: var(--hairline); background: var(--surface-1); opacity: 0.45; }
     .ach-i.off .e { filter: grayscale(1); }
   `,
 })
