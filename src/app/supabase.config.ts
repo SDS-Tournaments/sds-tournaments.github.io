@@ -2,3 +2,5 @@
 // Секретный ключ (sb_secret_…) сюда НИКОГДА не кладём — только в секреты Edge Functions.
 export const SUPABASE_URL = 'https://dghjrbxffsmmdalzdycz.supabase.co';
 export const SUPABASE_KEY = 'sb_publishable_WneCg6RjW4ypf5IzJw1ujw_oJ8v7RXd';
+/** true — сайт подключён к тестовой базе (supabase.config.staging.ts) */
+export const STAGING = false;

@@ -315,3 +315,18 @@ main {
     }
   }
 }
+
+/* метка тестовой базы (ng serve --configuration staging) */
+.staging {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 100;
+  padding: 6px 12px;
+  border-radius: var(--r-pill);
+  background: #ff9f1c;
+  color: #000;
+  font: 600 12px var(--mono);
+  letter-spacing: 1px;
+  pointer-events: none;
+}

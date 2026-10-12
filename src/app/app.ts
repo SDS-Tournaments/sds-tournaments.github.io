@@ -9,6 +9,7 @@ import { Live } from './live';
 import { ScrollRail } from './components/scroll-rail';
 import { ThemePicker } from './components/theme-picker';
 import { Theme } from './theme';
+import { STAGING } from './supabase.config';
 
 @Component({
   imports: [RouterOutlet, RouterLink, RouterLinkActive, TranslocoPipe, ProtestBell, ThemePicker, ScrollRail],
@@ -31,6 +32,8 @@ export class App {
   protected readonly shade = signal(0);
   protected readonly nav = ['standings', 'stages', 'pilots', 'teams', 'rules'];
   protected readonly year = new Date().getFullYear();
+  /** сайт подключён к тестовой базе — показываем метку, чтобы не перепутать с боевым */
+  protected readonly staging = STAGING;
   // shortcut: проверяем адрес при загрузке — /overlay открывают напрямую в OBS, переходом изнутри сайта туда не попадают
   protected readonly bare = location.pathname.startsWith('/overlay');
 
