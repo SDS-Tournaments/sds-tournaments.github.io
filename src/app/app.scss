@@ -166,35 +166,30 @@ main {
   }
 }
 
-/* «✦ LEGEND»: выключен — голографическая надпись (как заголовок ряда LEGEND у пилотов),
-   включён — перламутрово-золотая капсула (как бейдж рейтинга у пилота LEGEND) */
+/* «✦ LEGEND»: контурная наклонная надпись — как подсвеченный номер у пилота LEGEND;
+   наведение — золотой контур со свечением, включённый режим — тёмно-золотой контур */
 .theme {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  height: 26px;
-  padding: 0 10px;
+  gap: 6px;
+  height: 32px;
+  padding: 0 8px;
   border: 0;
-  border-radius: var(--r-pill);
   background: none;
-  font: 400 11px/1 'Russo One', var(--font);
-  letter-spacing: 0.12em;
+  --lc: #f4f2ee; /* цвет контура и искры */
   cursor: pointer;
-  transition: background-color var(--fast), box-shadow var(--fast);
-  svg { fill: #ffd36e; flex-shrink: 0; }
+  svg { fill: var(--lc); flex-shrink: 0; transition: fill var(--fast); }
   .tl {
-    background: linear-gradient(90deg, #ff6ec7, #ffd36e, #7dffb0, #6ee7ff, #b28dff);
-    -webkit-background-clip: text;
-    background-clip: text;
+    font: italic 600 17px/1 var(--font);
+    letter-spacing: 0.04em;
     color: transparent;
+    -webkit-text-stroke: 1px var(--lc);
+    transition: filter var(--base);
   }
-  &:hover { background-color: rgba(255, 211, 110, 0.1); }
-  &.on {
-    background: linear-gradient(120deg, #fff, #f4f2ee 40%, #ffd36e);
-    box-shadow: inset 0 0 0 1px rgba(11, 13, 16, 0.12), 0 2px 10px -4px rgba(214, 169, 53, 0.6);
-    svg { fill: #94700f; }
-    .tl { background: none; color: #1a1405; }
-  }
+  &:hover { --lc: #ffd36e; }
+  &:hover .tl { filter: drop-shadow(0 0 6px rgba(255, 211, 110, 0.55)); }
+  &.on { --lc: #94700f; }
+  &.on:hover { --lc: #b8901f; }
 }
 @media (max-width: 560px) {
   .theme { padding: 0 9px; }
