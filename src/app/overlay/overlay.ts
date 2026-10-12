@@ -239,9 +239,21 @@ const FLASH_MS = 10_000;
             <h2>{{ t().podium }}</h2>
             <div class="steps">
               @for (pp of podiumOrder(); track pp.id) {
+                <!-- тумбы вырастают по очереди 3 → 2 → 1, пилот приземляется сверху; у чемпиона — лучи, корона и конфетти -->
                 <div class="step" [class]="'p' + pp.place">
-                  @if (p(pp.id).avatar_url) { <img [src]="p(pp.id).avatar_url" alt="" /> } @else { <span class="noav">{{ p(pp.id).nickname[0] }}</span> }
-                  <b>{{ p(pp.id).nickname }}</b>
+                  @if (pp.place === 1) {
+                    <span class="rays"></span>
+                    <span class="confetti">
+                      @for (c of confetti; track $index) {
+                        <i [style.--x.px]="c.x" [style.--y.px]="c.y" [style.--r.deg]="c.r" [style.--c]="c.c" [style.--dl.ms]="c.d"></i>
+                      }
+                    </span>
+                  }
+                  <div class="who">
+                    @if (pp.place === 1) { <span class="crown">👑</span> }
+                    @if (p(pp.id).avatar_url) { <img [src]="p(pp.id).avatar_url" alt="" /> } @else { <span class="noav">{{ p(pp.id).nickname[0] }}</span> }
+                    <b>{{ p(pp.id).nickname }}</b>
+                  </div>
                   <span class="block"><span class="num">{{ pp.place }}</span></span>
                 </div>
               }
@@ -438,6 +450,14 @@ export class Overlay implements OnInit {
     ];
   });
   /** порядок на пьедестале: 2 — 1 — 3 */
+  /** конфетти над чемпионом: разлёт, поворот, цвет, задержка (детерминированно — одинаково в превью и OBS) */
+  protected readonly confetti = Array.from({ length: 22 }, (_, i) => ({
+    x: Math.round(Math.sin(i * 2.4) * 260),
+    y: 260 + ((i * 47) % 160),
+    r: (i * 97) % 720 - 360,
+    c: ['#f5d77a', '#0abab5', '#ffffff', '#ff5c5c', '#c79bff'][i % 5],
+    d: (i * 53) % 400,
+  }));
   protected readonly podiumOrder = computed(() => [2, 1, 3].map((pl) => this.podium().find((x) => x.place === pl)).filter((x) => !!x));
 
   constructor() {

@@ -1268,3 +1268,122 @@
   65% { transform: rotate(2deg) translateY(1px); }
   85% { transform: rotate(-1deg); }
 }
+
+/* ───────── Подиум: тумбы по очереди 3 → 2 → 1, приземление, серебро и бронза, у чемпиона лучи, корона и конфетти ───────── */
+.screen .podium {
+  .steps { isolation: isolate; }
+  .step {
+    --tone: 10, 186, 181;
+    --t: 0.3s; /* когда вырастает тумба */
+    position: relative;
+    animation: none;
+  }
+  .p3 { --tone: 208, 139, 82; --t: 0.3s; }
+  .p2 { --tone: 223, 230, 234; --t: 0.95s; }
+  .p1 { --tone: 245, 215, 122; --t: 1.7s; }
+  .block {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(180deg, rgba(var(--tone), 0.42), rgba(var(--tone), 0.04));
+    border-color: rgb(var(--tone));
+    transform-origin: bottom;
+    animation: pd-grow 650ms cubic-bezier(0.2, 0.9, 0.3, 1.15) var(--t) both;
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.28) 50%, transparent 65%);
+      transform: translateX(-120%);
+      animation: pd-glint 3.5s ease-in-out calc(var(--t) + 1.2s) infinite;
+    }
+  }
+  .num {
+    font: 400 84px 'Russo One', var(--font);
+    color: rgb(var(--tone));
+    text-shadow: 0 0 30px rgba(var(--tone), 0.6);
+    animation: pd-slam 500ms cubic-bezier(0.3, 1.5, 0.5, 1) calc(var(--t) + 0.35s) both;
+  }
+  .who {
+    position: relative;
+    display: grid;
+    justify-items: center;
+    gap: 14px;
+    animation: pd-land 700ms cubic-bezier(0.3, 1.4, 0.5, 1) calc(var(--t) + 0.45s) both;
+  }
+  .p2 img,
+  .p2 .noav,
+  .p3 img,
+  .p3 .noav {
+    box-shadow: 0 0 0 4px #000, 0 0 0 6px rgb(var(--tone)), 0 0 30px rgba(var(--tone), 0.35);
+  }
+  .noav { color: rgb(var(--tone)); }
+  .crown {
+    position: absolute;
+    top: -58px;
+    z-index: 1;
+    font-size: 56px;
+    filter: drop-shadow(0 0 16px rgba(245, 215, 122, 0.8));
+    animation: pd-crown 700ms cubic-bezier(0.3, 1.6, 0.5, 1) calc(var(--t) + 1.05s) both;
+  }
+  /* лучи за чемпионом медленно вращаются */
+  .rays {
+    position: absolute;
+    left: 50%;
+    top: 90px;
+    width: 720px;
+    height: 720px;
+    margin: -360px 0 0 -360px;
+    z-index: -1;
+    border-radius: 50%;
+    background: repeating-conic-gradient(rgba(245, 215, 122, 0.22) 0 7deg, transparent 7deg 20deg);
+    mask-image: radial-gradient(circle, #000 18%, transparent 68%);
+    animation:
+      pd-fade 900ms ease-out calc(var(--t) + 0.6s) both,
+      pd-rot 26s linear infinite;
+    pointer-events: none;
+  }
+  /* конфетти: разлетается из-за чемпиона и падает */
+  .confetti {
+    position: absolute;
+    left: 50%;
+    top: 40px;
+    pointer-events: none;
+    i {
+      position: absolute;
+      width: 10px;
+      height: 18px;
+      border-radius: 2px;
+      background: var(--c);
+      opacity: 0;
+      animation: pd-confetti 2.6s cubic-bezier(0.2, 0.6, 0.4, 1) calc(var(--t) + 0.9s + var(--dl)) both;
+    }
+  }
+}
+@keyframes pd-grow {
+  from { transform: scaleY(0); }
+}
+@keyframes pd-glint {
+  0%, 60% { transform: translateX(-120%); }
+  100% { transform: translateX(120%); }
+}
+@keyframes pd-slam {
+  from { opacity: 0; transform: scale(2.4); }
+}
+@keyframes pd-land {
+  from { opacity: 0; transform: translateY(-120px); }
+}
+@keyframes pd-crown {
+  from { opacity: 0; transform: translateY(-50px) rotate(-25deg) scale(0.4); }
+}
+@keyframes pd-fade {
+  from { opacity: 0; }
+}
+@keyframes pd-rot {
+  to { transform: rotate(360deg); }
+}
+@keyframes pd-confetti {
+  0% { opacity: 0; transform: translate(0, 0) rotate(0) scale(0.4); }
+  4% { opacity: 1; }
+  25% { opacity: 1; transform: translate(calc(var(--x) * 0.8), -140px) rotate(calc(var(--r) * 0.4)) scale(1); }
+  100% { opacity: 0; transform: translate(var(--x), var(--y)) rotate(var(--r)) scale(1); }
+}
