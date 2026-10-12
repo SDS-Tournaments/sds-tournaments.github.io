@@ -1,6 +1,7 @@
 import { Component, computed, inject, input, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
+import { ContentRules } from './content-rules';
 import { supabase } from '../auth';
 import { compressImage } from '../image';
 import { Loader } from './loader';
@@ -20,7 +21,7 @@ interface Member {
 // Команда пилота в текущем сезоне: создать, подать заявку, состав; капитану — приглашения и логотип
 @Component({
   selector: 'app-my-team',
-  imports: [FormsModule, TranslocoPipe, Loader],
+  imports: [FormsModule, TranslocoPipe, Loader, ContentRules],
   template: `
     <h2 class="h">{{ 'team.title' | transloco }}</h2>
 
@@ -71,6 +72,7 @@ interface Member {
           } @empty {
             @if (searched()) { <span class="hint">{{ 'team.notFound' | transloco }}</span> }
           }
+          <app-content-rules />
           <label class="btn btn-secondary file">
             {{ 'team.logo' | transloco }}
             <input type="file" accept="image/png,image/jpeg,image/webp" (change)="uploadLogo($event, t)" />
@@ -92,6 +94,7 @@ interface Member {
             <input class="input" name="tn" maxlength="40" [placeholder]="'team.name' | transloco" [(ngModel)]="newName" />
             <button class="btn btn-primary" type="submit" [disabled]="busy() || newName.trim().length < 2">{{ 'team.createBtn' | transloco }}</button>
           </div>
+          <app-content-rules />
         </form>
         <div class="field">
           <span class="lbl">{{ 'team.request' | transloco }}</span>
@@ -255,6 +258,7 @@ export class MyTeam implements OnInit {
     const file = input.files?.[0];
     input.value = '';
     if (!file) return;
+    if (!confirm(this.t.translate('rules.contentConfirm'))) return;
     this.busy.set(true);
     try {
       const blob = await compressImage(file, 512, 200_000);

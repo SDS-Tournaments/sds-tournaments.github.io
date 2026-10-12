@@ -86,6 +86,8 @@ interface Member {
               }
             }
           </div>
+          <button class="btn btn-ghost" (click)="rename(t)" [disabled]="busy()">Переименовать</button>
+          <button class="btn btn-ghost" (click)="dropLogo(t)" [disabled]="busy() || !t.logo_url">Убрать логотип</button>
           <button class="btn btn-ghost danger" (click)="remove(t)" [disabled]="busy()">Удалить команду</button>
         </article>
       } @empty {
@@ -190,6 +192,20 @@ export class AdminTeams implements OnInit {
   remove(t: Team) {
     if (!confirm(`Удалить команду «${t.name}» со всеми составами? Результаты пилотов останутся.`)) return;
     return this.run(supabase.from('teams').delete().eq('id', t.id), 'Команда удалена');
+  }
+
+  /** Модерация: недопустимое название */
+  rename(t: Team) {
+    const name = prompt(`Новое название для «${t.name}» (2–40 символов):`, t.name)?.trim();
+    if (!name || name === t.name) return;
+    return this.run(supabase.from('teams').update({ name }).eq('id', t.id), `Команда переименована в «${name}»`);
+  }
+
+  /** Модерация: недопустимый логотип — файл из хранилища и ссылку из команды */
+  async dropLogo(t: Team) {
+    if (!confirm(`Убрать логотип команды «${t.name}»?`)) return;
+    await supabase.storage.from('team-logos').remove([`${t.id}/logo.webp`]);
+    return this.run(supabase.from('teams').update({ logo_url: null }).eq('id', t.id), `«${t.name}»: логотип убран`);
   }
 
   async search(teamId: number) {

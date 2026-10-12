@@ -151,7 +151,9 @@
   "rules": {
     "version": "version {{v}}",
     "toc": "Contents",
-    "empty": "The rulebook will be published soon."
+    "empty": "The rulebook will be published soon.",
+    "content": "No profanity or insults, 18+ content, violence, extremist, Nazi or political symbols, discrimination or third-party ads. Breaking this means a permanent ban from all SDS events, without warning.",
+    "contentConfirm": "I confirm this image contains no profanity, insults, 18+ content, violence, extremist or political symbols, or ads.\n\nBreaking this means a permanent ban from all SDS events."
   },
   "pilots": {
     "search": "Nickname or number…",

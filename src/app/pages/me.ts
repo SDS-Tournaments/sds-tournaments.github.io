@@ -7,6 +7,7 @@ import { CARS, ENGINES, GEARBOXES } from '../catalog';
 import { NumberPicker } from '../components/number-picker';
 import { MyProtests } from '../components/my-protests';
 import { MyTeam } from '../components/my-team';
+import { ContentRules } from '../components/content-rules';
 import { Loader } from '../components/loader';
 import { loadSkillRuns, PilotShowcase } from '../components/pilot-showcase';
 import { publicSeasons } from '../data/standings';
@@ -17,7 +18,7 @@ import { compressImage } from '../image';
 // Личный кабинет пилота (шаг 2.2). Регистрация на этап и команда — шаги 3.3–3.4.
 @Component({
   selector: 'app-me',
-  imports: [FormsModule, TranslocoPipe, NumberPicker, StageSignup, MyTeam, MyProtests, Loader, PilotShowcase],
+  imports: [FormsModule, TranslocoPipe, NumberPicker, StageSignup, MyTeam, MyProtests, Loader, PilotShowcase, ContentRules],
   template: `
     <section class="section container">
       @if (!auth.ready()) {
@@ -108,6 +109,7 @@ import { compressImage } from '../image';
 
           <div class="card stack">
             <h2 class="h">{{ 'me.about' | transloco }}</h2>
+            <app-content-rules />
             <label>
               <span class="lbl">{{ 'me.bioRu' | transloco }}</span>
               <textarea class="input" name="bioRu" rows="3" maxlength="500" [(ngModel)]="bioRu"></textarea>
@@ -131,6 +133,7 @@ import { compressImage } from '../image';
           <div class="card stack">
             <h2 class="h">{{ 'me.livery' | transloco }}</h2>
             <p class="muted small">{{ 'me.liveryHint' | transloco }}</p>
+            <app-content-rules />
             <div class="livery" [class.empty]="!me.livery_url">
               @if (me.livery_url) {
                 <img [src]="me.livery_url" [alt]="'me.livery' | transloco" />
@@ -387,6 +390,7 @@ export class Me {
     input.value = '';
     const me = this.auth.profile();
     if (!file || !me) return;
+    if (!confirm(this.transloco.translate('rules.contentConfirm'))) return;
     this.uploading.set(true);
     this.uploadError.set(null);
     try {

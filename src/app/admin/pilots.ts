@@ -13,6 +13,9 @@ interface Pilot {
   start_number: number | null;
   role: 'admin' | 'staff' | 'pilot';
   legacy: Legacy | null;
+  livery_url: string | null;
+  bio_ru: string | null;
+  bio_en: string | null;
 }
 interface Sanction {
   id: number;
@@ -78,6 +81,23 @@ const TYPE: Record<Sanction['type'], string> = { warning: 'Предупрежд�
           }
 
           @if (open() === p.id) {
+            <div class="mod">
+              <p class="lbl">Публичный контент пилота</p>
+              <div class="mod-row">
+                @if (p.livery_url) { <a [href]="p.livery_url" target="_blank" rel="noopener"><img class="liv" [src]="p.livery_url" alt="Ливрея" /></a> }
+                @else { <span class="subtle">Ливреи нет</span> }
+                <div class="bio">
+                  @if (p.bio_ru || p.bio_en) { <p>{{ p.bio_ru }}</p><p class="subtle">{{ p.bio_en }}</p> } @else { <span class="subtle">Описания нет</span> }
+                </div>
+              </div>
+              @if (isAdmin()) {
+                <div class="row">
+                  <button class="btn btn-ghost" (click)="dropLivery(p)" [disabled]="busy() || !p.livery_url">Убрать ливрею</button>
+                  <button class="btn btn-ghost" (click)="dropBio(p)" [disabled]="busy() || !(p.bio_ru || p.bio_en)">Очистить описание</button>
+                  <button class="btn btn-ghost danger" (click)="contentBan(p)" [disabled]="busy() || isBanned(p.id)">Убрать всё и забанить навсегда</button>
+                </div>
+              }
+            </div>
             <div class="sanctions">
               @for (s of ss; track s.id) {
                 <div class="s" [class]="s.type">
@@ -125,6 +145,11 @@ const TYPE: Record<Sanction['type'], string> = { warning: 'Предупрежд�
     .badge.warn { background: rgba(245, 185, 66, 0.15); color: var(--warning); }
     .num { display: flex; gap: 6px; align-items: center; color: var(--ink-subtle); font-size: 13px; input { width: 80px; min-height: 38px; } }
     .role { width: auto; min-height: 38px; }
+    .mod { display: grid; gap: 10px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--hairline); }
+    .mod .lbl { margin: 0; font-size: 12px; letter-spacing: 1px; text-transform: uppercase; color: var(--ink-subtle); }
+    .mod-row { display: flex; gap: 16px; align-items: flex-start; }
+    .liv { width: 200px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: var(--r-sm); border: 1px solid var(--hairline-strong); }
+    .bio { flex: 1; min-width: 0; font-size: 14px; p { margin: 0 0 6px; white-space: pre-wrap; } }
     .sanctions { display: grid; gap: 8px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--hairline); }
     .s { position: relative; padding: 10px 40px 10px 14px; border-radius: var(--r-sm); background: var(--surface-2); border-left: 3px solid var(--warning); }
     .s.dq { border-left-color: #ff9d5c; }
@@ -259,6 +284,40 @@ export class AdminPilots implements OnInit {
     if (!confirm(`Очистить данные до сайта у ${p.nickname}?`)) return;
     this.lg = {};
     return this.run(supabase.from('profiles').update({ legacy: null }).eq('id', p.id), `${p.nickname}: данные до сайта очищены`);
+  }
+
+  /** Ливрея: убрать файл из хранилища и ссылку из профиля */
+  private async wipeLivery(p: Pilot) {
+    await supabase.storage.from('liveries').remove([`${p.id}/livery.webp`]);
+    return supabase.from('profiles').update({ livery_url: null }).eq('id', p.id);
+  }
+
+  async dropLivery(p: Pilot) {
+    if (!confirm(`Убрать ливрею у ${p.nickname}?`)) return;
+    await this.run(this.wipeLivery(p), `${p.nickname}: ливрея убрана`);
+  }
+
+  dropBio(p: Pilot) {
+    if (!confirm(`Очистить описание у ${p.nickname}?`)) return;
+    return this.run(supabase.from('profiles').update({ bio_ru: null, bio_en: null }).eq('id', p.id), `${p.nickname}: описание очищено`);
+  }
+
+  /** Недопустимый контент: всё публичное пилота убирается, бан навсегда (регистрация на этапы закрыта) */
+  async contentBan(p: Pilot) {
+    if (!confirm(`${p.nickname}: убрать ливрею и описание и выдать пожизненный бан за недопустимый контент?`)) return;
+    this.busy.set(true);
+    await this.wipeLivery(p);
+    await supabase.from('profiles').update({ bio_ru: null, bio_en: null }).eq('id', p.id);
+    // логотип команды капитана тоже убираем — он публичный
+    const { data: team } = await supabase.from('teams').select('id, logo_url').eq('captain_id', p.id).maybeSingle();
+    if (team?.logo_url) {
+      await supabase.storage.from('team-logos').remove([`${team.id}/logo.webp`]);
+      await supabase.from('teams').update({ logo_url: null }).eq('id', team.id);
+    }
+    await this.run(
+      supabase.from('sanctions').insert({ profile_id: p.id, type: 'ban', reason: 'Недопустимый контент (ливрея / описание / логотип) — пожизненный бан' }),
+      `${p.nickname}: контент убран, пожизненный бан`,
+    );
   }
 
   removeSanction(s: Sanction) {
