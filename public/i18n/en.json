@@ -155,7 +155,8 @@
   },
   "pilots": {
     "search": "Nickname or number…",
-    "none": "Nobody found."
+    "none": "Nobody found.",
+    "unrated": "Unrated"
   },
   "pilot": {
     "download": "Download card",
