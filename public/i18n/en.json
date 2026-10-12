@@ -219,6 +219,7 @@
   },
   "road": {
     "title": "Season road",
+    "start": "Season start",
     "done": "DONE",
     "next": "Next round",
     "live": "Live now",

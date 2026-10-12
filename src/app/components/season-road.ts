@@ -62,6 +62,13 @@ export function roadProgress(stages: { status: string; starts_at: string | null 
           <li class="rail" aria-hidden="true"><span class="fill"></span></li>
         }
         @for (n of nodes(); track n.s.id; let i = $index) {
+          @if (n.state === 'origin') {
+            <li class="st origin" [style.--i]="i">
+              <span class="dot" aria-hidden="true"></span>
+              <span class="flag" aria-hidden="true">◆</span>
+              <p class="label">{{ 'road.start' | transloco }}</p>
+            </li>
+          } @else {
           <li class="st" [class]="n.state" [style.--i]="i">
             <span class="dot" aria-hidden="true">
               @if (n.state === 'done') {
@@ -83,6 +90,7 @@ export function roadProgress(stages: { status: string; starts_at: string | null 
               <p class="when mono">{{ n.s.starts_at | date: 'dd.MM · HH:mm' }}</p>
             }
           </li>
+          }
         }
       </ol>
     </div>
@@ -198,14 +206,24 @@ export function roadProgress(stages: { status: string; starts_at: string | null 
     .st .live { color: var(--error); }
 
     .future { opacity: 0.55; }
+
+    /* точка отсчёта: «Начало сезона» — от неё огонёк едет к первому этапу */
+    .origin .dot { background: var(--primary); border-color: var(--primary); box-shadow: 0 0 10px var(--primary-glow); }
+    .origin .flag { font-size: 28px; line-height: 40px; color: var(--primary); text-shadow: 0 0 18px var(--primary-glow); }
+    .origin .label { color: var(--primary); }
   `,
 })
 export class SeasonRoad {
   readonly stages = input.required<RoadStage[]>();
 
+  /** Дорога = «Начало сезона» + этапы. Старт считается пройденным, без даты — отсчёт к первому этапу за 30 дней */
+  private readonly road = computed<RoadStage[]>(() =>
+    this.stages().length ? [{ id: -1, ord: 0, title: '', track: null, starts_at: null, status: 'finished', winner: null }, ...this.stages()] : [],
+  );
+
   /** Текущий этап: идущий, иначе первый незавершённый */
   private readonly currentIdx = computed(() => {
-    const s = this.stages();
+    const s = this.road();
     const live = s.findIndex((x) => x.status === 'qualifying' || x.status === 'battles');
     if (live >= 0) return live;
     const next = s.findIndex((x) => x.status !== 'finished');
@@ -214,15 +232,15 @@ export class SeasonRoad {
 
   protected readonly nodes = computed(() => {
     const cur = this.currentIdx();
-    return this.stages().map((s, i) => ({
+    return this.road().map((s, i) => ({
       s,
-      state: s.status === 'finished' ? 'done' : s.status === 'qualifying' || s.status === 'battles' ? 'live' : i === cur ? 'next' : 'future',
+      state: s.id === -1 ? 'origin' : s.status === 'finished' ? 'done' : s.status === 'qualifying' || s.status === 'battles' ? 'live' : i === cur ? 'next' : 'future',
     }));
   });
 
   /** Время идёт — огонёк ползёт к следующему этапу (пересчёт раз в минуту) */
   private readonly now = signal(Date.now());
-  private readonly progress = computed(() => roadProgress(this.stages(), this.now()));
+  private readonly progress = computed(() => roadProgress(this.road(), this.now()));
   protected readonly fill = computed(() => this.progress().fill);
   protected readonly heat = computed(() => this.progress().heat);
 
