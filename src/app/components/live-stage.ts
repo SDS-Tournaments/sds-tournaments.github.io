@@ -144,7 +144,8 @@ export class LiveStage implements OnInit {
   private sub?: RealtimeChannel;
 
   protected readonly playerUrl = computed(() => {
-    const ch = this.channel();
+    // в настройках могут вписать и имя канала, и ссылку twitch.tv/имя — плееру нужно только имя
+    const ch = this.channel()?.trim().replace(/^.*twitch\.tv\//i, '').split(/[/?#]/)[0];
     if (!ch) return null;
     // Twitch требует parent = домен сайта
     const url = `https://player.twitch.tv/?channel=${encodeURIComponent(ch)}&parent=${location.hostname}&muted=true`;

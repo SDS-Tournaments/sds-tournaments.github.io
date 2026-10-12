@@ -94,12 +94,13 @@ export class AdminSettings implements OnInit {
     this.busy.set(true);
     const nul = (v: string) => v.trim() || null;
     const [a, b] = await Promise.all([
-      supabase.from('app_settings').update({ twitch_channel: nul(this.twitch), regulation_version: nul(this.version), regulation_ru: nul(this.ru), regulation_en: nul(this.en) }).eq('id', 1),
-      supabase.from('private_settings').update({ discord_webhook_url: nul(this.discord) }).eq('id', 1),
+      supabase.from('app_settings').update({ twitch_channel: nul(this.twitch), regulation_version: nul(this.version), regulation_ru: nul(this.ru), regulation_en: nul(this.en) }).eq('id', 1).select('id'),
+      supabase.from('private_settings').update({ discord_webhook_url: nul(this.discord) }).eq('id', 1).select('id'),
     ]);
     this.busy.set(false);
-    const err = a.error ?? b.error;
-    this.msg.set(err ? err.message : 'Сохранено');
+    // RLS не даёт ошибку, а просто не обновляет строку — проверяем, что строка правда записалась
+    const err = a.error?.message ?? b.error?.message ?? (!a.data?.length || !b.data?.length ? 'База не приняла изменения: сохранять настройки может только организатор (роль «Организатор»).' : null);
+    this.msg.set(err ?? 'Сохранено');
     this.ok.set(!err);
   }
 }
