@@ -68,7 +68,7 @@ import { compressImage } from '../image';
         <!-- 3. Профиль пилота: номер, машина, о себе, ливрея -->
         <p class="eyebrow sec">{{ 'me.secProfile' | transloco }}</p>
         <form class="cols" (ngSubmit)="save()">
-          <div class="card stack" [class.wide]="pickingNumber()">
+          <div class="card stack numcard" [class.wide]="pickingNumber()" [class.view]="!pickingNumber()">
             <h2 class="h">{{ 'me.number' | transloco }}</h2>
             @if (pickingNumber()) {
               <p class="muted small">{{ 'me.numberHint' | transloco }}</p>
@@ -78,15 +78,15 @@ import { compressImage } from '../image';
                 <button type="button" class="btn btn-ghost fit" (click)="cancelNumber()">{{ 'me.numberCancel' | transloco }}</button>
               }
             } @else {
-              <div class="locked">
-                <span class="plate">#{{ me.start_number }}</span>
-                @if (numberLocked()) {
-                  <p class="muted">🔒 {{ 'me.numberLocked' | transloco }}</p>
-                } @else {
-                  <div class="stack-sm">
-                    <p class="muted">{{ 'me.numberKeep' | transloco }}</p>
-                    <button type="button" class="btn btn-secondary fit" (click)="editNumber.set(true)">{{ 'me.numberChange' | transloco }}</button>
-                  </div>
+              <!-- номер «наклейкой» по центру карточки, подсказка и кнопка — снизу -->
+              <div class="decal" [class.lock]="numberLocked()">
+                <span class="hash">#</span><span class="digits">{{ me.start_number }}</span>
+                @if (numberLocked()) { <span class="lockmark" aria-hidden="true">🔒</span> }
+              </div>
+              <div class="numfoot">
+                <p class="muted">{{ (numberLocked() ? 'me.numberLocked' : 'me.numberKeep') | transloco }}</p>
+                @if (!numberLocked()) {
+                  <button type="button" class="btn btn-secondary" (click)="editNumber.set(true)">{{ 'me.numberChange' | transloco }}</button>
                 }
               </div>
             }
@@ -222,11 +222,24 @@ import { compressImage } from '../image';
     @media (max-width: 860px) { .cols { grid-template-columns: 1fr; } }
     .wide { grid-column: 1 / -1; }
     .fit { justify-self: start; }
-    .stack-sm { display: grid; gap: 10px; justify-items: start; }
     .warn { color: var(--warning); }
-    .locked { display: flex; align-items: center; gap: 20px; }
-    .locked p { margin: 0; }
-    .plate { font: 400 44px/1 'Russo One', var(--font); color: var(--primary); text-shadow: 0 0 18px var(--primary-glow); }
+    /* свёрнутый номер: заголовок / наклейка на всю свободную высоту / подсказка с кнопкой */
+    .numcard.view { grid-template-rows: auto 1fr auto; align-content: stretch; }
+    .decal {
+      position: relative; display: flex; align-items: baseline; justify-content: center; min-height: 120px;
+      align-self: stretch; place-content: center; border-radius: var(--r-lg);
+      border: 1px solid rgba(10, 186, 181, 0.25);
+      background: radial-gradient(60% 80% at 50% 50%, rgba(10, 186, 181, 0.16), transparent 70%), var(--surface-2);
+      font-family: 'Russo One', var(--font); color: var(--primary); text-shadow: 0 0 28px var(--primary-glow);
+    }
+    .hash { font-size: 40px; opacity: 0.6; margin-right: 4px; align-self: center; }
+    .digits { font-size: 96px; line-height: 1; align-self: center; letter-spacing: 0.02em; }
+    .decal.lock { border-color: var(--hairline-strong); }
+    .lockmark { position: absolute; top: 12px; right: 14px; font-size: 18px; text-shadow: none; }
+    .numfoot { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    .numfoot p { margin: 0; font-size: 14px; }
+    .numfoot .btn { flex-shrink: 0; }
+    @media (max-width: 560px) { .numfoot { flex-direction: column; align-items: flex-start; } }
     .protests { display: block; margin-top: 24px; }
     .protests:empty { display: none; }
     .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
