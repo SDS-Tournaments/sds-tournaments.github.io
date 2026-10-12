@@ -4,7 +4,7 @@ import { DomSanitizer } from '@angular/platform-browser';
 import { inject } from '@angular/core';
 import { supabase } from '../auth';
 import { forceNoir } from '../theme';
-import { DEFAULT_STATE, OverlayState, Widget, WIDGET_LABEL, WIDGETS } from './state';
+import { DEFAULT_STATE, OverlayState, SKIN_LABEL, SKINS, Widget, WIDGET_LABEL, WIDGETS } from './state';
 
 // Пульт управляющего трансляцией: этап, какие плашки показаны, язык, превью и ссылка для OBS. Только RU.
 @Component({
@@ -40,6 +40,15 @@ import { DEFAULT_STATE, OverlayState, Widget, WIDGET_LABEL, WIDGETS } from './st
             <button [class.on]="state().lang === 'ru'" (click)="patch({ lang: 'ru' })">RU</button>
             <button [class.on]="state().lang === 'en'" (click)="patch({ lang: 'en' })">EN</button>
             <button [class.on]="state().lang === 'auto'" (click)="patch({ lang: 'auto' })" title="Плашки сами меняют язык каждые 8 секунд">RU⇄EN</button>
+          </div>
+        </div>
+
+        <div class="lang">
+          <span class="lbl">Стиль плашек</span>
+          <div class="seg">
+            @for (k of skins; track k) {
+              <button [class.on]="(state().skin ?? 'classic') === k" (click)="patch({ skin: k })">{{ skinLabel[k] }}</button>
+            }
           </div>
         </div>
 
@@ -92,7 +101,7 @@ import { DEFAULT_STATE, OverlayState, Widget, WIDGET_LABEL, WIDGETS } from './st
     .lbl { font-size: 13px; color: var(--ink-muted); }
     .lang { display: flex; justify-content: space-between; align-items: center; }
     .seg { display: flex; padding: 3px; border: 1px solid var(--hairline-strong); border-radius: var(--r-pill); }
-    .seg button { min-width: 44px; padding: 6px 12px; border: 0; border-radius: var(--r-pill); background: none; color: var(--ink-muted); font: 500 13px var(--mono); cursor: pointer; }
+    .seg button { min-width: 44px; padding: 6px 10px; border: 0; border-radius: var(--r-pill); background: none; color: var(--ink-muted); font: 500 13px var(--mono); cursor: pointer; }
     .seg button.on { background: var(--primary); color: var(--on-primary); }
     .list { display: grid; gap: 6px; }
     .toggle {
@@ -128,6 +137,8 @@ export class Broadcast implements OnInit {
   protected readonly copied = signal(false);
   protected readonly widgets = WIDGETS;
   protected readonly label = WIDGET_LABEL;
+  protected readonly skins = SKINS;
+  protected readonly skinLabel = SKIN_LABEL;
   protected readonly obsUrl = `${location.origin}/overlay`;
   protected readonly previewUrl = inject(DomSanitizer).bypassSecurityTrustResourceUrl('/overlay?preview=1');
 

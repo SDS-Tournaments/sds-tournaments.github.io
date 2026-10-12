@@ -1,4 +1,4 @@
-import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, DestroyRef, effect, inject, OnInit, signal, untracked } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '../auth';
@@ -51,7 +51,7 @@ const FLASH_MS = 10_000;
   selector: 'app-overlay',
   imports: [BracketTree, PilotCard],
   template: `
-    <div class="screen" [class.preview]="preview" [class.flip]="flip()">
+    <div class="screen" [class.preview]="preview" [class.flip]="flip()" [attr.data-skin]="skin()">
       @if (preview && state().mock) { <div class="mock-badge">ТЕСТ · вымышленные данные (в OBS — без этой метки)</div> }
       <!-- Стадия этапа -->
       @if (show('stage') && stage(); as s) {
@@ -87,7 +87,9 @@ const FLASH_MS = 10_000;
 
       <!-- Оценка заезда -->
       @if (scoreVisible() && lastRun(); as r) {
-        <div class="w score" animate.enter="in-right" animate.leave="out-right">
+        <!-- при открытой таблице квалификации — левее неё, а не поверх -->
+        <div class="w score" [class.beside]="show('qualTable')" animate.enter="in-right" animate.leave="out-right">
+          @if (newLeader()) { <div class="ribbon">★ {{ t().newLeader }}</div> }
           <div class="score-head">
             <span class="plate small">{{ p(r.profile_id).start_number ?? '—' }}</span>
             <b>{{ p(r.profile_id).nickname }}</b>
@@ -103,7 +105,7 @@ const FLASH_MS = 10_000;
                 <span class="v">{{ r[k] }}</span>
               </div>
             }
-            <div class="total"><span>{{ t().total }}</span><b>{{ r.total }}</b></div>
+            <div class="total"><span>{{ t().total }}</span><b>{{ scoreShown() }}</b></div>
           }
         </div>
       }
@@ -117,6 +119,7 @@ const FLASH_MS = 10_000;
               <span class="pl">{{ q.place }}</span>
               <span class="n">{{ p(q.id).start_number ?? '' }}</span>
               <span class="nick">{{ p(q.id).nickname }}</span>
+              @if (moves().get(q.id); as mv) { <span class="mv" [class.up]="mv > 0">{{ mv > 0 ? '▲' : '▼' }}{{ mv > 0 ? mv : -mv }}</span> }
               <span class="best">{{ q.best }}</span>
             </div>
           }
@@ -252,6 +255,9 @@ export class Overlay implements OnInit {
   protected readonly crits = ['angle', 'style', 'line'] as const;
 
   private readonly lang = computed(() => (this.state().lang === 'auto' ? this.autoLang() : this.state().lang));
+  /** ?skin=arena — посмотреть стиль без пульта */
+  private readonly forceSkin = this.route.snapshot.queryParamMap.get('skin');
+  protected readonly skin = computed(() => this.forceSkin ?? this.state().skin ?? 'classic');
   protected readonly t = computed(() => OVERLAY_TEXT[this.lang() as 'ru' | 'en'] ?? OVERLAY_TEXT.ru);
   protected readonly roundLabels = computed(() => Object.fromEntries(ORDER.map((r) => [r, this.t()[r]])) as Record<Round, string>);
 
@@ -292,6 +298,18 @@ export class Overlay implements OnInit {
     qualStandings(this.queue().map((r) => ({ id: r.profile_id, queueOrder: r.queue_order ?? 1e9, runs: this.runsOf(r.profile_id) }))),
   );
   protected readonly top = computed(() => this.qualAll().slice(0, 10));
+
+  /** «Итог» набегает от 0 до значения при каждой новой оценке */
+  protected readonly scoreShown = signal(0);
+  /** заезд вывел пилота на 1-е место квалификации */
+  protected readonly newLeader = computed(() => {
+    const r = this.lastRun();
+    const q = this.qualAll();
+    return !!r && q.length > 1 && q[0].id === r.profile_id && q[0].best === r.total;
+  });
+  /** кто сколько мест отыграл/потерял после последней оценки (▲2 / ▼1), гаснет через 8 с */
+  protected readonly moves = signal(new Map<string, number>());
+  private prevPlaces = new Map<string, number>();
 
   /** карточки пары: навыки и победы за всё время + квалификация этого этапа */
   private readonly mu = signal<{ ids: string; cards: Record<string, CardData> } | null>(null);
@@ -374,6 +392,27 @@ export class Overlay implements OnInit {
   protected readonly podiumOrder = computed(() => [2, 1, 3].map((pl) => this.podium().find((x) => x.place === pl)).filter((x) => !!x));
 
   constructor() {
+    effect((onCleanup) => {
+      const target = this.lastRun()?.total ?? 0;
+      const start = performance.now();
+      const tick = (t: number) => {
+        const p = Math.min(1, (t - start) / 900);
+        this.scoreShown.set(Math.round(target * (1 - (1 - p) ** 3) * 10) / 10);
+        if (p < 1) raf = requestAnimationFrame(tick);
+      };
+      let raf = requestAnimationFrame(tick);
+      onCleanup(() => cancelAnimationFrame(raf));
+    });
+    effect((onCleanup) => {
+      const places = new Map(this.qualAll().map((q) => [q.id, q.place] as const));
+      const prev = untracked(() => this.prevPlaces);
+      const mv = new Map<string, number>();
+      if (prev.size) for (const [id, pl] of places) if (prev.has(id) && prev.get(id) !== pl) mv.set(id, prev.get(id)! - pl);
+      this.prevPlaces = places;
+      this.moves.set(mv);
+      const id = setTimeout(() => this.moves.set(new Map()), 8000);
+      onCleanup(() => clearTimeout(id));
+    });
     // трансляция всегда NOIR — стиль сайта (в т.ч. в превью пульта) на плашки не влияет
     const restoreTheme = forceNoir();
     // прозрачная страница для OBS
@@ -435,10 +474,13 @@ export class Overlay implements OnInit {
   // ?stage=ID&show=duel,score — посмотреть плашки без пульта (только чтение, базу не меняет)
   private readonly forceStage = Number(this.route.snapshot.queryParamMap.get('stage')) || null;
   private readonly forceShow = this.route.snapshot.queryParamMap.get('show')?.split(',') as Widget[] | undefined;
+  /** ?preview=1&mock=1 — вымышленный этап без пульта (база не меняется) */
+  private readonly forceMock = this.preview && this.route.snapshot.queryParamMap.has('mock');
 
   private async applyState(s: OverlayState) {
     if (this.forceStage) s = { ...s, stageId: this.forceStage };
     if (this.forceShow) s = { ...s, visible: Object.fromEntries(this.forceShow.map((w) => [w, true])), autoScore: false };
+    if (this.forceMock) s = { ...s, mock: true, lang: 'ru' };
     const changed = s.stageId !== this.state().stageId || !!s.mock !== !!this.state().mock;
     this.state.set(s);
     if (changed) await this.loadStage();

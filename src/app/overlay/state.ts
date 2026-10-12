@@ -12,7 +12,13 @@ export interface OverlayState {
   autoScore: boolean;
   /** «Тестовые данные»: превью и OBS показывают вымышленный этап (mock.ts) вместо настоящего */
   mock?: boolean;
+  /** стиль плашек (overlay.scss: .screen[data-skin=…]) */
+  skin?: Skin;
 }
+
+export const SKINS = ['classic', 'arena', 'race', 'hud'] as const;
+export type Skin = (typeof SKINS)[number];
+export const SKIN_LABEL: Record<Skin, string> = { classic: 'Классика', arena: 'Арена', race: 'Гонка', hud: 'HUD' };
 
 export const LANG_SWAP_MS = 8000;
 
@@ -60,6 +66,7 @@ export const OVERLAY_TEXT = {
     ovr: 'Рейтинг',
     wins: 'Победы на этапах',
     qualPlace: 'Место в квалификации',
+    newLeader: 'Новый лидер',
     bestRun: 'Лучший заезд',
     r32: 'Top 32', r16: 'Top 16', qf: 'Top 8', sf: 'Полуфинал', third: 'За 3-е место', final: 'Финал',
   },
@@ -90,6 +97,7 @@ export const OVERLAY_TEXT = {
     ovr: 'Rating',
     wins: 'Round wins',
     qualPlace: 'Qualifying place',
+    newLeader: 'New leader',
     bestRun: 'Best run',
     r32: 'Top 32', r16: 'Top 16', qf: 'Top 8', sf: 'Semi-final', third: '3rd place', final: 'Final',
   },

@@ -24,8 +24,8 @@ export function mockStage(now = Date.now()) {
     };
     const list = [run(0, 0, 3_600_000 - i * 60_000), run(1, -1.5, 3_000_000 - i * 60_000)];
     if (i < ids.length - 1) list.push(run(2, 1.2, 2_400_000 - i * 60_000));
-    // свежая оценка — чтобы плашка «Оценка заезда» показывала последний заезд
-    else list[1].created_at = new Date(now - 3_000).toISOString();
+    // свежая оценка: последний пилот выдал рекорд и вышел в лидеры — видно «Оценку заезда» и «Новый лидер»
+    else list[1] = { ...list[1], angle: 38.6, style: 28.4, line: 28.9, total: 95.9, created_at: new Date(now - 3_000).toISOString() };
     return list;
   });
   // сетка Top 16: 1–8 против 16–9; первые 4 пары решены, 5-я идёт сейчас

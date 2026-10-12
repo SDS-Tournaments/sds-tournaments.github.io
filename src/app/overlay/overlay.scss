@@ -710,3 +710,236 @@
 /* RU ⇄ EN: текст плашек плавно гаснет и проявляется на новом языке */
 .screen.flip .w { animation: lang-swap 0.6s ease-in-out; }
 @keyframes lang-swap { 0%, 100% { opacity: 1; } 40%, 55% { opacity: 0.15; } }
+
+/* ───────── Общее для всех стилей ───────── */
+
+/* при открытой таблице квалификации (правая колонка) оценка уходит в левую колонку под стадию этапа —
+   внизу места нет: там «На трассе» и дуэль */
+.score.beside {
+  top: 140px;
+  bottom: auto;
+  left: 56px;
+  right: auto;
+}
+
+/* «Новый лидер» — заезд вывел пилота на 1-е место */
+.score .ribbon {
+  position: absolute;
+  top: -18px;
+  right: 24px;
+  padding: 6px 16px;
+  border-radius: 999px;
+  background: linear-gradient(120deg, #fff2b8, #f5d77a 45%, #c9a227);
+  color: #1a1405;
+  font: 400 16px 'Russo One', var(--font);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  box-shadow: 0 0 28px rgba(245, 215, 122, 0.7);
+  animation: pop 500ms var(--ease-spring) both, leader 1.6s ease-in-out 500ms infinite;
+}
+@keyframes leader {
+  50% { box-shadow: 0 0 46px rgba(245, 215, 122, 0.95); }
+}
+
+/* таблица: ▲ отыграл / ▼ потерял места */
+.table .row {
+  grid-template-columns: 34px 56px 1fr auto 72px;
+}
+.table .mv {
+  font: 600 14px var(--mono);
+  color: #ff5c5c;
+  animation: pop 400ms var(--ease-spring) both;
+}
+.table .mv.up {
+  color: #5ce08a;
+}
+
+/* блик, пробегающий по плашкам раз в 7 с */
+.on-track,
+.score,
+.table,
+.duel,
+.stage-chip {
+  overflow: hidden;
+}
+.duel {
+  overflow: visible; /* капсула раунда выступает над плашкой */
+}
+/* у оценки блика нет: её края не обрезаются (выступает «Новый лидер»), блик улетел бы за плашку */
+.on-track::after,
+.table::after,
+.stage-chip::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.09) 50%, transparent 65%);
+  transform: translateX(-120%);
+  animation: glint 7s ease-in-out 1.5s infinite;
+}
+@keyframes glint {
+  0%, 70% { transform: translateX(-120%); }
+  100% { transform: translateX(120%); }
+}
+.score .ribbon { z-index: 1; }
+.score { overflow: visible; }
+
+/* ───────── Стиль «Арена» — как карточки дуэли: плотный тёмный фон, бирюзовые капсулы, крупные цифры ───────── */
+.screen[data-skin='arena'] {
+  .stage-chip,
+  .on-track,
+  .score,
+  .table,
+  .duel,
+  .sponsors {
+    background: rgba(5, 5, 5, 0.94);
+    border: 0;
+    border-radius: 12px;
+    backdrop-filter: none;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+  .on-track { border-left: 0; padding-top: 30px; }
+  /* заголовок — бирюзовая капсула на верхнем краю, как «Top 16 · Пара 5» у карточек */
+  .table { padding-top: 34px; overflow: visible; }
+  .table::after { display: none; } /* края не обрезаются (капсула сверху) — блик улетел бы за плашку */
+  .table h3 {
+    position: absolute;
+    top: -16px;
+    left: 20px;
+    margin: 0;
+    padding: 6px 18px;
+    border-radius: 999px;
+    background: var(--primary);
+    color: #000;
+    font-size: 15px;
+    font-weight: 600;
+    box-shadow: 0 0 24px var(--primary-glow);
+  }
+  .on-track .label,
+  .score .label {
+    color: #9a9a9a;
+    letter-spacing: 4px;
+  }
+  .plate {
+    border: 0;
+    border-radius: 8px;
+    background: var(--primary);
+    color: #000;
+    text-shadow: none;
+    box-shadow: 0 0 28px -4px var(--primary-glow);
+  }
+  .table .row { font-size: 21px; }
+  .table .row:first-of-type { background: linear-gradient(90deg, rgba(10, 186, 181, 0.22), transparent); }
+  .table .best { font: 400 22px 'Russo One', var(--font); }
+  .score .v { font: 400 28px 'Russo One', var(--font); }
+  .score .total b { font: 400 72px 'Russo One', var(--font); }
+  .score .track { height: 12px; background: #1c1c1c; }
+  .duel b,
+  .on-track b { font-family: 'Russo One', var(--font); font-weight: 400; letter-spacing: 0.02em; }
+  .stage-chip .brand { border: 0; background: var(--primary); color: #000; }
+}
+
+/* ───────── Стиль «Гонка» — как графика моторспорта: скошенные плашки, полосы, наклонный шрифт ───────── */
+.screen[data-skin='race'] {
+  .stage-chip,
+  .on-track,
+  .score,
+  .table,
+  .duel,
+  .sponsors {
+    background: linear-gradient(100deg, rgba(8, 8, 8, 0.96) 70%, rgba(10, 60, 58, 0.96));
+    border: 0;
+    border-radius: 0;
+    backdrop-filter: none;
+    clip-path: polygon(22px 0, 100% 0, calc(100% - 22px) 100%, 0 100%);
+    box-shadow: inset 6px 0 0 var(--primary);
+  }
+  .duel { clip-path: polygon(28px 0, 100% 0, calc(100% - 28px) 100%, 0 100%); padding-top: 40px; }
+  .duel .round { top: 6px; border-radius: 0; clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%); }
+  .stage-chip { padding: 14px 40px; }
+  .on-track { border-left: 0; padding-left: 36px; padding-right: 48px; }
+  .table { padding: 18px 34px; }
+  .score { padding: 24px 40px; overflow: visible; }
+  .score .ribbon { right: 40px; top: 6px; border-radius: 0; clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%); }
+  .table h3,
+  .label,
+  .total span {
+    font-style: italic;
+    font-weight: 700;
+  }
+  .table h3 {
+    display: inline-block;
+    padding: 4px 16px;
+    background: var(--primary);
+    color: #000;
+    clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+  }
+  .plate {
+    border: 0;
+    border-radius: 0;
+    background: var(--primary);
+    color: #000;
+    text-shadow: none;
+    clip-path: polygon(12px 0, 100% 0, calc(100% - 12px) 100%, 0 100%);
+    padding: 0 22px;
+  }
+  .duel b,
+  .on-track b,
+  .score b {
+    font-family: 'Russo One', var(--font);
+    font-weight: 400;
+    font-style: italic;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+  .score .fill { background: repeating-linear-gradient(-55deg, var(--primary) 0 10px, #7ff5ef 10px 20px); }
+  .score .total b,
+  .table .best,
+  .score .v { font-family: 'Russo One', var(--font); font-weight: 400; font-style: italic; }
+  .table .row:first-of-type { background: rgba(10, 186, 181, 0.18); border-radius: 0; }
+}
+
+/* ───────── Стиль «HUD» — телеметрия: тонкие уголки-скобки, моноширинный шрифт, развёртка ───────── */
+.screen[data-skin='hud'] {
+  .stage-chip,
+  .on-track,
+  .score,
+  .table,
+  .duel,
+  .sponsors {
+    border: 1px solid rgba(10, 186, 181, 0.3);
+    border-radius: 2px;
+    background:
+      linear-gradient(var(--primary), var(--primary)) left top / 18px 2px no-repeat,
+      linear-gradient(var(--primary), var(--primary)) left top / 2px 18px no-repeat,
+      linear-gradient(var(--primary), var(--primary)) right bottom / 18px 2px no-repeat,
+      linear-gradient(var(--primary), var(--primary)) right bottom / 2px 18px no-repeat,
+      repeating-linear-gradient(0deg, rgba(10, 186, 181, 0.04) 0 1px, transparent 1px 4px),
+      rgba(2, 10, 10, 0.82);
+    backdrop-filter: blur(6px);
+    box-shadow: 0 0 40px -12px var(--primary-glow);
+  }
+  .on-track { border-left: 1px solid rgba(10, 186, 181, 0.3); }
+  * { font-family: var(--mono) !important; }
+  .table h3,
+  .label { color: var(--primary); }
+  .table h3::before { content: '> '; }
+  .plate {
+    border-radius: 2px;
+    background: transparent;
+    border: 1px solid var(--primary);
+    color: var(--primary);
+    text-shadow: 0 0 12px var(--primary-glow);
+  }
+  .on-track b,
+  .duel b,
+  .score b { text-transform: uppercase; letter-spacing: 0.04em; font-weight: 500; }
+  .score .total b { color: var(--primary); }
+  .score .track { border-radius: 0; height: 8px; }
+  .score .fill { background: var(--primary); box-shadow: 0 0 10px var(--primary-glow); }
+  /* мигающий курсор у заголовка таблицы */
+  .table h3::after { content: '_'; animation: blink 1s steps(1) infinite; }
+}
+@keyframes blink {
+  50% { opacity: 0; }
+}
