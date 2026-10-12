@@ -239,20 +239,13 @@ const FLASH_MS = 10_000;
             <h2>{{ t().podium }}</h2>
             <div class="steps">
               @for (pp of podiumOrder(); track pp.id) {
-                <!-- тумбы вырастают по очереди 3 → 2 → 1, пилот приземляется сверху; у чемпиона — лучи, корона и конфетти -->
+                <!-- тумбы вырастают по очереди 3 → 2 → 1, сверху приземляются карточки пилотов;
+                     карточка победителя через пару секунд становится карточкой чемпиона, и к ней прилетает новая звезда -->
                 <div class="step" [class]="'p' + pp.place">
-                  @if (pp.place === 1) {
-                    <span class="rays"></span>
-                    <span class="confetti">
-                      @for (c of confetti; track $index) {
-                        <i [style.--x.px]="c.x" [style.--y.px]="c.y" [style.--r.deg]="c.r" [style.--c]="c.c" [style.--dl.ms]="c.d"></i>
-                      }
-                    </span>
-                  }
                   <div class="who">
-                    @if (pp.place === 1) { <span class="crown">👑</span> }
-                    @if (p(pp.id).avatar_url) { <img [src]="p(pp.id).avatar_url" alt="" /> } @else { <span class="noav">{{ p(pp.id).nickname[0] }}</span> }
-                    <b>{{ p(pp.id).nickname }}</b>
+                    @if (podCard(pp.id, pp.place); as c) {
+                      <app-pilot-card [d]="c" [downloadable]="false" [fresh]="pp.place === 1 && champUp()" />
+                    }
                   </div>
                   <span class="block"><span class="num">{{ pp.place }}</span></span>
                 </div>
@@ -450,17 +443,27 @@ export class Overlay implements OnInit {
     ];
   });
   /** порядок на пьедестале: 2 — 1 — 3 */
-  /** конфетти над чемпионом: разлёт, поворот, цвет, задержка (детерминированно — одинаково в превью и OBS) */
-  protected readonly confetti = Array.from({ length: 22 }, (_, i) => ({
-    x: Math.round(Math.sin(i * 2.4) * 260),
-    y: 260 + ((i * 47) % 160),
-    r: (i * 97) % 720 - 360,
-    c: ['#f5d77a', '#0abab5', '#ffffff', '#ff5c5c', '#c79bff'][i % 5],
-    d: (i * 53) % 400,
-  }));
+  /** карточки пилотов подиума */
+  private readonly pc = signal<{ ids: string; cards: Record<string, CardData> } | null>(null);
+  /** победитель уже «повышен» до карточки чемпиона (через пару секунд после показа подиума) */
+  protected readonly champUp = signal(false);
+  /** карточка на подиуме; у победителя до «повышения» — без сегодняшней победы */
+  protected podCard(id: string, place: number): CardData | null {
+    const c = this.pc()?.cards[id];
+    if (!c) return null;
+    return place === 1 && !this.champUp() ? { ...c, wins: Math.max(0, c.wins - 1) } : c;
+  }
   protected readonly podiumOrder = computed(() => [2, 1, 3].map((pl) => this.podium().find((x) => x.place === pl)).filter((x) => !!x));
 
   constructor() {
+    // подиум показан — через 2.8 с карточка победителя превращается в чемпионскую
+    effect((onCleanup) => {
+      const on = this.show('podium') && this.podium().length > 0;
+      this.champUp.set(false);
+      if (!on) return;
+      const id = setTimeout(() => this.champUp.set(true), 2800);
+      onCleanup(() => clearTimeout(id));
+    });
     // счётчики ачивок пилота — при смене пилота на трассе (в тестовых данных — как будто ачивок ещё не было)
     effect(() => {
       const pid = this.lastRun()?.profile_id;
@@ -538,6 +541,7 @@ export class Overlay implements OnInit {
     this.results.set(m.results);
     const d = this.duel()!;
     this.mu.set({ ids: `${d.leader_id}|${d.chaser_id}`, cards: m.cards });
+    this.pc.set({ ids: this.podium().map((x) => x.id).join('|'), cards: m.cards });
   }
 
   async ngOnInit() {
@@ -596,7 +600,7 @@ export class Overlay implements OnInit {
     this.runs.set(runs.data ?? []);
     this.battles.set((battles.data ?? []) as Battle[]);
     this.results.set(results.data ?? []);
-    await Promise.all([this.loadVotes(), this.loadMatchup()]);
+    await Promise.all([this.loadVotes(), this.loadMatchup(), this.loadPodium()]);
   }
 
   /** Данные для карточек текущей пары — перезагружаются только когда пара сменилась */
@@ -605,6 +609,18 @@ export class Overlay implements OnInit {
     if (!d) return;
     const ids = [d.leader_id!, d.chaser_id!];
     if (this.mu()?.ids === ids.join('|')) return;
+    this.mu.set({ ids: ids.join('|'), cards: await this.fetchCards(ids) });
+  }
+
+  /** Карточки подиума — когда этап подытожен */
+  private async loadPodium() {
+    const ids = this.podium().map((x) => x.id);
+    if (!ids.length || this.pc()?.ids === ids.join('|')) return;
+    this.pc.set({ ids: ids.join('|'), cards: await this.fetchCards(ids) });
+  }
+
+  /** FIFA-карточки пилотов: навыки по всем оценкам (+ данные до сайта), победы на этапах */
+  private async fetchCards(ids: string[]): Promise<Record<string, CardData>> {
     const [profiles, runs, wins] = await Promise.all([
       supabase.from('profiles').select('*').in('id', ids),
       supabase.from('qual_runs').select('profile_id, attempt, angle, style, line, spin, stage:stages(weights)').in('profile_id', ids),
@@ -631,7 +647,7 @@ export class Overlay implements OnInit {
         wins: (wins.data ?? []).filter((w) => w.profile_id === p.id).length + (legacy?.wins ?? 0),
       };
     }
-    this.mu.set({ ids: ids.join('|'), cards });
+    return cards;
   }
 
   private async loadVotes() {

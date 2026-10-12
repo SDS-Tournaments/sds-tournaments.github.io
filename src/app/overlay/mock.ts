@@ -78,7 +78,14 @@ export function mockStage(now = Date.now()) {
     votes,
     // подиум — для плашки «Подиум» (этап как будто уже подытожен)
     results: [ids[0], ids[3], ids[1]].map((id, i) => ({ profile_id: id, stage_place: i + 1 })),
-    cards: { [current.leader_id]: card(current.leader_id, 91, 3), [current.chaser_id]: card(current.chaser_id, 84, 1) } as Record<string, CardData>,
+    cards: {
+      [current.leader_id]: card(current.leader_id, 91, 3),
+      [current.chaser_id]: card(current.chaser_id, 84, 1),
+      // подиум: Kaido (победитель — первая победа: на стриме карточка станет чемпионской), SmokeUnit, Touge_Ghost
+      [ids[0]]: card(ids[0], 93, 1),
+      [ids[3]]: card(ids[3], 86, 0),
+      [ids[1]]: card(ids[1], 80, 1),
+    } as Record<string, CardData>,
     sponsors: [
       { id: -1, name: 'CarX Technologies', logo_url: null },
       { id: -2, name: 'Sad Drift Series', logo_url: null },

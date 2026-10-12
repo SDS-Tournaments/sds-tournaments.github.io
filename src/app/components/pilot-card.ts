@@ -33,17 +33,20 @@ export interface CardData {
       }
       <!-- спецкарточка чемпиона: фольга, корона со звёздами побед, лавровый венок — в цветах своего уровня -->
       @if (champ()) {
-        <div class="foil"></div>
-        <div class="champ-badge" [attr.aria-label]="('pilot.wins' | transloco) + ': ' + d().wins">
+        <div class="foil" animate.enter="champ-fade"></div>
+        @if (fresh()) { <div class="burst"></div> }
+        <div class="champ-badge" animate.enter="champ-pop" [attr.aria-label]="('pilot.wins' | transloco) + ': ' + d().wins">
           <svg class="crown" viewBox="0 0 40 26" aria-hidden="true">
             <path d="M3 22 L1 6 L11 13 L20 1 L29 13 L39 6 L37 22 Z" />
             <rect x="3" y="22.5" width="34" height="3" rx="1.5" />
           </svg>
           <span class="st">
             @if (d().wins <= 5) {
-              @for (s of [1, 2, 3, 4, 5].slice(0, d().wins); track s) { <i [style.animation-delay.ms]="s * 300">★</i> }
+              @for (s of [1, 2, 3, 4, 5].slice(0, d().wins); track s) {
+                <i [class.new]="fresh() && s === d().wins" [style.animation-delay.ms]="s * 300">★</i>
+              }
             } @else {
-              <i>★</i><b>×{{ d().wins }}</b>
+              <i>★</i><b [class.new]="fresh()">×{{ d().wins }}</b>
             }
           </span>
           <span class="cap">CHAMPION</span>
@@ -59,7 +62,7 @@ export interface CardData {
       </div>
       <div class="face-wrap">
         @if (champ()) {
-          <svg class="laurel" viewBox="0 0 200 160" aria-hidden="true">
+          <svg class="laurel" viewBox="0 0 200 160" aria-hidden="true" animate.enter="champ-grow">
             @for (l of leaves; track $index) {
               <ellipse [attr.cx]="l.x" [attr.cy]="l.y" rx="10" ry="4.2" [attr.transform]="'rotate(' + l.r + ' ' + l.x + ' ' + l.y + ')'" />
             }
@@ -253,6 +256,25 @@ export interface CardData {
     .legend .shine { background: linear-gradient(105deg, transparent 40%, rgba(255, 255, 255, 0.7) 50%, transparent 60%); }
     @keyframes sweep { from { transform: translateX(-60%); } to { transform: translateX(60%); } }
 
+    /* «повышение» до чемпионской: золотая вспышка, проявление венка и фольги, корона подпрыгивает, новая звезда прилетает */
+    .burst {
+      position: absolute; inset: 0; z-index: 3; pointer-events: none;
+      background: radial-gradient(circle at 50% 38%, #fff8dc, color-mix(in srgb, var(--champ), transparent 30%) 30%, transparent 70%);
+      animation: burst 900ms ease-out both;
+    }
+    @keyframes burst { from { opacity: 1; transform: scale(0.6); } to { opacity: 0; transform: scale(1.4); } }
+    .champ-fade { animation: champ-fade 900ms ease-out both; }
+    @keyframes champ-fade { from { opacity: 0; } }
+    .champ-pop { animation: champ-pop 700ms cubic-bezier(0.3, 1.6, 0.5, 1) both; }
+    @keyframes champ-pop { from { opacity: 0; transform: translateX(-50%) translateY(-24px) scale(0.3); } }
+    .champ-grow { animation: champ-grow 800ms cubic-bezier(0.3, 1.4, 0.5, 1) 150ms both; }
+    @keyframes champ-grow { from { opacity: 0; transform: translate(-50%, -46%) scale(0.6) rotate(-25deg); } }
+    .st i.new, .st b.new { animation: star-new 1100ms cubic-bezier(0.3, 1.5, 0.5, 1) 500ms both, star 2.4s ease-in-out 1.6s infinite; }
+    @keyframes star-new {
+      from { opacity: 0; transform: translateY(-140px) scale(5) rotate(-200deg); }
+      70% { opacity: 1; transform: translateY(4px) scale(1.4) rotate(10deg); filter: drop-shadow(0 0 10px #fff); }
+    }
+
     @media (prefers-reduced-motion: reduce) { .elite, .legend, .elite::before, .legend::before, .shine, .spark, .foil::after, .st i { animation: none; } }
     .bad { color: var(--error); font-size: 13px; margin: 0; }
   `,
@@ -260,6 +282,8 @@ export interface CardData {
 export class PilotCard {
   readonly d = input.required<CardData>();
   readonly downloadable = input(true);
+  /** только что стал чемпионом (подиум на стриме): вспышка и прилёт новой звезды */
+  readonly fresh = input(false);
   protected readonly tier = computed(() => tierOf(this.d().overall));
   /** выигрывал этапы — спецкарточка чемпиона */
   protected readonly champ = computed(() => this.d().wins > 0);
