@@ -1,4 +1,4 @@
-import { Component, computed, OnInit, signal } from '@angular/core';
+import { Component, computed, input, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
@@ -8,7 +8,7 @@ import { Tier, tierOf } from '../components/pilot-card';
 import { currentSeason } from '../data/standings';
 import { Legacy, mergeSkills, SkillRun, skills } from '../scoring/scoring';
 
-interface Pilot {
+export interface Pilot {
   id: string;
   steam_id: string;
   nickname: string;
@@ -17,7 +17,7 @@ interface Pilot {
   car: string | null;
   legacy?: Legacy | null;
 }
-type Rank = Tier | 'unrated';
+export type Rank = Tier | 'unrated';
 const ORDER: Rank[] = ['legend', 'elite', 'gold', 'silver', 'bronze', 'unrated'];
 
 // Пилоты по уровню FIFA-карточки (Legend → Bronze, затем без рейтинга), поиск по нику и номеру
@@ -117,6 +117,8 @@ const ORDER: Rank[] = ['legend', 'elite', 'gold', 'silver', 'bronze', 'unrated']
   `,
 })
 export class Pilots implements OnInit {
+  /** готовый список для витрины /dev/ui — без запросов к базе */
+  readonly demo = input<(Pilot & { ovr: number | null; rank: Rank })[] | null>(null);
   protected readonly pilots = signal<(Pilot & { ovr: number | null; rank: Rank })[]>([]);
   protected readonly team = signal<Record<string, string>>({});
   protected readonly ready = signal(false);
@@ -129,6 +131,11 @@ export class Pilots implements OnInit {
   });
 
   async ngOnInit() {
+    const demo = this.demo();
+    if (Array.isArray(demo)) {
+      this.pilots.set(demo);
+      return this.ready.set(true);
+    }
     const [{ data }, runs, season] = await Promise.all([
       supabase.from('profiles').select('*'),
       // shortcut: все оценки всех пилотов одним запросом — ок на сотни пилотов; при тысячах считать OVR в базе

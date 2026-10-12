@@ -1,12 +1,13 @@
 import { Component, signal } from '@angular/core';
 import { NumberPicker } from '../components/number-picker';
 import { RoadStage, SeasonRoad } from '../components/season-road';
-import { CardData, PilotCard } from '../components/pilot-card';
+import { CardData, PilotCard, tierOf } from '../components/pilot-card';
+import { Pilot, Pilots, Rank } from './pilots';
 
 // Витрина базовых стилей для проверки дизайна (/dev/ui), не в меню
 @Component({
   selector: 'app-ui-showcase',
-  imports: [NumberPicker, SeasonRoad, PilotCard],
+  imports: [NumberPicker, SeasonRoad, PilotCard, Pilots],
   template: `
     <section class="section container stack">
       <h1 class="display-lg">UI kit</h1>
@@ -16,6 +17,8 @@ import { CardData, PilotCard } from '../components/pilot-card';
       <div class="tiers">
         @for (c of cards; track c.overall) { <app-pilot-card [d]="c" [downloadable]="false" /> }
       </div>
+      <!-- страница «Пилоты» на вымышленных пилотах: все уровни + без рейтинга -->
+      <app-pilots class="demo" [demo]="pilots" />
 
       <div class="row">
         <button class="btn btn-primary">Зарегистрироваться</button>
@@ -59,6 +62,7 @@ import { CardData, PilotCard } from '../components/pilot-card';
   styles: `
     .stack { display: grid; gap: 40px; }
     .tiers { display: flex; flex-wrap: wrap; gap: 24px; justify-content: center; }
+    .demo { display: block; }
     .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
     .grid { display: grid; gap: 24px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
     h3 { margin: 8px 0; font-size: 20px; }
@@ -89,6 +93,22 @@ export class UiShowcase {
     starts_at: i > 3 ? null : new Date(Date.now() + (i === 3 ? 10 : -5 - (2 - i) * 14) * 86_400_000).toISOString(),
     status: i < 3 ? 'finished' : i === 3 ? 'registration' : 'draft',
     winner: ['Hachiroku', 'Kaido', 'Hachiroku'][i] ?? null,
+  }));
+  protected readonly pilots: (Pilot & { ovr: number | null; rank: Rank })[] = (
+    [
+      ['Sadlerk', 21, 97], ['Kaido', 7, 95], ['Touge_Ghost', 12, 93], ['NightOwl', 33, 90], ['Hachiroku', 86, 88],
+      ['RedSuns', 44, 84], ['Usui_Line', 9, 80], ['Akina_Down', 15, 76], ['Manji', 88, 72], ['Feint', 110, 61],
+      ['Wangan', 3, null], ['Haruna', 64, null],
+    ] as [string, number, number | null][]
+  ).map(([nickname, n, ovr], i) => ({
+    id: 'demo-' + i,
+    steam_id: 'demo-' + i,
+    nickname,
+    avatar_url: null,
+    start_number: n,
+    car: ['Kami S15', 'Spectre R34', 'Ronin 86', 'Vortex FC'][i % 4],
+    ovr,
+    rank: ovr === null ? 'unrated' : tierOf(ovr),
   }));
   protected readonly taken = new Map([7, 13, 21, 69, 88, 99, 101].map((n) => [n, `Pilot ${n}`] as [number, string]));
 }
