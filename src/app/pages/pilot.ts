@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { supabase } from '../auth';
 import { Loader } from '../components/loader';
+import { CAR_PROTOTYPES } from '../catalog';
 import { loadSkillRuns, PilotShowcase } from '../components/pilot-showcase';
 import { currentSeason } from '../data/standings';
 import { Legacy, SkillRun } from '../scoring/scoring';
@@ -50,7 +51,7 @@ const ACH_ORDER = ['win', 'first_win', 'hat_trick', 'podium', 'qual_king', 'perf
                 <p class="eyebrow">{{ team() ?? 'Sad Drift Series' }}</p>
                 <h1 class="display-lg"><span class="num mono">#{{ p.start_number ?? '—' }}</span> {{ p.nickname }}</h1>
                 <dl class="spec mono">
-                  @for (s of spec(); track s.k) { <div><dt>{{ s.k | transloco }}</dt><dd>{{ s.v }}</dd></div> }
+                  @for (s of spec(); track s.k) { <div><dt>{{ s.k | transloco }}</dt><dd>{{ s.v }}@if (s.sub) { <small class="proto">{{ s.sub }}</small> }</dd></div> }
                 </dl>
               </div>
             </div>
@@ -116,6 +117,7 @@ const ACH_ORDER = ['win', 'first_win', 'hat_trick', 'podium', 'qual_king', 'perf
     .spec div { display: grid; }
     .spec dt { font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--ink-subtle); }
     .spec dd { margin: 0; font-size: 15px; }
+    .proto { display: block; font-family: var(--font); font-size: 11px; color: var(--ink-subtle); }
 
     .body { padding-bottom: 96px; }
     .bio { max-width: 720px; white-space: pre-line; margin: 0 0 32px; }
@@ -154,7 +156,7 @@ export class PilotPage implements OnInit {
     const p = this.p();
     if (!p) return [];
     return [
-      { k: 'me.carModel', v: p.car },
+      { k: 'me.carModel', v: p.car, sub: p.car ? CAR_PROTOTYPES[p.car] : undefined },
       { k: 'me.engine', v: p.engine },
       { k: 'me.gearbox', v: p.gearbox },
       { k: 'me.powerShort', v: p.power_hp },

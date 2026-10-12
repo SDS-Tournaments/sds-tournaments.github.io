@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { Auth, supabase } from '../auth';
-import { CARS, ENGINES, GEARBOXES } from '../catalog';
+import { CAR_PROTOTYPES, CARS, ENGINES, GEARBOXES } from '../catalog';
 import { NumberPicker } from '../components/number-picker';
 import { MyProtests } from '../components/my-protests';
 import { MyTeam } from '../components/my-team';
@@ -41,7 +41,7 @@ import { compressImage } from '../image';
               <p class="subtle mono steam">Steam ID {{ me.steam_id }}</p>
               @if (me.car || me.power_hp) {
                 <dl class="spec mono">
-                  @if (me.car) { <div><dt>{{ 'me.carModel' | transloco }}</dt><dd>{{ me.car }}</dd></div> }
+                  @if (me.car) { <div><dt>{{ 'me.carModel' | transloco }}</dt><dd>{{ me.car }}@if (proto[me.car]) { <small class="proto">{{ proto[me.car] }}</small> }</dd></div> }
                   @if (me.engine) { <div><dt>{{ 'me.engine' | transloco }}</dt><dd>{{ me.engine }}</dd></div> }
                   @if (me.gearbox) { <div><dt>{{ 'me.gearbox' | transloco }}</dt><dd>{{ me.gearbox }}</dd></div> }
                   @if (me.power_hp) { <div><dt>{{ 'me.powerShort' | transloco }}</dt><dd>{{ me.power_hp }}</dd></div> }
@@ -54,25 +54,37 @@ import { compressImage } from '../image';
 
         <app-my-protests class="protests" [profileId]="me.id" />
 
-        <app-pilot-showcase class="showcase" [pilot]="me" [runs]="runs()" [team]="team()" [wins]="wins()" [legacy]="me.legacy" />
-
-        <div class="grid top-row">
+        <!-- 1. Сезон: главные действия — запись на этап и команда -->
+        <p class="eyebrow sec">{{ 'me.secSeason' | transloco }}</p>
+        <div class="cols eq">
           <app-stage-signup class="card" [profileId]="me.id" [hasNumber]="!!me.start_number" [number]="me.start_number" [numberLocked]="numberLocked()" (changed)="loadLock(me.id)" />
           <app-my-team class="card" [profileId]="me.id" />
         </div>
 
-        <form class="grid" (ngSubmit)="save()">
-          <div class="card stack wide">
+        <!-- 2. Профиль пилота: номер, машина, о себе, ливрея -->
+        <p class="eyebrow sec">{{ 'me.secProfile' | transloco }}</p>
+        <form class="cols" (ngSubmit)="save()">
+          <div class="card stack" [class.wide]="pickingNumber()">
             <h2 class="h">{{ 'me.number' | transloco }}</h2>
-            @if (numberLocked()) {
-              <div class="locked">
-                <span class="plate">#{{ me.start_number }}</span>
-                <p class="muted">🔒 {{ 'me.numberLocked' | transloco }}</p>
-              </div>
-            } @else {
+            @if (pickingNumber()) {
               <p class="muted small">{{ 'me.numberHint' | transloco }}</p>
               <p class="warn small">{{ 'me.numberUntilSignup' | transloco }}</p>
               <app-number-picker [(value)]="number" [taken]="taken()" [nickname]="me.nickname" />
+              @if (me.start_number) {
+                <button type="button" class="btn btn-ghost fit" (click)="cancelNumber()">{{ 'me.numberCancel' | transloco }}</button>
+              }
+            } @else {
+              <div class="locked">
+                <span class="plate">#{{ me.start_number }}</span>
+                @if (numberLocked()) {
+                  <p class="muted">🔒 {{ 'me.numberLocked' | transloco }}</p>
+                } @else {
+                  <div class="stack-sm">
+                    <p class="muted">{{ 'me.numberKeep' | transloco }}</p>
+                    <button type="button" class="btn btn-secondary fit" (click)="editNumber.set(true)">{{ 'me.numberChange' | transloco }}</button>
+                  </div>
+                }
+              </div>
             }
           </div>
 
@@ -82,17 +94,17 @@ import { compressImage } from '../image';
               <span class="lbl">{{ 'me.carModel' | transloco }}</span>
               <select class="input" name="car" [(ngModel)]="car">
                 <option value="">{{ 'me.choose' | transloco }}</option>
-                @for (o of cars; track o) { <option [value]="o">{{ o }}</option> }
-              </select>
-            </label>
-            <label>
-              <span class="lbl">{{ 'me.engine' | transloco }}</span>
-              <select class="input" name="engine" [(ngModel)]="engine">
-                <option value="">{{ 'me.choose' | transloco }}</option>
-                @for (o of engines; track o) { <option [value]="o">{{ o }}</option> }
+                @for (o of cars; track o) { <option [value]="o">{{ o }}{{ proto[o] ? ' — ' + proto[o] : '' }}</option> }
               </select>
             </label>
             <div class="two">
+              <label>
+                <span class="lbl">{{ 'me.engine' | transloco }}</span>
+                <select class="input" name="engine" [(ngModel)]="engine">
+                  <option value="">{{ 'me.choose' | transloco }}</option>
+                  @for (o of engines; track o) { <option [value]="o">{{ o }}</option> }
+                </select>
+              </label>
               <label>
                 <span class="lbl">{{ 'me.gearbox' | transloco }}</span>
                 <select class="input" name="gearbox" [(ngModel)]="gearbox">
@@ -100,16 +112,15 @@ import { compressImage } from '../image';
                   @for (o of gearboxes; track o) { <option [value]="o">{{ o }}</option> }
                 </select>
               </label>
-              <label>
-                <span class="lbl">{{ 'me.power' | transloco }}</span>
-                <input class="input mono" type="number" name="power" min="1" max="5000" [(ngModel)]="power" />
-              </label>
             </div>
+            <label>
+              <span class="lbl">{{ 'me.power' | transloco }}</span>
+              <input class="input mono" type="number" name="power" min="1" max="5000" [(ngModel)]="power" />
+            </label>
           </div>
 
           <div class="card stack">
             <h2 class="h">{{ 'me.about' | transloco }}</h2>
-            <app-content-rules />
             <label>
               <span class="lbl">{{ 'me.bioRu' | transloco }}</span>
               <textarea class="input" name="bioRu" rows="3" maxlength="500" [(ngModel)]="bioRu"></textarea>
@@ -118,22 +129,12 @@ import { compressImage } from '../image';
               <span class="lbl">{{ 'me.bioEn' | transloco }}</span>
               <textarea class="input" name="bioEn" rows="3" maxlength="500" [(ngModel)]="bioEn"></textarea>
             </label>
+            <app-content-rules />
           </div>
 
-          <div class="savebar wide">
-            <button class="btn btn-primary" type="submit" [disabled]="saving() || !dirty()">
-              {{ (saving() ? 'me.saving' : 'me.save') | transloco }}
-            </button>
-            @if (saved()) { <span class="hint ok">✓ {{ 'me.saved' | transloco }}</span> }
-            @if (error()) { <span class="hint bad">{{ error() }}</span> }
-          </div>
-        </form>
-
-        <div class="grid livery-row">
           <div class="card stack">
             <h2 class="h">{{ 'me.livery' | transloco }}</h2>
             <p class="muted small">{{ 'me.liveryHint' | transloco }}</p>
-            <app-content-rules />
             <div class="livery" [class.empty]="!me.livery_url">
               @if (me.livery_url) {
                 <img [src]="me.livery_url" [alt]="'me.livery' | transloco" />
@@ -146,8 +147,21 @@ import { compressImage } from '../image';
               <input type="file" accept="image/png,image/jpeg,image/webp" (change)="upload($event)" [disabled]="uploading()" />
             </label>
             @if (uploadError()) { <span class="hint bad">{{ uploadError() }}</span> }
+            <app-content-rules />
           </div>
-        </div>
+
+          <div class="savebar wide">
+            <button class="btn btn-primary" type="submit" [disabled]="saving() || !dirty()">
+              {{ (saving() ? 'me.saving' : 'me.save') | transloco }}
+            </button>
+            @if (saved()) { <span class="hint ok">✓ {{ 'me.saved' | transloco }}</span> }
+            @if (error()) { <span class="hint bad">{{ error() }}</span> }
+          </div>
+        </form>
+
+        <!-- 3. Карточка и навыки -->
+        <p class="eyebrow sec">{{ 'me.secCard' | transloco }}</p>
+        <app-pilot-showcase [pilot]="me" [runs]="runs()" [team]="team()" [wins]="wins()" [legacy]="me.legacy" />
       } @else {
         <div class="card guest">
           <h1 class="display-md">{{ 'nav.me' | transloco }}</h1>
@@ -163,7 +177,6 @@ import { compressImage } from '../image';
       overflow: hidden;
       border: 1px solid var(--hairline);
       border-radius: var(--r-xl);
-      margin-bottom: 24px;
     }
     .cover {
       height: 200px;
@@ -197,25 +210,24 @@ import { compressImage } from '../image';
       div { display: grid; }
       dt { font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--ink-subtle); }
       dd { margin: 0; font-size: 14px; color: var(--ink); }
+      .proto { display: block; font-family: var(--font); font-size: 11px; color: var(--ink-subtle); }
     }
 
-    .grid {
-      display: grid;
-      gap: 24px;
-      grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
-      align-items: start;
-    }
+    /* разделы кабинета: подпись + две колонки */
+    .sec { margin: 40px 0 16px; }
+    .cols { display: grid; gap: 24px; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+    .cols.eq { align-items: stretch; }
+    @media (max-width: 860px) { .cols { grid-template-columns: 1fr; } }
     .wide { grid-column: 1 / -1; }
-    .livery-row { margin-top: 24px; }
-    .top-row { margin-bottom: 24px; }
-    .showcase { margin-bottom: 24px; }
+    .fit { justify-self: start; }
+    .stack-sm { display: grid; gap: 10px; justify-items: start; }
     .warn { color: var(--warning); }
     .locked { display: flex; align-items: center; gap: 20px; }
     .locked p { margin: 0; }
     .plate { font: 400 44px/1 'Russo One', var(--font); color: var(--primary); text-shadow: 0 0 18px var(--primary-glow); }
-    .protests { display: block; margin-bottom: 24px; }
+    .protests { display: block; margin-top: 24px; }
     .protests:empty { display: none; }
-    .two { display: grid; grid-template-columns: 1fr 120px; gap: 12px; }
+    .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .savebar {
       position: sticky;
       bottom: 16px;
@@ -265,6 +277,16 @@ export class Me {
   private router = inject(Router);
 
   protected readonly cars = CARS;
+  protected readonly proto = CAR_PROTOTYPES;
+  /** выбор номера раскрыт: нажали «Сменить номер» или номера ещё нет */
+  protected readonly editNumber = signal(false);
+  protected pickingNumber() {
+    return !this.numberLocked() && (this.editNumber() || !this.auth.profile()?.start_number);
+  }
+  protected cancelNumber() {
+    this.number.set(this.auth.profile()?.start_number ?? null);
+    this.editNumber.set(false);
+  }
   protected readonly engines = ENGINES;
   protected readonly gearboxes = GEARBOXES;
   protected readonly number = signal<number | null>(null);
@@ -389,6 +411,7 @@ export class Me {
       return this.error.set(error.message);
     }
     await this.auth.reload();
+    this.editNumber.set(false);
     this.saved.set(true);
   }
 
