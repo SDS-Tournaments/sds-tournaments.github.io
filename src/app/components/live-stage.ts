@@ -148,7 +148,9 @@ const ORDER = ['r32', 'r16', 'qf', 'sf', 'third', 'final'];
     /* пустая таблица — колонка ровно по высоте трансляции, лишние строки-заглушки обрезаются */
     @media (min-width: 901px) {
       .side.fill { contain: size; overflow: hidden; }
-      .side.fill .top { flex: 1; min-height: 0; overflow: hidden; align-content: start; mask-image: linear-gradient(180deg, #000 calc(100% - 90px), transparent); }
+      /* колонка с переносом: строка, которая не влезла целиком, уходит во второй (скрытый) столбец */
+      .side.fill .top { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-flow: column wrap; align-content: flex-start; row-gap: 4px; column-gap: 100%; }
+      .side.fill .top li { width: 100%; flex: none; }
     }
     .top li.ghost { grid-template-columns: 24px 1fr; box-shadow: none; opacity: 0.55; }
     /* строки-«скелеты» на весь блок (Топ-8), полоски укорачиваются сверху вниз */
