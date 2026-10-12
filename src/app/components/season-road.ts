@@ -106,6 +106,8 @@ export function roadProgress(stages: { status: string; starts_at: string | null 
       display: grid;
       grid-template-columns: repeat(var(--n), minmax(180px, 1fr));
       max-width: var(--container);
+      /* на узком экране дорога шире окна и прокручивается — линия должна тянуться на всю ширину этапов, а не окна */
+      min-width: calc(var(--n) * 180px);
       margin: 0 auto;
       padding: 0;
       list-style: none;
