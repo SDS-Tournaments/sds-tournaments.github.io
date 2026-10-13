@@ -23,6 +23,8 @@
   <!-- превью ссылки в Discord, Telegram, VK и поисковиках -->
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Sad Drift Series">
+  <meta name="application-name" content="Sad Drift Series">
+  <meta name="apple-mobile-web-app-title" content="SDS">
   <meta property="og:locale" content="ru_RU">
   <meta property="og:locale:alternate" content="en_US">
   <meta property="og:url" content="https://sds-tournaments.github.io/">
@@ -36,6 +38,16 @@
   <meta name="twitter:title" content="Sad Drift Series — онлайн-чемпионат по дрифту">
   <meta name="twitter:description" content="Этапы сезона, квалификация, парные дуэли Top 32, зачёт пилотов и команд в CarX Drift Racing Online 2.">
   <meta name="twitter:image" content="https://sds-tournaments.github.io/og.png">
+  <!-- название сайта в выдаче Google (иначе подставляет «GitHub» по домену github.io) -->
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "Sad Drift Series",
+      "alternateName": ["SDS", "SDS Tournaments"],
+      "url": "https://sds-tournaments.github.io/"
+    }
+  </script>
   <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -48,7 +60,9 @@
       "description": "Онлайн-чемпионат по дрифту в CarX Drift Racing Online 2"
     }
   </script>
-  <link rel="icon" type="image/png" sizes="64x64" href="favicon.png">
+  <!-- значки кратны 48 px — такие Google показывает в выдаче -->
+  <link rel="icon" href="favicon.ico" sizes="48x48">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <!-- база (Supabase) и аватарки Steam: соединение открывается заранее, пока грузится код -->
   <link rel="preconnect" href="https://dghjrbxffsmmdalzdycz.supabase.co" crossorigin>
