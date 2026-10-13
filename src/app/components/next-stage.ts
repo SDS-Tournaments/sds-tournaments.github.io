@@ -282,11 +282,15 @@ const step = (level: number) => (Math.max(1, level) - 1) / (HYPE_STEPS.length - 
       35.5% { content: var(--g2); opacity: 0.25; translate: 7px -3px; text-shadow: 2px 0 #ff2e63, -2px 0 #08f7fe; }
       36%, 100% { opacity: 0; content: var(--g0); }
     }
+    /* светлая тема LEGEND: надписи тёмные на светлом — белое там не видно */
+    :host-context([data-theme='legend']) .shout { background: #fbf7ee; color: #6b4f08; text-shadow: none; }
+    :host-context([data-theme='legend']) .shout.loud { background: none; color: var(--hc); --flash: #1a1405; }
+    :host-context([data-theme='legend']) .shout.loud::after { color: #1a1405; }
     @keyframes rage {
       0% { opacity: 1; mask-position: 100% 0; color: var(--hc); }
       17% { mask-position: 0 0; color: var(--hc); }
-      18% { color: #fff; }
-      18.95% { color: #fff; }
+      18% { color: var(--flash, #fff); }
+      18.95% { color: var(--flash, #fff); }
       19%, 35.95% { color: transparent; mask-position: 0 0; opacity: 1; }
       36%, 100% { opacity: 0; mask-position: 0 0; color: transparent; }
     }
