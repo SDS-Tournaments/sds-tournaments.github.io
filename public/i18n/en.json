@@ -47,8 +47,7 @@
       "pilots": { "one": "pilot", "few": "pilots", "many": "pilots" },
       "hypeMax": "Sold out! Max hype 🔥",
       "shout9": "Why so many?",
-      "shout10": "WHAT ARE YOU DOING?",
-      "tier": {"5":"🔥 Hot","6":"🌶 Spicy","7":"⚡ Blazing","8":"☄️ On fire","9":"🚀 Top round","10":"👑 Sold out"}
+      "shout10": "WHAT ARE YOU DOING?"
     },
     "leaders": "Season leaders",
     "pilots": "Drivers",

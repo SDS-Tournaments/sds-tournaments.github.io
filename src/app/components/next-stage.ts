@@ -29,11 +29,8 @@ const step = (level: number) => (Math.max(1, level) - 1) / (HYPE_STEPS.length - 
   template: `
     <i class="hglow" aria-hidden="true"></i>
     <!-- лестница хайпа — меняется сама карточка:
-         5 острые углы + бейдж · 6 кометы по рамке · 7 «эхо»-рамки разъезжаются · 8 глитч
+         5 острые углы · 6 кометы по рамке · 7 «эхо»-рамки разъезжаются · 8 глитч
          9 уголки-прицелы, искры, «Куда столько?» · 10 сердцебиение, осколки, пламя, тряска, «ВЫ ЧТО ТВОРИТЕ?» -->
-    @if (hypeOn() && hy().level >= 5) {
-      <span class="tier" [attr.data-lv]="hy().level">{{ 'home.next.tier.' + hy().level | transloco }}</span>
-    }
     @if (hypeOn() && hy().level >= 7) { <i class="echo e1" aria-hidden="true"></i><i class="echo e2" aria-hidden="true"></i> }
     @if (hypeOn() && hy().level >= 6) { <i class="orbit" aria-hidden="true"></i> }
     @if (hypeOn() && hy().level >= 9) { <span class="shout" [class.loud]="hy().level >= 10">{{ (hy().level >= 10 ? 'home.next.shout10' : 'home.next.shout9') | transloco }}</span> }
@@ -204,16 +201,6 @@ const step = (level: number) => (Math.max(1, level) - 1) / (HYPE_STEPS.length - 
     }
     @keyframes orbit { to { rotate: 360deg; } }
 
-    /* 5+: бейдж уровня в углу — выпрыгивает при переходе на новый уровень */
-    .tier {
-      position: absolute; top: 22px; right: 22px; z-index: 1;
-      padding: 4px 10px; border-radius: var(--r-pill);
-      background: color-mix(in oklab, var(--hc), transparent 82%); border: 1px solid var(--hc);
-      color: #fff; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap;
-      box-shadow: 0 0 18px -4px var(--hc);
-      animation: tier-pop 600ms cubic-bezier(0.3, 1.6, 0.5, 1) both;
-    }
-    @keyframes tier-pop { from { opacity: 0; transform: scale(0.4) rotate(-12deg); } }
 
     /* 9+: искры поднимаются со дна карточки */
     .sparks { position: absolute; inset: 0; z-index: -1; overflow: visible; pointer-events: none; }
@@ -254,7 +241,18 @@ const step = (level: number) => (Math.max(1, level) - 1) / (HYPE_STEPS.length - 
       translate: -50% -50%; rotate: -8deg; opacity: 0;
       animation: shout 5s cubic-bezier(0.3, 1.5, 0.5, 1) 0.6s infinite;
     }
-    .shout.loud { font-size: 26px; rotate: -6deg; animation-duration: 3.6s; }
+    /* 100+: в бешенстве — рваная красная плашка, потёки краски, дёргается */
+    .shout.loud {
+      padding: 14px 26px 16px; border: 0; background: #e8141e; color: #fff;
+      font: 400 34px 'Rubik Wet Paint', 'Russo One', var(--font); letter-spacing: 0.02em;
+      text-shadow: 2px 2px 0 #000; box-shadow: none; filter: drop-shadow(0 0 22px rgba(255, 30, 40, 0.75));
+      clip-path: polygon(0% 14%, 6% 2%, 13% 11%, 21% 0%, 30% 9%, 38% 1%, 47% 12%, 55% 3%, 63% 10%, 72% 0%, 80% 9%, 88% 2%, 95% 12%, 100% 4%,
+        97% 30%, 100% 52%, 96% 75%, 100% 92%, 92% 100%, 84% 89%, 75% 100%, 66% 90%, 58% 98%, 49% 87%, 41% 99%, 32% 88%, 23% 100%, 15% 90%, 7% 99%, 0% 86%,
+        3% 64%, 0% 42%, 4% 26%);
+      rotate: -9deg;
+      animation: shout 3.6s cubic-bezier(0.3, 1.5, 0.5, 1) 0.6s infinite, rage 0.12s steps(2) infinite;
+    }
+    @keyframes rage { 50% { translate: calc(-50% + 2px) calc(-50% - 1px); } }
     @keyframes shout {
       0% { opacity: 0; scale: 2.4; }
       8% { opacity: 1; scale: 1; }
@@ -323,7 +321,7 @@ const step = (level: number) => (Math.max(1, level) - 1) / (HYPE_STEPS.length - 
 
     @media (prefers-reduced-motion: reduce) {
       :host(.hype) .hglow, :host(.r2)::before, .live .dot::after,
-      .orbit::before, .sparks i, .flames, :host(.max), :host(.max) .num, .tier,
+      .orbit::before, .sparks i, .flames, :host(.max), :host(.max) .num,
       .shout, .echo, :host(.g8) .title, :host(.g8) .num, .lock i, .shards i { animation: none; }
     }
     .live { display: flex; align-items: center; gap: 8px; color: var(--error); }
