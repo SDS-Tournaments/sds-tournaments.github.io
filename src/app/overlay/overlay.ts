@@ -485,11 +485,11 @@ export class Overlay implements OnInit {
       const target = this.lastRun()?.total ?? 0;
       const start = performance.now();
       const tick = (t: number) => {
-        // 2 с, сильное плавное торможение к концу (ease-out quint); если в итоге есть десятые —
-        // считаем десятыми с самого начала: последние шаги по 0.1, без скачков и смены формата
+        // 2 с, сильное плавное торможение к концу (ease-out quint); шаг как у оценок — 0.5,
+        // формат один на весь счёт (82.0 → 82.5, если итог дробный), чтобы число не меняло вид в конце
         const p = Math.min(1, (t - start) / 2000);
-        const digits = Number.isInteger(target) ? 0 : 1;
-        this.scoreShown.set((target * (1 - (1 - p) ** 5)).toFixed(digits));
+        const v = Math.round(target * (1 - (1 - p) ** 5) * 2) / 2;
+        this.scoreShown.set(v.toFixed(Number.isInteger(target) ? 0 : 1));
         if (p < 1) raf = requestAnimationFrame(tick);
       };
       let raf = requestAnimationFrame(tick);

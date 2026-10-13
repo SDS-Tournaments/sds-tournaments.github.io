@@ -138,17 +138,18 @@ const ATTEMPTS = [
                 @for (c of crits; track c.key) {
                   <label class="score">
                     <span class="lbl">{{ c.label }} <span class="subtle">· {{ st.judges[c.key] || 'судья' }}</span></span>
-                    <input class="input mono" type="number" step="0.1" min="0" [max]="st.weights[c.key]" [name]="c.key"
+                    <input class="input mono" type="number" step="0.5" min="0" [max]="st.weights[c.key]" [name]="c.key"
                       [(ngModel)]="form[c.key]" (ngModelChange)="touch()" />
                     <span class="max mono subtle">из {{ st.weights[c.key] }}</span>
                   </label>
                 }
                 <div class="total">
                   <span class="lbl">Итог</span>
-                  <span class="mono big-total" [class.bad]="overMax()">{{ formTotal() }}</span>
+                  <span class="mono big-total" [class.bad]="overMax() || offGrid()">{{ formTotal() }}</span>
+                  @if (offGrid()) { <span class="bad small">Шаг оценки — 0,5</span> }
                 </div>
                 <div class="actions">
-                  <button class="btn btn-primary big" type="submit" [disabled]="busy() || overMax() || !filled()">Сохранить ⏎</button>
+                  <button class="btn btn-primary big" type="submit" [disabled]="busy() || overMax() || offGrid() || !filled()">Сохранить ⏎</button>
                   @for (f of fails; track f.key) {
                     <button class="btn btn-secondary" type="button" (click)="save(f.key)" [disabled]="busy()" [title]="f.hint">{{ f.label }} (0)</button>
                   }
@@ -324,6 +325,11 @@ export class AdminJudge implements OnInit, OnDestroy {
     const w = this.stage()?.weights;
     return !!w && CRITS.some((c) => (Number(this.form[c.key]) || 0) > w[c.key]);
   });
+  /** оценки ставятся с шагом 0.5 (7, 7.5, 8…) */
+  protected readonly offGrid = computed(() => {
+    this.formVersion();
+    return CRITS.some((c) => !Number.isInteger((Number(this.form[c.key]) || 0) * 2));
+  });
   protected readonly filled = computed(() => {
     this.formVersion();
     return CRITS.every((c) => this.form[c.key] !== null && (this.form[c.key] as unknown) !== '');
@@ -446,6 +452,7 @@ export class AdminJudge implements OnInit, OnDestroy {
 
   async save(fail: Fail | null) {
     const spin = !!fail;
+    if (!spin && (this.overMax() || this.offGrid())) return;
     const c = this.current();
     const scores = spin ? { angle: null, style: null, line: null } : { angle: Number(this.form.angle), style: Number(this.form.style), line: Number(this.form.line) };
     if (await this.upsertRun({ ...scores, spin, fail })) {
