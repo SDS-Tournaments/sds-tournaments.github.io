@@ -69,7 +69,7 @@ export async function finishStage(stageId: number): Promise<string | null> {
   const toDuels = (rows: { leader_id: string | null; chaser_id: string | null; winner_id: string | null; result: string | null; omt_count: number }[]): Duel[] =>
     rows
       .filter((b) => b.winner_id && b.leader_id && b.chaser_id && b.result !== 'bye')
-      .map((b) => ({ winner: b.winner_id!, loser: b.winner_id === b.leader_id ? b.chaser_id! : b.leader_id!, omt: b.omt_count }));
+      .map((b) => ({ winner: b.winner_id!, loser: b.winner_id === b.leader_id ? b.chaser_id! : b.leader_id!, omt: b.omt_count, contact: b.result === 'contact' }));
   const duels = toDuels(battles.data ?? []);
   const bracket = [...new Set((battles.data ?? []).flatMap((b) => [b.leader_id, b.chaser_id]).filter((x): x is string => !!x))];
   const achievements = stageAchievements(

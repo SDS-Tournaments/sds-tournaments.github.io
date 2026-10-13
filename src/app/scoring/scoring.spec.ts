@@ -258,6 +258,15 @@ describe('итоги этапа', () => {
     expect(liveRunAchievements(run(1, 85), [run(1, 85)])).toEqual([]);
   });
 
+  it('божественное касание — проиграл дуэль, врезавшись в соперника', () => {
+    const rows = [
+      { id: 'a', stagePlace: 5, qualPlace: 1, best: 90 },
+      { id: 'b', stagePlace: 9, qualPlace: 2, best: 89 },
+    ];
+    const got = stageAchievements(rows, [], new Set(), [{ winner: 'a', loser: 'b', omt: 0, contact: true }], new Set(['a', 'b']));
+    expect(got.filter((x) => x.code === 'god_touch')).toEqual([{ id: 'b', code: 'god_touch' }]);
+  });
+
   it('достижения за нули: выпрямление, вылет, авария дважды; разные причины — не в зачёт', () => {
     const z = (fail: 'spin' | 'crash' | 'straight' | 'offtrack') => ({ total: 0, spin: true, fail });
     const rows = [

@@ -17,7 +17,7 @@ interface Battle {
   winner_id: string | null;
   omt_count: number;
   status: 'pending' | 'running' | 'done';
-  result: 'normal' | 'tech_loss' | 'bye' | 'qual_tiebreak' | null;
+  result: 'normal' | 'tech_loss' | 'bye' | 'qual_tiebreak' | 'contact' | null;
 }
 type Crit = 'angle' | 'style' | 'line';
 export interface PilotInfo {
@@ -32,7 +32,7 @@ const CRITS: { key: Crit; label: string }[] = [
   { key: 'style', label: 'Стиль' },
   { key: 'line', label: 'Траектория' },
 ];
-const RESULT_LABEL: Record<string, string> = { normal: '', tech_loss: 'техпоражение', bye: 'проход без соперника', qual_tiebreak: 'по квалификации после 2 OMT' };
+const RESULT_LABEL: Record<string, string> = { normal: '', tech_loss: 'техпоражение', bye: 'проход без соперника', qual_tiebreak: 'по квалификации после 2 OMT', contact: 'контакт — соперник врезался' };
 
 // Пульт судьи — сетка и парные заезды (spec §5.2–5.3). Только RU.
 @Component({
@@ -112,6 +112,8 @@ const RESULT_LABEL: Record<string, string> = { normal: '', tech_loss: 'техп�
               <div class="incidents">
                 <button class="btn btn-ghost danger" (click)="techLoss(b, 'leader')" [disabled]="busy()">Техпоражение: {{ info(b.leader_id).nickname }}</button>
                 <button class="btn btn-ghost danger" (click)="techLoss(b, 'chaser')" [disabled]="busy()">Техпоражение: {{ info(b.chaser_id).nickname }}</button>
+                <button class="btn btn-ghost danger" (click)="contact(b, 'leader')" [disabled]="busy()" title="Врезался в соперника — поражение">💥 Врезался: {{ info(b.leader_id).nickname }}</button>
+                <button class="btn btn-ghost danger" (click)="contact(b, 'chaser')" [disabled]="busy()" title="Врезался в соперника — поражение">💥 Врезался: {{ info(b.chaser_id).nickname }}</button>
               </div>
             }
             @if (msg()) { <p [class]="ok() ? 'ok' : 'bad'">{{ msg() }}</p> }
@@ -366,6 +368,14 @@ export class AdminBattles implements OnInit, OnDestroy {
     if (!confirm(`Техническое поражение: ${nick}?`)) return;
     this.busy.set(true);
     await this.decide(b, loser === 'leader' ? 'chaser' : 'leader', 'tech_loss');
+  }
+
+  /** Пилот врезался в соперника — поражение (на итогах даёт ачивку «Божественное касание») */
+  async contact(b: Battle, loser: 'leader' | 'chaser') {
+    const nick = this.info(loser === 'leader' ? b.leader_id : b.chaser_id).nickname;
+    if (!confirm(`${nick} врезался в соперника — поражение?`)) return;
+    this.busy.set(true);
+    await this.decide(b, loser === 'leader' ? 'chaser' : 'leader', 'contact');
   }
 
   /** Записать победителя и продвинуть по сетке (проигравший полуфинала — в дуэль за 3-е) */

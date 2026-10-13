@@ -1022,3 +1022,7 @@ alter table public.qual_runs
   add column if not exists fail text check (fail in ('spin', 'crash', 'straight', 'offtrack'));
 
 update public.qual_runs set fail = 'spin' where spin and fail is null;
+
+-- ═════ 0015_battle_contact.sql ═════
+-- Дуэль проиграна из-за контакта: пилот врезался в соперника, который ехал впереди (ачивка «Божественное касание»)
+alter type public.battle_result add value if not exists 'contact';
