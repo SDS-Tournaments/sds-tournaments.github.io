@@ -18,7 +18,6 @@ const step = (level: number) => (Math.max(1, level) - 1) / (HYPE_STEPS.length - 
     '[class.hype]': 'hypeOn() && hy().level > 0',
     '[class.r2]': 'hypeOn() && hy().level >= 3',
     '[class.g5]': 'hypeOn() && hy().level >= 5',
-    '[class.g6]': 'hypeOn() && hy().level >= 6',
     '[class.g8]': 'hypeOn() && hy().level >= 8',
     '[class.max]': 'hypeOn() && hy().level >= 10',
     '[style.--hc]': 'color(hy().level, 0.95)',
@@ -30,13 +29,14 @@ const step = (level: number) => (Math.max(1, level) - 1) / (HYPE_STEPS.length - 
   template: `
     <i class="hglow" aria-hidden="true"></i>
     <!-- лестница хайпа — меняется сама карточка:
-         5 гоночная форма + бейдж · 6 3D-наклон · 7 «эхо»-рамки разъезжаются · 8 глитч + кометы по рамке
-         9 уголки-прицелы + искры · 10 сердцебиение, осколки, пламя, тряска -->
+         5 острые углы + бейдж · 6 кометы по рамке · 7 «эхо»-рамки разъезжаются · 8 глитч
+         9 уголки-прицелы, искры, «Куда столько?» · 10 сердцебиение, осколки, пламя, тряска, «ВЫ ЧТО ТВОРИТЕ?» -->
     @if (hypeOn() && hy().level >= 5) {
       <span class="tier" [attr.data-lv]="hy().level">{{ 'home.next.tier.' + hy().level | transloco }}</span>
     }
     @if (hypeOn() && hy().level >= 7) { <i class="echo e1" aria-hidden="true"></i><i class="echo e2" aria-hidden="true"></i> }
-    @if (hypeOn() && hy().level >= 8) { <i class="orbit" aria-hidden="true"></i> }
+    @if (hypeOn() && hy().level >= 6) { <i class="orbit" aria-hidden="true"></i> }
+    @if (hypeOn() && hy().level >= 9) { <span class="shout" [class.loud]="hy().level >= 10">{{ (hy().level >= 10 ? 'home.next.shout10' : 'home.next.shout9') | transloco }}</span> }
     @if (hypeOn() && hy().level >= 9) {
       <span class="lock" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
       <span class="sparks" aria-hidden="true">
@@ -192,7 +192,7 @@ const step = (level: number) => (Math.max(1, level) - 1) / (HYPE_STEPS.length - 
     }
     @keyframes hype-ring { from { opacity: 0.8; transform: scale(1); } to { opacity: 0; transform: scale(1.09); } }
 
-    /* 8+: кометы по рамке — вращается слой с коническим градиентом, видна только полоска рамки */
+    /* 6+: кометы по рамке — вращается слой с коническим градиентом, видна только полоска рамки */
     .orbit {
       position: absolute; inset: -1px; z-index: -1; border-radius: inherit; padding: 3px; overflow: hidden; pointer-events: none;
       mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
@@ -243,13 +243,23 @@ const step = (level: number) => (Math.max(1, level) - 1) / (HYPE_STEPS.length - 
       to { transform: scaleY(1.12) scaleX(1.04); opacity: 0.95; }
     }
     /* ── геометрия хайпа ── */
-    /* 5: «гоночная» форма — острые асимметричные углы, рамка толще, карточка крупнее */
-    :host(.g5) { border-radius: 30px 6px 30px 6px; border-width: 2px; scale: 1.03; transition: border-radius 600ms var(--ease-out), scale 600ms var(--ease-out); }
-    /* 6: карточка наклоняется в 3D и покачивается */
-    :host(.g6) { animation: tilt 5s ease-in-out infinite; }
-    @keyframes tilt {
-      0%, 100% { transform: perspective(900px) rotateY(-8deg) rotateX(3deg); }
-      50% { transform: perspective(900px) rotateY(8deg) rotateX(-3deg); }
+    /* 5: острые углы, рамка толще, карточка крупнее */
+    :host(.g5) { border-radius: 0; border-width: 2px; scale: 1.03; transition: border-radius 600ms var(--ease-out), scale 600ms var(--ease-out); }
+    /* 9–10: надпись-штамп поверх карточки: впечатывается, держится, пропадает и снова */
+    .shout {
+      position: absolute; left: 50%; top: 42%; z-index: 3; pointer-events: none; white-space: nowrap;
+      padding: 8px 16px; border: 2px solid var(--hc); background: rgba(0, 0, 0, 0.82);
+      color: var(--hc); font: 400 24px 'Russo One', var(--font); letter-spacing: 0.04em; text-transform: uppercase;
+      text-shadow: 0 0 18px var(--hc); box-shadow: 0 0 30px -6px var(--hc);
+      translate: -50% -50%; rotate: -8deg; opacity: 0;
+      animation: shout 5s cubic-bezier(0.3, 1.5, 0.5, 1) 0.6s infinite;
+    }
+    .shout.loud { font-size: 26px; rotate: -6deg; animation-duration: 3.6s; }
+    @keyframes shout {
+      0% { opacity: 0; scale: 2.4; }
+      8% { opacity: 1; scale: 1; }
+      60% { opacity: 1; scale: 1; }
+      70%, 100% { opacity: 0; scale: 0.9; }
     }
     /* 7: «эхо» — копии рамки разъезжаются из-под карточки, как колода */
     .echo {
@@ -279,7 +289,7 @@ const step = (level: number) => (Math.max(1, level) - 1) / (HYPE_STEPS.length - 
     .lock i:nth-child(4) { bottom: 0; right: 0; border-left: 0; border-top: 0; --lx: 7px; --ly: 7px; }
     @keyframes lock { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(var(--lx), var(--ly)); } }
     /* 10: аншлаг — карточка бьётся как сердце, трясётся, из неё вылетают осколки */
-    :host(.max) { animation: tilt 5s ease-in-out infinite, heart 1.1s ease-in-out infinite, rattle 2.6s ease-in-out infinite; }
+    :host(.max) { animation: heart 1.1s ease-in-out infinite, rattle 2.6s ease-in-out infinite; }
     @keyframes heart { 0%, 100% { scale: 1.03; } 12% { scale: 1.09; } 24% { scale: 1.03; } 36% { scale: 1.07; } 50% { scale: 1.03; } }
     @keyframes rattle {
       0%, 74%, 100% { translate: 0 0; }
@@ -314,7 +324,7 @@ const step = (level: number) => (Math.max(1, level) - 1) / (HYPE_STEPS.length - 
     @media (prefers-reduced-motion: reduce) {
       :host(.hype) .hglow, :host(.r2)::before, .live .dot::after,
       .orbit::before, .sparks i, .flames, :host(.max), :host(.max) .num, .tier,
-      :host(.g6), .echo, :host(.g8) .title, :host(.g8) .num, .lock i, .shards i { animation: none; }
+      .shout, .echo, :host(.g8) .title, :host(.g8) .num, .lock i, .shards i { animation: none; }
     }
     .live { display: flex; align-items: center; gap: 8px; color: var(--error); }
     .live .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--error); }
