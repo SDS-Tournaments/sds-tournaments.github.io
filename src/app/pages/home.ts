@@ -37,6 +37,7 @@ import { Reveal } from '../reveal';
           style="--i: 4"
           [stage]="next() ? stageTitle(next()!) : null"
           [startsAt]="next()?.starts_at ? toDate(next()!.starts_at!) : null"
+          [battlesAt]="next()?.battles_at ? toDate(next()!.battles_at!) : null"
           [registered]="nextCount()"
           [status]="next()?.status ?? 'registration'"
         />
@@ -106,6 +107,7 @@ import { Reveal } from '../reveal';
         @for (step of steps; track step; let i = $index) {
           <article class="card card-hover step" reveal [style.--i]="i">
             <span class="step-no mono">0{{ i + 1 }}</span>
+            <span class="day mono">{{ (i === 0 ? 'home.how.day1' : 'home.how.day2') | transloco }}</span>
             <h3>{{ 'home.how.' + step + '.title' | transloco }}</h3>
             <p class="muted">{{ 'home.how.' + step + '.text' | transloco }}</p>
           </article>
@@ -294,6 +296,7 @@ import { Reveal } from '../reveal';
     .logos a:hover img, .logos a.gen img { opacity: 1; filter: none; }
     .sponsor img { height: 32px; width: auto; }
 
+    .day { display: block; margin-top: 10px; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--primary); }
     .step-no {
       font-size: 48px;
       line-height: 1;
@@ -327,7 +330,7 @@ export class Home implements OnInit {
 
   async ngOnInit() {
     const [stages, settings, sponsors, season] = await Promise.all([
-      supabase.from('stages').select('id, title_ru, title_en, track, starts_at, status, twitch_channel').in('status', ['registration', 'qualifying', 'battles']).order('starts_at'),
+      supabase.from('stages').select('id, title_ru, title_en, track, starts_at, battles_at, status, twitch_channel').in('status', ['registration', 'qualifying', 'qual_done', 'battles']).order('starts_at'),
       supabase.from('app_settings').select('twitch_channel').single(),
       supabase.from('sponsors').select('id, name, logo_url, url, tier').order('tier').order('sort'),
       currentSeason(),
@@ -363,7 +366,7 @@ export class Home implements OnInit {
   private async loadRoad(seasonId: number) {
     const { data: stages } = await supabase
       .from('stages')
-      .select('id, ord, title_ru, title_en, track, starts_at, status')
+      .select('id, ord, title_ru, title_en, track, starts_at, battles_at, status')
       .eq('season_id', seasonId)
       .order('ord');
     const ids = (stages ?? []).map((s) => s.id);
@@ -371,7 +374,9 @@ export class Home implements OnInit {
       ? await supabase.from('stage_results').select('stage_id, pilot:profiles(nickname)').in('stage_id', ids).eq('stage_place', 1)
       : { data: [] };
     const winner = new Map(((wins ?? []) as unknown as { stage_id: number; pilot: { nickname: string } | null }[]).map((w) => [w.stage_id, w.pilot?.nickname ?? null]));
-    this.rawRoad.set((stages ?? []).map((s) => ({ ...s, winner: winner.get(s.id) ?? null })));
+    this.rawRoad.set(
+      (stages ?? []).map((s) => ({ ...s, starts_at: s.status === 'qual_done' && s.battles_at ? s.battles_at : s.starts_at, winner: winner.get(s.id) ?? null })),
+    );
   }
 
   protected initials(name: string) {
@@ -389,6 +394,7 @@ interface StageCard {
   title_en: string | null;
   track: string | null;
   starts_at: string | null;
+  battles_at?: string | null;
   status: string;
   twitch_channel: string | null;
 }

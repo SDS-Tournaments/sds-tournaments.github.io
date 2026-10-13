@@ -9,11 +9,20 @@ export const STAGE_STATUS: Record<string, string> = {
   draft: 'Черновик',
   registration: 'Регистрация',
   qualifying: 'Квалификация',
+  qual_done: 'Квала завершена',
   battles: 'Парные заезды',
   finished: 'Завершён',
 };
 
-export const STAGE_FLOW = ['draft', 'registration', 'qualifying', 'battles', 'finished'] as const;
+export const STAGE_FLOW = ['draft', 'registration', 'qualifying', 'qual_done', 'battles', 'finished'] as const;
+
+/** день 2 (парные) по умолчанию — через сутки после квалификации */
+export function plusDay(local: string): string {
+  if (!local) return '';
+  const d = new Date(local);
+  d.setDate(d.getDate() + 1);
+  return toLocalInput(d.toISOString());
+}
 
 /** ISO из базы → значение для <input type="datetime-local"> (локальное время) */
 export function toLocalInput(iso: string | null): string {

@@ -27,6 +27,9 @@
     "toStandings": "Standings",
     "next": {
       "eyebrow": "Next round",
+      "day1": "Day 1 · Qualifying",
+      "day2": "Day 2 · Top 32",
+      "untilBattles": "Qualifying done · battles in",
       "d": "days",
       "h": "hrs",
       "m": "min",
@@ -51,6 +54,8 @@
     "partners": "Partners",
     "how": {
       "eyebrow": "Format",
+      "day1": "Day 1",
+      "day2": "Day 2",
       "title": "How a round works",
       "qual": {
         "title": "Qualifying",
@@ -242,6 +247,7 @@
       "draft": "Planned",
       "registration": "Registration",
       "qualifying": "Qualifying",
+      "qual_done": "Qualifying done",
       "battles": "Battles",
       "finished": "Finished"
     },
@@ -255,6 +261,8 @@
     "run": "Run {{n}}",
     "best": "Best",
     "spin": "spin",
+    "qualShort": "Qualifying",
+    "battlesShort": "Top 32",
     "fail": { "spin": "spin", "crash": "crash", "straight": "straightened", "offtrack": "off track" },
     "notFound": "Round not found."
   },

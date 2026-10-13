@@ -10,6 +10,7 @@ interface OpenStage {
   title_en: string | null;
   track: string | null;
   starts_at: string | null;
+  battles_at: string | null;
   registrations: { profile_id: string; status: string }[];
 }
 
@@ -26,7 +27,7 @@ interface OpenStage {
           <h3>{{ lang() === 'en' && s.title_en ? s.title_en : s.title_ru }}</h3>
           <p class="subtle meta">
             @if (s.track) { {{ s.track }} · }
-            @if (s.starts_at) { <span class="mono">{{ s.starts_at | date: 'dd.MM.yyyy HH:mm' }}</span> · }
+            @if (s.starts_at) { <span class="mono">{{ s.starts_at | date: 'dd.MM HH:mm' }}@if (s.battles_at) { + {{ s.battles_at | date: 'dd.MM HH:mm' }} }</span> · }
             {{ 'signup.count' | transloco: { n: count(s) } }}
           </p>
         </div>
@@ -90,7 +91,7 @@ export class StageSignup implements OnInit {
   private async load() {
     const { data, error } = await supabase
       .from('stages')
-      .select('id, title_ru, title_en, track, starts_at, registrations(profile_id, status)')
+      .select('id, title_ru, title_en, track, starts_at, battles_at, registrations(profile_id, status)')
       .eq('status', 'registration')
       .order('starts_at');
     this.loading.set(false);

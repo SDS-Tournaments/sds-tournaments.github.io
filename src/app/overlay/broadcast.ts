@@ -154,7 +154,7 @@ export class Broadcast implements OnInit {
     ]);
     const s = { ...DEFAULT_STATE, ...(st?.state ?? {}) };
     // по умолчанию — идущий этап
-    if (!s.stageId) s.stageId = (stages ?? []).find((x) => x.status === 'qualifying' || x.status === 'battles')?.id ?? null;
+    if (!s.stageId) s.stageId = (stages ?? []).find((x) => x.status === 'qualifying' || x.status === 'qual_done' || x.status === 'battles')?.id ?? null;
     this.state.set(s);
     this.stages.set(stages ?? []);
   }

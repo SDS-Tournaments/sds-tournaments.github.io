@@ -18,8 +18,8 @@ const date = (iso: string | null) =>
   iso ? new Date(iso).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) + ' МСК' : 'дата уточняется';
 
 async function stageInfo(id: number) {
-  const { data } = await db.from('stages').select('id, ord, title_ru, track, starts_at, twitch_channel, season:seasons(id, title, team_counted)').eq('id', id).single();
-  return data as unknown as { id: number; ord: number; title_ru: string; track: string | null; starts_at: string | null; twitch_channel: string | null; season: { id: number; title: string } };
+  const { data } = await db.from('stages').select('id, ord, title_ru, track, starts_at, battles_at, twitch_channel, season:seasons(id, title, team_counted)').eq('id', id).single();
+  return data as unknown as { id: number; ord: number; title_ru: string; track: string | null; starts_at: string | null; battles_at: string | null; twitch_channel: string | null; season: { id: number; title: string } };
 }
 
 Deno.serve(async (req) => {
@@ -73,10 +73,13 @@ Deno.serve(async (req) => {
     const name = `${s.season.title} · ${s.title_ru}${s.track ? ` · ${s.track}` : ''}`;
 
     if (type === 'registration') {
-      embed = { title: '📝 Открыта регистрация', description: `**${name}**\nСтарт: ${date(s.starts_at)}\n\nРегистрация — в личном кабинете на сайте${SITE ? `: ${SITE}/me` : '.'}`, color: TIFFANY, url: link };
+      embed = { title: '📝 Открыта регистрация', description: `**${name}**\nДень 1 · Квалификация: ${date(s.starts_at)}${s.battles_at ? `\nДень 2 · Парные заезды Top 32: ${date(s.battles_at)}` : ''}\n\nРегистрация — в личном кабинете на сайте${SITE ? `: ${SITE}/me` : '.'}`, color: TIFFANY, url: link };
     } else if (type === 'stage_start') {
       const tw = twitchName(s.twitch_channel ?? (await db.from('app_settings').select('twitch_channel').eq('id', 1).single()).data?.twitch_channel);
       embed = { title: '🔴 LIVE — этап начался', description: `**${name}**\nКвалификация уже идёт!${tw ? `\n\n📺 https://twitch.tv/${tw}` : ''}${link ? `\n🏁 Онлайн-таблица: ${link}` : ''}`, color: RED, url: link };
+    } else if (type === 'battles_start') {
+      const tw = twitchName(s.twitch_channel ?? (await db.from('app_settings').select('twitch_channel').eq('id', 1).single()).data?.twitch_channel);
+      embed = { title: '🔴 LIVE — парные заезды', description: `**${name}**\nTop 32 стартует — дуэли до финала!${tw ? `\n\n📺 https://twitch.tv/${tw}` : ''}${link ? `\n🏁 Сетка: ${link}` : ''}`, color: RED, url: link };
     } else if (type === 'results') {
       const { data: top } = await db.from('stage_results').select('stage_place, total, pilot:profiles(nickname)').eq('stage_id', id).lte('stage_place', 3).order('stage_place');
       const medals = ['🥇', '🥈', '🥉'];

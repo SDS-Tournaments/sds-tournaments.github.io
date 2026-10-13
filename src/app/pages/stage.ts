@@ -19,6 +19,7 @@ interface Stage {
   description_en: string | null;
   track: string | null;
   starts_at: string | null;
+  battles_at?: string | null;
   status: string;
   twitch_channel: string | null;
   season: { title: string } | null;
@@ -53,7 +54,8 @@ type Tab = 'results' | 'bracket' | 'qual';
         <p class="meta">
           <span class="badge" [class]="'st-' + s.status">{{ 'stage.status.' + s.status | transloco }}</span>
           @if (s.track) { <span>{{ s.track }}</span> }
-          @if (s.starts_at) { <span class="mono">{{ s.starts_at | date: 'dd.MM.yyyy · HH:mm' }}</span> }
+          @if (s.starts_at) { <span class="mono">{{ 'stage.qualShort' | transloco }} {{ s.starts_at | date: 'dd.MM.yyyy · HH:mm' }}</span> }
+          @if (s.battles_at) { <span class="mono">{{ 'stage.battlesShort' | transloco }} {{ s.battles_at | date: 'dd.MM.yyyy · HH:mm' }}</span> }
         </p>
         @if (description(); as d) { <p class="desc muted">{{ d }}</p> }
 
@@ -192,7 +194,7 @@ export class StagePage implements OnInit {
   async ngOnInit() {
     const id = Number(this.id());
     const [{ data: s }, settings] = await Promise.all([
-      supabase.from('stages').select('id, ord, title_ru, title_en, description_ru, description_en, track, starts_at, status, twitch_channel, season:seasons(title)').eq('id', id).maybeSingle(),
+      supabase.from('stages').select('id, ord, title_ru, title_en, description_ru, description_en, track, starts_at, battles_at, status, twitch_channel, season:seasons(title)').eq('id', id).maybeSingle(),
       supabase.from('app_settings').select('twitch_channel').single(),
     ]);
     if (!s) return this.missing.set(true);

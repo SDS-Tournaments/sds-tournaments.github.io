@@ -1,4 +1,5 @@
 import { Component, computed, DestroyRef, effect, inject, input, signal, untracked } from '@angular/core';
+import { DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { hype } from './hype';
@@ -13,7 +14,7 @@ const step = (level: number) => (Math.max(1, level) - 1) / 6;
 // «Хайп»: чем больше записавшихся, тем ярче свечение и чаще пульсация карточки (уровни — hype.ts)
 @Component({
   selector: 'app-next-stage',
-  imports: [RouterLink, TranslocoPipe],
+  imports: [DatePipe, RouterLink, TranslocoPipe],
   host: {
     '[class.hype]': 'hypeOn() && hy().level > 0',
     '[class.r2]': 'hypeOn() && hy().level >= 3',
@@ -32,8 +33,16 @@ const step = (level: number) => (Math.max(1, level) - 1) / 6;
         <p class="eyebrow">{{ 'home.next.eyebrow' | transloco }}</p>
       }
       <h2 class="title">{{ s }}</h2>
+      <!-- этап в два дня: квалификация и парные -->
+      @if (startsAt()) {
+        <p class="days mono">
+          <span [class.past]="status() === 'qual_done'">{{ 'home.next.day1' | transloco }} · {{ startsAt() | date: 'dd.MM HH:mm' }}</span>
+          @if (battlesAt()) { <span>{{ 'home.next.day2' | transloco }} · {{ battlesAt() | date: 'dd.MM HH:mm' }}</span> }
+        </p>
+      }
+      @if (status() === 'qual_done') { <p class="eyebrow wait">{{ 'home.next.untilBattles' | transloco }}</p> }
 
-      @if (!live() && startsAt()) {
+      @if (!live() && target()) {
         <div class="timer mono" role="timer">
           @for (part of parts(); track part.key) {
             <div class="cell">
@@ -125,6 +134,9 @@ const step = (level: number) => (Math.max(1, level) - 1) / 6;
     }
     .lbl { color: var(--ink-muted); font-size: 14px; }
     .soon { margin: 0; color: var(--ink-muted); }
+    .days { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: -8px 0 0; font-size: 12px; color: var(--ink-muted); }
+    .days .past { text-decoration: line-through; opacity: 0.6; }
+    .wait { margin: -6px 0 0; }
 
     /* Хайп: рамка, свечение и число — цветом уровня; пульс чаще с ростом уровня */
     :host(.hype) { border-color: var(--hc); box-shadow: 0 0 var(--hr) var(--hg); isolation: isolate; }
@@ -165,6 +177,9 @@ const step = (level: number) => (Math.max(1, level) - 1) / 6;
 export class NextStage {
   stage = input<string | null>(null);
   startsAt = input<Date | null>(null);
+  battlesAt = input<Date | null>(null);
+  /** до чего считаем: квала уже прошла — до парных */
+  protected readonly target = computed(() => (this.status() === 'qual_done' ? this.battlesAt() : this.startsAt()));
   registered = input(0);
   status = input<string>('registration');
   protected readonly live = computed(() => this.status() === 'qualifying' || this.status() === 'battles');
@@ -186,7 +201,7 @@ export class NextStage {
   protected readonly shown = signal(0);
 
   protected readonly parts = computed(() => {
-    const ms = Math.max(0, (this.startsAt()?.getTime() ?? 0) - this.now());
+    const ms = Math.max(0, (this.target()?.getTime() ?? 0) - this.now());
     const s = Math.floor(ms / 1000);
     return [
       { key: 'd', val: pad(Math.floor(s / 86400)) },

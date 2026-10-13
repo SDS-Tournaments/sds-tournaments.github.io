@@ -2,7 +2,7 @@ import { Component, computed, inject, input, OnInit, signal } from '@angular/cor
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { supabase } from '../auth';
-import { fromLocalInput, STAGE_FLOW, STAGE_STATUS, toLocalInput } from './labels';
+import { fromLocalInput, plusDay, STAGE_FLOW, STAGE_STATUS, toLocalInput } from './labels';
 import { notify } from '../notify';
 import { AdminParticipants } from './participants';
 import { AdminStageResults } from './stage-results';
@@ -18,6 +18,7 @@ interface Stage {
   description_en: string | null;
   track: string | null;
   starts_at: string | null;
+  battles_at: string | null;
   status: (typeof STAGE_FLOW)[number];
   weights: Record<Crit, number>;
   judges: Record<Crit, string>;
@@ -63,7 +64,9 @@ const CRITS: { key: Crit; label: string }[] = [
             <label class="field"><span class="lbl">Название (RU)</span><input class="input" name="tru" [(ngModel)]="st.title_ru" required /></label>
             <label class="field"><span class="lbl">Название (EN)</span><input class="input" name="ten" [(ngModel)]="st.title_en" /></label>
             <label class="field"><span class="lbl">Трасса</span><input class="input" name="track" [(ngModel)]="st.track" /></label>
-            <label class="field"><span class="lbl">Старт</span><input class="input mono" type="datetime-local" name="start" [(ngModel)]="startLocal" /></label>
+            <label class="field"><span class="lbl">День 1 · Квалификация</span><input class="input mono" type="datetime-local" name="start" [(ngModel)]="startLocal" (ngModelChange)="startChanged($event)" /></label>
+            <label class="field"><span class="lbl">День 2 · Парные заезды (Top 32)</span><input class="input mono" type="datetime-local" name="battles" [(ngModel)]="battlesLocal" /></label>
+            <p class="hint subtle">Обычно парные — на следующий день, подставляется само. Можно перенести на любые выходные.</p>
             <label class="field"><span class="lbl">Порядковый номер</span><input class="input mono" type="number" min="1" name="ord" [(ngModel)]="st.ord" /></label>
             <label class="field"><span class="lbl">Twitch-канал</span><input class="input" name="tw" placeholder="sad_drift_series" [(ngModel)]="st.twitch_channel" /></label>
           </div>
@@ -167,6 +170,13 @@ export class AdminStage implements OnInit {
   readonly id = input.required<string>();
   protected readonly st = signal<Stage | null>(null);
   protected startLocal = '';
+  protected battlesLocal = '';
+  /** дата парных подстраивается под квалификацию, пока её не меняли вручную (была ровно «+1 день») */
+  protected startChanged(v: string) {
+    if (!this.battlesLocal || this.battlesLocal === plusDay(this.lastStart)) this.battlesLocal = plusDay(v);
+    this.lastStart = v;
+  }
+  private lastStart = '';
   protected readonly busy = signal(false);
   protected readonly msg = signal<string | null>(null);
   protected readonly msgOk = signal(false);
@@ -185,12 +195,14 @@ export class AdminStage implements OnInit {
   async ngOnInit() {
     const { data, error } = await supabase
       .from('stages')
-      .select('id, season_id, ord, title_ru, title_en, description_ru, description_en, track, starts_at, status, weights, judges, bracket_size, twitch_channel')
+      .select('id, season_id, ord, title_ru, title_en, description_ru, description_en, track, starts_at, battles_at, status, weights, judges, bracket_size, twitch_channel')
       .eq('id', this.id())
       .single();
     if (error) return this.note(error.message, false);
     this.st.set(data);
     this.startLocal = toLocalInput(data.starts_at);
+    this.lastStart = this.startLocal;
+    this.battlesLocal = toLocalInput(data.battles_at) || plusDay(this.startLocal);
   }
 
   protected tick() {
@@ -212,6 +224,7 @@ export class AdminStage implements OnInit {
         description_en: nul(st.description_en),
         track: nul(st.track),
         starts_at: fromLocalInput(this.startLocal),
+        battles_at: fromLocalInput(this.battlesLocal),
         weights: { angle: +st.weights.angle, style: +st.weights.style, line: +st.weights.line },
         judges: st.judges,
         bracket_size: st.bracket_size,
@@ -237,6 +250,7 @@ export class AdminStage implements OnInit {
     this.note(`Статус: ${STAGE_STATUS[status]}`, true);
     if (status === 'registration') notify('registration', st.id);
     if (status === 'qualifying') notify('stage_start', st.id);
+    if (status === 'battles') notify('battles_start', st.id);
   }
 
   async remove() {

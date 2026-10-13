@@ -44,6 +44,7 @@ export const OVERLAY_TEXT = {
   ru: {
     stage: 'Этап',
     qualifying: 'Квалификация',
+    qual_done: 'Квалификация завершена',
     battles: 'Парные заезды',
     registration: 'Регистрация',
     finished: 'Итоги',
@@ -79,6 +80,7 @@ export const OVERLAY_TEXT = {
   en: {
     stage: 'Round',
     qualifying: 'Qualifying',
+    qual_done: 'Qualifying done',
     battles: 'Battles',
     registration: 'Registration',
     finished: 'Results',

@@ -14,6 +14,7 @@ interface StageRow {
   title_en: string | null;
   track: string | null;
   starts_at: string | null;
+  battles_at: string | null;
   status: string;
 }
 
@@ -52,7 +53,11 @@ interface StageRow {
             </span>
             <h2>{{ title(s) }}</h2>
             <p class="subtle">{{ s.track ?? '' }}</p>
-            <p class="mono date">{{ s.starts_at ? (s.starts_at | date: 'dd.MM.yyyy · HH:mm') : ('road.soon' | transloco) }}</p>
+            @if (s.starts_at) {
+              <p class="mono date">{{ 'stage.qualShort' | transloco }} {{ s.starts_at | date: 'dd.MM · HH:mm' }}@if (s.battles_at) { <br />{{ 'stage.battlesShort' | transloco }} {{ s.battles_at | date: 'dd.MM · HH:mm' }} }</p>
+            } @else {
+              <p class="mono date">{{ 'road.soon' | transloco }}</p>
+            }
             @if (winners()[s.id]; as w) { <p class="winner">🏆 {{ w }}</p> }
             @if (s.status === 'registration') { <p class="cta">{{ 'stages.regOpen' | transloco }} →</p> }
             @if (s.status === 'qualifying' || s.status === 'battles') { <p class="cta">{{ 'home.next.watch' | transloco }} →</p> }
@@ -137,7 +142,7 @@ export class Stages implements OnInit {
   async pick(id: number) {
     this.loading.set(true);
     this.season.set(this.seasons().find((s) => s.id === id) ?? null);
-    const { data } = await supabase.from('stages').select('id, ord, title_ru, title_en, track, starts_at, status').eq('season_id', id).order('ord');
+    const { data } = await supabase.from('stages').select('id, ord, title_ru, title_en, track, starts_at, battles_at, status').eq('season_id', id).order('ord');
     const ids = (data ?? []).map((s) => s.id);
     const { data: w } = ids.length
       ? await supabase.from('stage_results').select('stage_id, pilot:profiles(nickname)').in('stage_id', ids).eq('stage_place', 1)
