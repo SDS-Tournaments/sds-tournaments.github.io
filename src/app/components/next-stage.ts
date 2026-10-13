@@ -240,7 +240,7 @@ const step = (level: number) => (Math.max(1, level) - 1) / (HYPE_STEPS.length - 
       color: var(--hc); font: 400 24px 'Russo One', var(--font); letter-spacing: 0.04em; text-transform: uppercase;
       text-shadow: 0 0 18px var(--hc); box-shadow: 0 0 30px -6px var(--hc);
       translate: -50% -50%; rotate: -8deg; opacity: 0;
-      animation: shout 5s cubic-bezier(0.3, 1.5, 0.5, 1) 0.6s infinite;
+      animation: shout 10s cubic-bezier(0.3, 1.5, 0.5, 1) 0.6s infinite;
     }
     /* 100+: без рамки, чуть шире карточки; пишется слева направо красным → вспыхивает белым → сильный глитч и тряска → исчезает */
     .shout.loud {
@@ -248,53 +248,53 @@ const step = (level: number) => (Math.max(1, level) - 1) / (HYPE_STEPS.length - 
       font: 400 40px 'Russo One', var(--font); letter-spacing: 0.02em;
       color: var(--hc); text-shadow: none;
       mask-image: linear-gradient(90deg, #000 46%, transparent 54%); mask-size: 260% 100%; mask-repeat: no-repeat;
-      animation: rage 5s linear 0.6s infinite;
+      animation: rage 10s linear 0.6s infinite;
     }
     /* во время глитча текст подменяется «сходящими с ума» вариантами (--g1…--g5 из glitchVars), --g0 — настоящий */
     .shout.loud::after {
       content: var(--g0); position: absolute; left: 0; top: 0; white-space: nowrap; color: #fff;
-      opacity: 0; animation: scram 5s steps(1) 0.6s infinite;
+      opacity: 0; animation: scram 10s steps(1) 0.6s infinite;
     }
     @keyframes scram {
-      0%, 37.9% { opacity: 0; translate: 0 0; text-shadow: none; }
-      38% { content: var(--g3); opacity: 1; translate: -8px -2px; text-shadow: 6px 0 #ff2e63, -6px 0 #08f7fe; }
-      39.5% { content: var(--g1); opacity: 1; translate: 8px 1px; text-shadow: 6px 0 #ff2e63, -6px 0 #08f7fe; }
-      41% { content: var(--g4); opacity: 1; translate: 3px -3px; text-shadow: 6px 0 #ff2e63, -6px 0 #08f7fe; }
-      42.5% { content: var(--g0); opacity: 1; translate: 4px -3px; text-shadow: 7px 0 #ff2e63, -7px 0 #08f7fe; }
-      44% { content: var(--g1); opacity: 1; translate: -10px 4px; text-shadow: 11px 0 #ff2e63, -11px 0 #08f7fe; }
-      45.5% { content: var(--g0); opacity: 1; translate: -1px 4px; text-shadow: 4px 0 #ff2e63, -4px 0 #08f7fe; }
-      47% { content: var(--g3); opacity: 1; translate: 4px -2px; text-shadow: 4px 0 #ff2e63, -4px 0 #08f7fe; }
-      48.5% { content: var(--g3); opacity: 1; translate: -6px 0px; text-shadow: 5px 0 #ff2e63, -5px 0 #08f7fe; }
-      50% { content: var(--g0); opacity: 1; translate: 6px -1px; text-shadow: 5px 0 #ff2e63, -5px 0 #08f7fe; }
-      51.5% { content: var(--g0); opacity: 1; translate: 9px -2px; text-shadow: 10px 0 #ff2e63, -10px 0 #08f7fe; }
-      53% { content: var(--g2); opacity: 1; translate: 2px -1px; text-shadow: 9px 0 #ff2e63, -9px 0 #08f7fe; }
-      54.5% { content: var(--g1); opacity: 1; translate: -6px 0px; text-shadow: 3px 0 #ff2e63, -3px 0 #08f7fe; }
-      56% { content: var(--g0); opacity: 1; translate: -2px 1px; text-shadow: 8px 0 #ff2e63, -8px 0 #08f7fe; }
-      57.5% { content: var(--g2); opacity: 1; translate: -1px 0px; text-shadow: 6px 0 #ff2e63, -6px 0 #08f7fe; }
-      59% { content: var(--g3); opacity: 1; translate: -1px -2px; text-shadow: 4px 0 #ff2e63, -4px 0 #08f7fe; }
-      60.5% { content: var(--g1); opacity: 1; translate: -5px 2px; text-shadow: 10px 0 #ff2e63, -10px 0 #08f7fe; }
-      62% { content: var(--g5); opacity: 1; translate: 8px 2px; text-shadow: 8px 0 #ff2e63, -8px 0 #08f7fe; }
-      63.5% { content: var(--g1); opacity: 1; translate: -4px -1px; text-shadow: 4px 0 #ff2e63, -4px 0 #08f7fe; }
-      65% { content: var(--g4); opacity: 0.25; translate: 5px -2px; text-shadow: 11px 0 #ff2e63, -11px 0 #08f7fe; }
-      66.5% { content: var(--g3); opacity: 0.25; translate: -1px -3px; text-shadow: 11px 0 #ff2e63, -11px 0 #08f7fe; }
-      68% { content: var(--g3); opacity: 1; translate: -1px -3px; text-shadow: 9px 0 #ff2e63, -9px 0 #08f7fe; }
-      69.5% { content: var(--g1); opacity: 1; translate: -8px 2px; text-shadow: 8px 0 #ff2e63, -8px 0 #08f7fe; }
-      71% { content: var(--g2); opacity: 0.25; translate: 7px -3px; text-shadow: 2px 0 #ff2e63, -2px 0 #08f7fe; }
-      72%, 100% { opacity: 0; content: var(--g0); }
+      0%, 18.95% { opacity: 0; translate: 0 0; text-shadow: none; }
+      19% { content: var(--g3); opacity: 1; translate: -8px -2px; text-shadow: 6px 0 #ff2e63, -6px 0 #08f7fe; }
+      19.75% { content: var(--g1); opacity: 1; translate: 8px 1px; text-shadow: 6px 0 #ff2e63, -6px 0 #08f7fe; }
+      20.5% { content: var(--g4); opacity: 1; translate: 3px -3px; text-shadow: 6px 0 #ff2e63, -6px 0 #08f7fe; }
+      21.25% { content: var(--g0); opacity: 1; translate: 4px -3px; text-shadow: 7px 0 #ff2e63, -7px 0 #08f7fe; }
+      22% { content: var(--g1); opacity: 1; translate: -10px 4px; text-shadow: 11px 0 #ff2e63, -11px 0 #08f7fe; }
+      22.75% { content: var(--g0); opacity: 1; translate: -1px 4px; text-shadow: 4px 0 #ff2e63, -4px 0 #08f7fe; }
+      23.5% { content: var(--g3); opacity: 1; translate: 4px -2px; text-shadow: 4px 0 #ff2e63, -4px 0 #08f7fe; }
+      24.25% { content: var(--g3); opacity: 1; translate: -6px 0px; text-shadow: 5px 0 #ff2e63, -5px 0 #08f7fe; }
+      25% { content: var(--g0); opacity: 1; translate: 6px -1px; text-shadow: 5px 0 #ff2e63, -5px 0 #08f7fe; }
+      25.75% { content: var(--g0); opacity: 1; translate: 9px -2px; text-shadow: 10px 0 #ff2e63, -10px 0 #08f7fe; }
+      26.5% { content: var(--g2); opacity: 1; translate: 2px -1px; text-shadow: 9px 0 #ff2e63, -9px 0 #08f7fe; }
+      27.25% { content: var(--g1); opacity: 1; translate: -6px 0px; text-shadow: 3px 0 #ff2e63, -3px 0 #08f7fe; }
+      28% { content: var(--g0); opacity: 1; translate: -2px 1px; text-shadow: 8px 0 #ff2e63, -8px 0 #08f7fe; }
+      28.75% { content: var(--g2); opacity: 1; translate: -1px 0px; text-shadow: 6px 0 #ff2e63, -6px 0 #08f7fe; }
+      29.5% { content: var(--g3); opacity: 1; translate: -1px -2px; text-shadow: 4px 0 #ff2e63, -4px 0 #08f7fe; }
+      30.25% { content: var(--g1); opacity: 1; translate: -5px 2px; text-shadow: 10px 0 #ff2e63, -10px 0 #08f7fe; }
+      31% { content: var(--g5); opacity: 1; translate: 8px 2px; text-shadow: 8px 0 #ff2e63, -8px 0 #08f7fe; }
+      31.75% { content: var(--g1); opacity: 1; translate: -4px -1px; text-shadow: 4px 0 #ff2e63, -4px 0 #08f7fe; }
+      32.5% { content: var(--g4); opacity: 0.25; translate: 5px -2px; text-shadow: 11px 0 #ff2e63, -11px 0 #08f7fe; }
+      33.25% { content: var(--g3); opacity: 0.25; translate: -1px -3px; text-shadow: 11px 0 #ff2e63, -11px 0 #08f7fe; }
+      34% { content: var(--g3); opacity: 1; translate: -1px -3px; text-shadow: 9px 0 #ff2e63, -9px 0 #08f7fe; }
+      34.75% { content: var(--g1); opacity: 1; translate: -8px 2px; text-shadow: 8px 0 #ff2e63, -8px 0 #08f7fe; }
+      35.5% { content: var(--g2); opacity: 0.25; translate: 7px -3px; text-shadow: 2px 0 #ff2e63, -2px 0 #08f7fe; }
+      36%, 100% { opacity: 0; content: var(--g0); }
     }
     @keyframes rage {
       0% { opacity: 1; mask-position: 100% 0; color: var(--hc); }
-      34% { mask-position: 0 0; color: var(--hc); }
-      36% { color: #fff; }
-      37.9% { color: #fff; }
-      38%, 71.9% { color: transparent; mask-position: 0 0; opacity: 1; }
-      72%, 100% { opacity: 0; mask-position: 0 0; color: transparent; }
+      17% { mask-position: 0 0; color: var(--hc); }
+      18% { color: #fff; }
+      18.95% { color: #fff; }
+      19%, 35.95% { color: transparent; mask-position: 0 0; opacity: 1; }
+      36%, 100% { opacity: 0; mask-position: 0 0; color: transparent; }
     }
     @keyframes shout {
       0% { opacity: 0; scale: 2.4; }
-      8% { opacity: 1; scale: 1; }
-      60% { opacity: 1; scale: 1; }
-      70%, 100% { opacity: 0; scale: 0.9; }
+      4% { opacity: 1; scale: 1; }
+      30% { opacity: 1; scale: 1; }
+      35%, 100% { opacity: 0; scale: 0.9; }
     }
     /* 7: «эхо» — копии рамки разъезжаются из-под карточки, как колода */
     .echo {
@@ -391,7 +391,7 @@ export class NextStage {
   private readonly shout10 = toSignal(inject(TranslocoService).selectTranslate('home.next.shout10'), { initialValue: '' });
   protected readonly glitchVars = computed(() => {
     const text = this.shout10();
-    const junk = '#@%&$!¥₿▓▒░█¿¡ЖЮЩ0137';
+    const junk = '#@%&$!¥₿▓▒░█¿¡§∆0137'; // без букв — одинаково для RU и EN
     const vars: Record<string, string> = { '--g0': JSON.stringify(text) };
     for (let v = 1; v <= 5; v++) {
       const out = [...text].map((ch, i) => (ch !== ' ' && (i * 7 + v * 13) % 10 < 4 ? junk[(i * 11 + v * 5) % junk.length] : ch)).join('');
