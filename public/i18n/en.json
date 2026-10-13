@@ -45,7 +45,8 @@
       "hype": "Round hype",
       "hypeNext": "{{n}} more {{w}} to reach level {{l}}",
       "pilots": { "one": "pilot", "few": "pilots", "many": "pilots" },
-      "hypeMax": "Sold out! Max hype 🔥"
+      "hypeMax": "Sold out! Max hype 🔥",
+      "tier": {"5":"🔥 Hot","6":"🌶 Spicy","7":"⚡ Blazing","8":"☄️ On fire","9":"🚀 Top round","10":"👑 Sold out"}
     },
     "leaders": "Season leaders",
     "pilots": "Drivers",
