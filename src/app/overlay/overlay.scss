@@ -11,10 +11,11 @@
   font-family: var(--font);
   color: #fff;
 }
+/* превью в пульте: светлый «игровой» фон (небо → асфальт), чтобы тёмные плашки было хорошо видно */
 .screen.preview {
   background:
-    radial-gradient(60% 60% at 70% 30%, rgba(10, 186, 181, 0.12), transparent 70%),
-    repeating-linear-gradient(135deg, #0d0d0d 0 40px, #101010 40px 80px);
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.035) 0 40px, transparent 40px 80px),
+    linear-gradient(180deg, #8a97a1 0%, #67727a 50%, #474e53 100%);
 }
 
 .w {
@@ -1140,10 +1141,6 @@
   box-shadow: inset 3px 0 0 var(--red);
   animation: fail-in 400ms var(--ease-out) both;
   > * { position: relative; }
-  .ic {
-    font-size: 30px;
-    line-height: 1;
-  }
   .word {
     flex: 1;
     min-width: 0;
@@ -1167,11 +1164,7 @@
 
 /* спин: значок раскручивается, слово «заносит» влево-вправо */
 .score .fail[data-fail='spin'] {
-  .ic { animation: f-spin 1s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
   .word { animation: f-skid 900ms ease-out 150ms both; }
-}
-@keyframes f-spin {
-  from { opacity: 0; transform: rotate(-360deg) scale(0.6); }
 }
 @keyframes f-skid {
   from { opacity: 0; transform: translateX(-12px) skewX(-10deg); }
@@ -1191,7 +1184,6 @@
     animation: f-flash 600ms ease-out both;
     pointer-events: none;
   }
-  .ic { animation: f-boom 600ms var(--ease-spring) both; }
 }
 @keyframes f-shake {
   0%, 100% { transform: translateX(0); }
@@ -1203,13 +1195,9 @@
   from { opacity: 1; }
   to { opacity: 0; }
 }
-@keyframes f-boom {
-  from { opacity: 0; transform: scale(1.6); }
-}
 
 /* выпрямление: всё «проезжает» по прямой, за словом тянется шлейф */
 .score .fail[data-fail='straight'] {
-  .ic { animation: f-straight 600ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
   .word { animation: f-straight 700ms cubic-bezier(0.2, 0.8, 0.2, 1) 80ms both; }
   &::after {
     content: '';
@@ -1235,11 +1223,7 @@
 
 /* вылет: значок вылетает сверху и подпрыгивает, слово трясёт как на кочках */
 .score .fail[data-fail='offtrack'] {
-  .ic { animation: f-bounce 900ms cubic-bezier(0.3, 1.6, 0.5, 1) both; }
   .word { animation: f-bumpy 900ms ease-out 120ms both; }
-}
-@keyframes f-bounce {
-  from { opacity: 0; transform: translate(10px, -24px) rotate(20deg); }
 }
 @keyframes f-bumpy {
   from { opacity: 0; transform: rotate(-3deg) translateY(-4px); }
