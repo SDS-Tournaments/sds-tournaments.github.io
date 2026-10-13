@@ -231,6 +231,8 @@ const step = (level: number) => (Math.max(1, level) - 1) / (HYPE_STEPS.length - 
       to { transform: scaleY(1.12) scaleX(1.04); opacity: 0.95; }
     }
     /* ── геометрия хайпа ── */
+    /* цвета расслоения в глитчах — из темы и уровня, а не «киберпанковые» */
+    :host { --gA: var(--hc); --gB: color-mix(in oklab, var(--primary), #fff 25%); }
     /* 5: острые углы, рамка толще, карточка крупнее */
     :host(.g5) { border-radius: 0; border-width: 2px; scale: 1.03; transition: border-radius 600ms var(--ease-out), scale 600ms var(--ease-out); }
     /* 9–10: надпись-штамп поверх карточки: впечатывается, держится, пропадает и снова */
@@ -252,34 +254,34 @@ const step = (level: number) => (Math.max(1, level) - 1) / (HYPE_STEPS.length - 
     }
     /* во время глитча текст подменяется «сходящими с ума» вариантами (--g1…--g5 из glitchVars), --g0 — настоящий */
     .shout.loud::after {
-      content: var(--g0); position: absolute; left: 0; top: 0; white-space: nowrap; color: #fff;
+      content: var(--g0); position: absolute; left: 0; top: 0; white-space: nowrap; color: color-mix(in oklab, var(--hc), #fff 70%);
       opacity: 0; animation: scram 10s steps(1) 0.6s infinite;
     }
     @keyframes scram {
       0%, 18.95% { opacity: 0; translate: 0 0; text-shadow: none; }
-      19% { content: var(--g3); opacity: 1; translate: -8px -2px; text-shadow: 6px 0 #ff2e63, -6px 0 #08f7fe; }
-      19.75% { content: var(--g1); opacity: 1; translate: 8px 1px; text-shadow: 6px 0 #ff2e63, -6px 0 #08f7fe; }
-      20.5% { content: var(--g4); opacity: 1; translate: 3px -3px; text-shadow: 6px 0 #ff2e63, -6px 0 #08f7fe; }
-      21.25% { content: var(--g0); opacity: 1; translate: 4px -3px; text-shadow: 7px 0 #ff2e63, -7px 0 #08f7fe; }
-      22% { content: var(--g1); opacity: 1; translate: -10px 4px; text-shadow: 11px 0 #ff2e63, -11px 0 #08f7fe; }
-      22.75% { content: var(--g0); opacity: 1; translate: -1px 4px; text-shadow: 4px 0 #ff2e63, -4px 0 #08f7fe; }
-      23.5% { content: var(--g3); opacity: 1; translate: 4px -2px; text-shadow: 4px 0 #ff2e63, -4px 0 #08f7fe; }
-      24.25% { content: var(--g3); opacity: 1; translate: -6px 0px; text-shadow: 5px 0 #ff2e63, -5px 0 #08f7fe; }
-      25% { content: var(--g0); opacity: 1; translate: 6px -1px; text-shadow: 5px 0 #ff2e63, -5px 0 #08f7fe; }
-      25.75% { content: var(--g0); opacity: 1; translate: 9px -2px; text-shadow: 10px 0 #ff2e63, -10px 0 #08f7fe; }
-      26.5% { content: var(--g2); opacity: 1; translate: 2px -1px; text-shadow: 9px 0 #ff2e63, -9px 0 #08f7fe; }
-      27.25% { content: var(--g1); opacity: 1; translate: -6px 0px; text-shadow: 3px 0 #ff2e63, -3px 0 #08f7fe; }
-      28% { content: var(--g0); opacity: 1; translate: -2px 1px; text-shadow: 8px 0 #ff2e63, -8px 0 #08f7fe; }
-      28.75% { content: var(--g2); opacity: 1; translate: -1px 0px; text-shadow: 6px 0 #ff2e63, -6px 0 #08f7fe; }
-      29.5% { content: var(--g3); opacity: 1; translate: -1px -2px; text-shadow: 4px 0 #ff2e63, -4px 0 #08f7fe; }
-      30.25% { content: var(--g1); opacity: 1; translate: -5px 2px; text-shadow: 10px 0 #ff2e63, -10px 0 #08f7fe; }
-      31% { content: var(--g5); opacity: 1; translate: 8px 2px; text-shadow: 8px 0 #ff2e63, -8px 0 #08f7fe; }
-      31.75% { content: var(--g1); opacity: 1; translate: -4px -1px; text-shadow: 4px 0 #ff2e63, -4px 0 #08f7fe; }
-      32.5% { content: var(--g4); opacity: 0.25; translate: 5px -2px; text-shadow: 11px 0 #ff2e63, -11px 0 #08f7fe; }
-      33.25% { content: var(--g3); opacity: 0.25; translate: -1px -3px; text-shadow: 11px 0 #ff2e63, -11px 0 #08f7fe; }
-      34% { content: var(--g3); opacity: 1; translate: -1px -3px; text-shadow: 9px 0 #ff2e63, -9px 0 #08f7fe; }
-      34.75% { content: var(--g1); opacity: 1; translate: -8px 2px; text-shadow: 8px 0 #ff2e63, -8px 0 #08f7fe; }
-      35.5% { content: var(--g2); opacity: 0.25; translate: 7px -3px; text-shadow: 2px 0 #ff2e63, -2px 0 #08f7fe; }
+      19% { content: var(--g3); opacity: 1; translate: -8px -2px; text-shadow: 6px 0 var(--gA), -6px 0 var(--gB); }
+      19.75% { content: var(--g1); opacity: 1; translate: 8px 1px; text-shadow: 6px 0 var(--gA), -6px 0 var(--gB); }
+      20.5% { content: var(--g4); opacity: 1; translate: 3px -3px; text-shadow: 6px 0 var(--gA), -6px 0 var(--gB); }
+      21.25% { content: var(--g0); opacity: 1; translate: 4px -3px; text-shadow: 7px 0 var(--gA), -7px 0 var(--gB); }
+      22% { content: var(--g1); opacity: 1; translate: -10px 4px; text-shadow: 11px 0 var(--gA), -11px 0 var(--gB); }
+      22.75% { content: var(--g0); opacity: 1; translate: -1px 4px; text-shadow: 4px 0 var(--gA), -4px 0 var(--gB); }
+      23.5% { content: var(--g3); opacity: 1; translate: 4px -2px; text-shadow: 4px 0 var(--gA), -4px 0 var(--gB); }
+      24.25% { content: var(--g3); opacity: 1; translate: -6px 0px; text-shadow: 5px 0 var(--gA), -5px 0 var(--gB); }
+      25% { content: var(--g0); opacity: 1; translate: 6px -1px; text-shadow: 5px 0 var(--gA), -5px 0 var(--gB); }
+      25.75% { content: var(--g0); opacity: 1; translate: 9px -2px; text-shadow: 10px 0 var(--gA), -10px 0 var(--gB); }
+      26.5% { content: var(--g2); opacity: 1; translate: 2px -1px; text-shadow: 9px 0 var(--gA), -9px 0 var(--gB); }
+      27.25% { content: var(--g1); opacity: 1; translate: -6px 0px; text-shadow: 3px 0 var(--gA), -3px 0 var(--gB); }
+      28% { content: var(--g0); opacity: 1; translate: -2px 1px; text-shadow: 8px 0 var(--gA), -8px 0 var(--gB); }
+      28.75% { content: var(--g2); opacity: 1; translate: -1px 0px; text-shadow: 6px 0 var(--gA), -6px 0 var(--gB); }
+      29.5% { content: var(--g3); opacity: 1; translate: -1px -2px; text-shadow: 4px 0 var(--gA), -4px 0 var(--gB); }
+      30.25% { content: var(--g1); opacity: 1; translate: -5px 2px; text-shadow: 10px 0 var(--gA), -10px 0 var(--gB); }
+      31% { content: var(--g5); opacity: 1; translate: 8px 2px; text-shadow: 8px 0 var(--gA), -8px 0 var(--gB); }
+      31.75% { content: var(--g1); opacity: 1; translate: -4px -1px; text-shadow: 4px 0 var(--gA), -4px 0 var(--gB); }
+      32.5% { content: var(--g4); opacity: 0.25; translate: 5px -2px; text-shadow: 11px 0 var(--gA), -11px 0 var(--gB); }
+      33.25% { content: var(--g3); opacity: 0.25; translate: -1px -3px; text-shadow: 11px 0 var(--gA), -11px 0 var(--gB); }
+      34% { content: var(--g3); opacity: 1; translate: -1px -3px; text-shadow: 9px 0 var(--gA), -9px 0 var(--gB); }
+      34.75% { content: var(--g1); opacity: 1; translate: -8px 2px; text-shadow: 8px 0 var(--gA), -8px 0 var(--gB); }
+      35.5% { content: var(--g2); opacity: 0.25; translate: 7px -3px; text-shadow: 2px 0 var(--gA), -2px 0 var(--gB); }
       36%, 100% { opacity: 0; content: var(--g0); }
     }
     /* светлая тема LEGEND: надписи тёмные на светлом — белое там не видно */
@@ -311,9 +313,9 @@ const step = (level: number) => (Math.max(1, level) - 1) / (HYPE_STEPS.length - 
     :host(.g8) .title, :host(.g8) .num { display: inline-block; animation: glitch 2.8s steps(1) infinite; }
     @keyframes glitch {
       0%, 86%, 100% { transform: none; text-shadow: none; }
-      88% { transform: translate(-4px, 1px) skewX(-10deg); text-shadow: 3px 0 #ff2e63, -3px 0 #08f7fe; }
-      91% { transform: translate(4px, -1px); text-shadow: -4px 0 #ff2e63, 4px 0 #08f7fe; }
-      94% { transform: translate(-2px, 0) skewX(6deg); text-shadow: 2px 0 #ff2e63, -2px 0 #08f7fe; }
+      88% { transform: translate(-4px, 1px) skewX(-10deg); text-shadow: 3px 0 var(--gA), -3px 0 var(--gB); }
+      91% { transform: translate(4px, -1px); text-shadow: -4px 0 var(--gA), 4px 0 var(--gB); }
+      94% { transform: translate(-2px, 0) skewX(6deg); text-shadow: 2px 0 var(--gA), -2px 0 var(--gB); }
       97% { transform: translate(1px, 0); text-shadow: none; }
     }
     /* 9: уголки-прицелы «захватывают» карточку снаружи */
@@ -395,7 +397,7 @@ export class NextStage {
   private readonly shout10 = toSignal(inject(TranslocoService).selectTranslate('home.next.shout10'), { initialValue: '' });
   protected readonly glitchVars = computed(() => {
     const text = this.shout10();
-    const junk = '#@%&$!¥₿▓▒░█¿¡§∆0137'; // без букв — одинаково для RU и EN
+    const junk = '#@%&$!?/<>*+=0137'; // без букв (одинаково для RU и EN) и только из шрифта надписи
     const vars: Record<string, string> = { '--g0': JSON.stringify(text) };
     for (let v = 1; v <= 5; v++) {
       const out = [...text].map((ch, i) => (ch !== ' ' && (i * 7 + v * 13) % 10 < 4 ? junk[(i * 11 + v * 5) % junk.length] : ch)).join('');
