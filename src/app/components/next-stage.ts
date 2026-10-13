@@ -35,10 +35,18 @@ const step = (level: number) => (Math.max(1, level) - 1) / 6;
       <h2 class="title">{{ s }}</h2>
       <!-- этап в два дня: квалификация и парные -->
       @if (startsAt()) {
-        <p class="days mono">
-          <span [class.past]="status() === 'qual_done'">{{ 'home.next.day1' | transloco }} · {{ startsAt() | date: 'dd.MM HH:mm' }}</span>
-          @if (battlesAt()) { <span>{{ 'home.next.day2' | transloco }} · {{ battlesAt() | date: 'dd.MM HH:mm' }}</span> }
-        </p>
+        <div class="days" [class.one]="!battlesAt()">
+          <div class="day" [class.past]="status() === 'qual_done'">
+            <span class="dl">{{ 'home.next.day1' | transloco }}@if (status() === 'qual_done') { ✓ }</span>
+            <span class="dv mono"><b>{{ startsAt() | date: 'dd.MM' }}</b> {{ startsAt() | date: 'HH:mm' }}</span>
+          </div>
+          @if (battlesAt(); as b) {
+            <div class="day">
+              <span class="dl">{{ 'home.next.day2' | transloco }}</span>
+              <span class="dv mono"><b>{{ b | date: 'dd.MM' }}</b> {{ b | date: 'HH:mm' }}</span>
+            </div>
+          }
+        </div>
       }
       @if (status() === 'qual_done') { <p class="eyebrow wait">{{ 'home.next.untilBattles' | transloco }}</p> }
 
@@ -134,8 +142,14 @@ const step = (level: number) => (Math.max(1, level) - 1) / 6;
     }
     .lbl { color: var(--ink-muted); font-size: 14px; }
     .soon { margin: 0; color: var(--ink-muted); }
-    .days { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: -8px 0 0; font-size: 12px; color: var(--ink-muted); }
-    .days .past { text-decoration: line-through; opacity: 0.6; }
+    /* расписание этапа: две плитки «День 1 / День 2» */
+    .days { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: -6px; }
+    .days.one { grid-template-columns: 1fr; }
+    .day { display: grid; gap: 4px; padding: 10px 12px; border: 1px solid var(--hairline-strong); border-radius: var(--r-md); background: var(--surface-1); }
+    .dl { font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--primary); }
+    .dv { font-size: 13px; color: var(--ink-muted); }
+    .dv b { font-size: 18px; font-weight: 500; color: var(--ink); margin-right: 4px; }
+    .day.past { opacity: 0.5; }
     .wait { margin: -6px 0 0; }
 
     /* Хайп: рамка, свечение и число — цветом уровня; пульс чаще с ростом уровня */
