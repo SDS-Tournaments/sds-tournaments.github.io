@@ -45,7 +45,7 @@
       "hype": "Round hype",
       "hypeNext": "{{n}} more {{w}} to reach level {{l}}",
       "pilots": { "one": "pilot", "few": "pilots", "many": "pilots" },
-      "hypeMax": "Maximum hype! 🔥"
+      "hypeMax": "Sold out! Max hype 🔥"
     },
     "leaders": "Season leaders",
     "pilots": "Drivers",

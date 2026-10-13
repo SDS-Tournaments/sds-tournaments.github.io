@@ -2,13 +2,12 @@ import { Component, computed, DestroyRef, effect, inject, input, signal, untrack
 import { DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
-import { hype } from './hype';
+import { hype, HYPE_STEPS } from './hype';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
-/** Цвет уровня: 1 — голубой, 7 — ярко-розово-фиолетовый */
-/** доля уровня 0…1 (1-й уровень — 0, 7-й — 1); сам оттенок задаёт тема: --hype-h0 и --hype-span */
-const step = (level: number) => (Math.max(1, level) - 1) / 6;
+/** доля уровня 0…1 (1-й уровень — 0, последний — 1); сам оттенок задаёт тема: --hype-h0 и --hype-span */
+const step = (level: number) => (Math.max(1, level) - 1) / (HYPE_STEPS.length - 1);
 
 // Карточка ближайшего этапа: таймер до старта + сколько пилотов уже записалось.
 // «Хайп»: чем больше записавшихся, тем ярче свечение и чаще пульсация карточки (уровни — hype.ts)
@@ -19,13 +18,24 @@ const step = (level: number) => (Math.max(1, level) - 1) / 6;
     '[class.hype]': 'hypeOn() && hy().level > 0',
     '[class.r2]': 'hypeOn() && hy().level >= 3',
     '[class.r3]': 'hypeOn() && hy().level >= 5',
+    '[class.r4]': 'hypeOn() && hy().level >= 8',
+    '[class.r5]': 'hypeOn() && hy().level >= 9',
+    '[class.max]': 'hypeOn() && hy().level >= 10',
     '[style.--hc]': 'color(hy().level, 0.95)',
     '[style.--hg]': 'color(hy().level, 0.18 + hy().level * 0.07)',
-    '[style.--hr]': '10 + hy().level * 5 + "px"',
-    '[style.--hs]': '3.4 - (hy().level - 1) * 0.38 + "s"',
+    '[style.--hr]': '10 + hy().level * 4 + "px"',
+    '[style.--hs]': '3.4 - (hy().level - 1) * 0.27 + "s"',
   },
   template: `
     <i class="hglow" aria-hidden="true"></i>
+    <!-- 8+: по рамке бежит комета · 9+: со дна поднимаются искры · 10: пламя и тряска (аншлаг) -->
+    @if (hypeOn() && hy().level >= 8) { <i class="orbit" aria-hidden="true"></i> }
+    @if (hypeOn() && hy().level >= 9) {
+      <span class="sparks" aria-hidden="true">
+        @for (k of sparks; track k.x) { <i [style.left.%]="k.x" [style.--dl.s]="k.d" [style.--du.s]="k.t" [style.--dx.px]="k.dx"></i> }
+      </span>
+    }
+    @if (hypeOn() && hy().level >= 10) { <i class="flames" aria-hidden="true"></i> }
     @if (stage(); as s) {
       @if (live()) {
         <p class="eyebrow live"><span class="dot"></span>LIVE · {{ 'home.next.' + status() | transloco }}</p>
@@ -170,16 +180,68 @@ const step = (level: number) => (Math.max(1, level) - 1) / 6;
     :host(.r3)::after { animation-delay: calc(var(--hs) / -2); }
     @keyframes hype-ring { from { opacity: 0.8; transform: scale(1); } to { opacity: 0; transform: scale(1.09); } }
 
+    /* 8+: комета по рамке — вращается слой с коническим градиентом, видна только полоска рамки */
+    .orbit {
+      position: absolute; inset: -1px; z-index: -1; border-radius: inherit; padding: 3px; overflow: hidden; pointer-events: none;
+      mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+    }
+    .orbit::before {
+      content: ''; position: absolute; left: 50%; top: 50%; width: 200%; aspect-ratio: 1; translate: -50% -50%;
+      background: conic-gradient(transparent 0 25%, var(--hc) 44%, #fff 49%, transparent 50% 75%, var(--hc) 94%, #fff 99%, transparent 100%);
+      animation: orbit calc(var(--hs) * 1.6) linear infinite;
+    }
+    @keyframes orbit { to { rotate: 360deg; } }
+
+    /* 9+: искры поднимаются со дна карточки */
+    .sparks { position: absolute; inset: 0; z-index: -1; overflow: visible; pointer-events: none; }
+    .sparks i {
+      position: absolute; bottom: 4px; width: 4px; height: 4px; border-radius: 50%;
+      background: var(--hc); box-shadow: 0 0 8px var(--hc), 0 0 2px #fff;
+      opacity: 0; animation: spark var(--du) ease-out var(--dl) infinite;
+    }
+    @keyframes spark {
+      0% { opacity: 0; transform: translate(0, 0) scale(0.6); }
+      15% { opacity: 1; }
+      100% { opacity: 0; transform: translate(var(--dx), -150px) scale(1.2); }
+    }
+
+    /* 10: аншлаг — пламя снизу, карточку встряхивает, число пульсирует */
+    .flames {
+      position: absolute; left: 0; right: 0; bottom: 0; height: 55%; z-index: -1; border-radius: inherit; pointer-events: none;
+      background:
+        radial-gradient(70% 90% at 50% 100%, color-mix(in oklab, var(--hc), #ff8a3d 50%), transparent 72%),
+        radial-gradient(40% 70% at 18% 100%, var(--hc), transparent 72%),
+        radial-gradient(40% 70% at 82% 100%, var(--hc), transparent 72%);
+      opacity: 0.8; transform-origin: bottom;
+      animation: flame 0.9s ease-in-out infinite alternate;
+    }
+    @keyframes flame {
+      from { transform: scaleY(0.82) scaleX(1); opacity: 0.6; }
+      to { transform: scaleY(1.12) scaleX(1.04); opacity: 0.95; }
+    }
+    :host(.max) { animation: hype-shake 2.6s ease-in-out infinite; }
+    @keyframes hype-shake {
+      0%, 76%, 100% { transform: translate(0, 0) rotate(0); }
+      79% { transform: translate(-3px, 1px) rotate(-0.6deg); }
+      82% { transform: translate(3px, -1px) rotate(0.6deg); }
+      85% { transform: translate(-2px, 1px) rotate(-0.4deg); }
+      88% { transform: translate(2px, 0) rotate(0.3deg); }
+      91% { transform: translate(-1px, 0); }
+    }
+    :host(.max) .num { display: inline-block; animation: num-pump 1.3s ease-in-out infinite; }
+    @keyframes num-pump { 50% { transform: scale(1.12); text-shadow: 0 0 40px var(--hc); } }
+
     .hype-bar { display: grid; gap: 8px; }
     .hb-top { display: flex; justify-content: space-between; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ink-subtle); }
     .hb-top .mono { color: var(--hc, var(--ink-muted)); }
-    .segs { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+    .segs { display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px; }
     .seg { height: 6px; border-radius: 3px; background: var(--surface-3); overflow: hidden; }
     .seg b { display: block; height: 100%; background: var(--sc); box-shadow: 0 0 8px var(--sc); }
     .hb-note { margin: 0; font-size: 12px; color: var(--ink-muted); }
 
     @media (prefers-reduced-motion: reduce) {
-      :host(.hype) .hglow, :host(.r2)::before, :host(.r3)::after, .live .dot::after { animation: none; }
+      :host(.hype) .hglow, :host(.r2)::before, :host(.r3)::after, .live .dot::after,
+      .orbit::before, .sparks i, .flames, :host(.max), :host(.max) .num { animation: none; }
     }
     .live { display: flex; align-items: center; gap: 8px; color: var(--error); }
     .live .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--error); }
@@ -206,7 +268,14 @@ export class NextStage {
   protected segFill(i: number) {
     return Math.min(1, Math.max(0, this.fillPos() - i)) * 100;
   }
-  protected readonly segs = [0, 1, 2, 3, 4, 5, 6];
+  protected readonly segs = HYPE_STEPS.map((_, i) => i);
+  /** искры: где вылетают, задержка, время полёта, снос вбок */
+  protected readonly sparks = Array.from({ length: 12 }, (_, i) => ({
+    x: 4 + ((i * 37) % 92),
+    d: ((i * 0.53) % 2.4).toFixed(2),
+    t: (1.6 + ((i * 0.31) % 1.2)).toFixed(2),
+    dx: ((i * 13) % 30) - 15,
+  }));
   /** форма слова «пилот» для числа: one (1, 21), few (2–4, 22–24), many (5–20, 25…) */
   protected plural(n: number) {
     const d = n % 10, h = n % 100;

@@ -115,7 +115,8 @@ export class UiShowcase {
     ovr,
     rank: ovr === null ? 'unrated' : tierOf(ovr),
   }));
-  protected readonly hypeCounts = [3, 7, 12, 17, 25, 35, 45, 60];
+  /** по одному числу на каждый уровень хайпа 0…10 */
+  protected readonly hypeCounts = [3, 7, 12, 17, 25, 35, 45, 58, 72, 90, 120];
   protected readonly soon = new Date(Date.now() + 19 * 86_400_000);
   protected readonly taken = new Map([7, 13, 21, 69, 88, 99, 101].map((n) => [n, `Pilot ${n}`] as [number, string]));
 }
