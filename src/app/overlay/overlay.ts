@@ -352,7 +352,7 @@ export class Overlay implements OnInit {
   protected readonly top = computed(() => this.qualAll().slice(0, 10));
 
   /** «Итог» набегает от 0 до значения при каждой новой оценке */
-  protected readonly scoreShown = signal(0);
+  protected readonly scoreShown = signal('0');
   /** заезд вывел пилота на 1-е место квалификации */
   protected readonly newLeader = computed(() => {
     const r = this.lastRun();
@@ -485,9 +485,11 @@ export class Overlay implements OnInit {
       const target = this.lastRun()?.total ?? 0;
       const start = performance.now();
       const tick = (t: number) => {
-        // 1.6 с с плавным замедлением; по дороге — целые числа (без мелькания десятых), точное значение — в конце
-        const p = Math.min(1, (t - start) / 1600);
-        this.scoreShown.set(p < 1 ? Math.round(target * (1 - (1 - p) ** 4)) : target);
+        // 2 с, сильное плавное торможение к концу (ease-out quint); если в итоге есть десятые —
+        // считаем десятыми с самого начала: последние шаги по 0.1, без скачков и смены формата
+        const p = Math.min(1, (t - start) / 2000);
+        const digits = Number.isInteger(target) ? 0 : 1;
+        this.scoreShown.set((target * (1 - (1 - p) ** 5)).toFixed(digits));
         if (p < 1) raf = requestAnimationFrame(tick);
       };
       let raf = requestAnimationFrame(tick);
