@@ -5,8 +5,9 @@ import { createClient, Session } from '@supabase/supabase-js';
 import { filter, firstValueFrom } from 'rxjs';
 import type { Legacy } from './scoring/scoring';
 import { SUPABASE_KEY, SUPABASE_URL } from './supabase.config';
+import { trackedFetch } from './boot';
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, { global: { fetch: trackedFetch } });
 
 export interface Profile {
   id: string;

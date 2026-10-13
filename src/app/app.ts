@@ -1,6 +1,8 @@
 import { Component, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { filter, take } from 'rxjs';
+import { finishBoot } from './boot';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { Auth, supabase } from './auth';
 import { ProtestBell } from './components/protest-bell';
@@ -42,6 +44,8 @@ export class App {
 
   constructor() {
     this.transloco.langChanges$.subscribe((l) => (document.documentElement.lang = l));
+    // загрузочный экран «SAD» уходит, когда первая страница открылась и её запросы к базе вернулись
+    inject(Router).events.pipe(filter((e) => e instanceof NavigationEnd), take(1)).subscribe(() => finishBoot());
     if (!this.bare) this.live.start();
     if (!this.bare)
       supabase
