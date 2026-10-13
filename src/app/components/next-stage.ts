@@ -241,28 +241,28 @@ const step = (level: number) => (Math.max(1, level) - 1) / (HYPE_STEPS.length - 
       translate: -50% -50%; rotate: -8deg; opacity: 0;
       animation: shout 5s cubic-bezier(0.3, 1.5, 0.5, 1) 0.6s infinite;
     }
-    /* 100+: «дьявольская» надпись — без плашки, выжигается слева направо, тлеет углями и уходит в дым */
+    /* 100+: без рамки, чуть шире карточки; пишется слева направо красным → вспыхивает белым → сильный глитч и тряска → исчезает */
     .shout.loud {
-      padding: 0; border: 0; background: none; box-shadow: none; rotate: -4deg;
-      font: 400 34px 'Ruslan Display', 'Russo One', var(--font); letter-spacing: 0.05em;
-      color: #ff2a12; -webkit-text-stroke: 1px #ff7a2a;
-      text-shadow: 0 0 6px #ff6a00, 0 0 18px #c40000, 0 0 42px rgba(255, 0, 0, 0.55);
-      mask-image: linear-gradient(90deg, #000 45%, transparent 55%); mask-size: 260% 100%; mask-repeat: no-repeat;
-      animation: hell 4.4s ease-out 0.6s infinite, ember 0.16s steps(2) infinite;
+      padding: 0; border: 0; background: none; box-shadow: none; rotate: -5deg;
+      font: 400 40px 'Russo One', var(--font); letter-spacing: 0.02em;
+      color: var(--hc); text-shadow: 0 0 22px var(--hc);
+      mask-image: linear-gradient(90deg, #000 46%, transparent 54%); mask-size: 260% 100%; mask-repeat: no-repeat;
+      animation: rage 5s linear 0.6s infinite;
     }
-    /* дымка за надписью — без краёв, чтобы читалась поверх таймера */
-    .shout.loud::before {
-      content: ''; position: absolute; inset: -34px -46px; z-index: -1;
-      background: radial-gradient(closest-side, rgba(0, 0, 0, 0.92), rgba(20, 0, 0, 0.75) 55%, transparent);
+    @keyframes rage {
+      0% { opacity: 1; mask-position: 100% 0; color: var(--hc); }
+      34% { mask-position: 0 0; color: var(--hc); text-shadow: 0 0 22px var(--hc); translate: -50% -50%; }
+      40% { color: #fff; text-shadow: 0 0 30px #fff, 0 0 60px var(--hc); }
+      46% { translate: calc(-50% - 6px) calc(-50% + 2px); text-shadow: 4px 0 #ff2e63, -4px 0 #08f7fe, 0 0 30px #fff; }
+      50% { translate: calc(-50% + 7px) calc(-50% - 3px); text-shadow: -6px 0 #ff2e63, 6px 0 #08f7fe; }
+      54% { translate: calc(-50% - 4px) calc(-50% - 1px); text-shadow: 3px 1px #ff2e63, -3px -1px #08f7fe, 0 0 30px #fff; }
+      58% { translate: calc(-50% + 5px) calc(-50% + 3px); text-shadow: -8px 0 #ff2e63, 8px 0 #08f7fe; }
+      62% { translate: calc(-50% - 7px) -50%; text-shadow: 5px 0 #ff2e63, -5px 0 #08f7fe, 0 0 30px #fff; }
+      66% { opacity: 1; translate: calc(-50% + 3px) calc(-50% - 2px); text-shadow: -10px 0 #ff2e63, 10px 0 #08f7fe; }
+      68% { opacity: 0.2; translate: calc(-50% - 12px) -50%; }
+      70% { opacity: 0.8; translate: calc(-50% + 10px) -50%; }
+      72%, 100% { opacity: 0; mask-position: 0 0; color: #fff; translate: -50% -50%; }
     }
-    @keyframes hell {
-      0% { opacity: 0; mask-position: 100% 0; filter: blur(3px); }
-      5% { opacity: 1; }
-      26% { mask-position: 0 0; filter: blur(0); }
-      64% { opacity: 1; mask-position: 0 0; filter: blur(0); translate: -50% -50%; }
-      80%, 100% { opacity: 0; mask-position: 0 0; filter: blur(6px); translate: -50% -62%; }
-    }
-    @keyframes ember { 50% { text-shadow: 0 0 4px #ffb000, 0 0 14px #ff2a00, 0 0 34px rgba(255, 0, 0, 0.45); } }
     @keyframes shout {
       0% { opacity: 0; scale: 2.4; }
       8% { opacity: 1; scale: 1; }
