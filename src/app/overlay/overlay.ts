@@ -485,8 +485,9 @@ export class Overlay implements OnInit {
       const target = this.lastRun()?.total ?? 0;
       const start = performance.now();
       const tick = (t: number) => {
-        const p = Math.min(1, (t - start) / 900);
-        this.scoreShown.set(Math.round(target * (1 - (1 - p) ** 3) * 10) / 10);
+        // 1.6 с с плавным замедлением; по дороге — целые числа (без мелькания десятых), точное значение — в конце
+        const p = Math.min(1, (t - start) / 1600);
+        this.scoreShown.set(p < 1 ? Math.round(target * (1 - (1 - p) ** 4)) : target);
         if (p < 1) raf = requestAnimationFrame(tick);
       };
       let raf = requestAnimationFrame(tick);

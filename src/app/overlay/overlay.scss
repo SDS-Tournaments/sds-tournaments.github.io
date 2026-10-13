@@ -1299,3 +1299,8 @@
 @keyframes pd-land {
   from { opacity: 0; transform: translateY(-120px); }
 }
+
+/* итог: цифры одной ширины — число не «прыгает», пока набирается */
+.score .total b {
+  font-variant-numeric: tabular-nums;
+}
