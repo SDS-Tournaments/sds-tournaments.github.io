@@ -110,7 +110,8 @@ const FLASH_MS = 10_000;
               </div>
             }
           } @else {
-            @for (k of crits; track k) {
+            <!-- ключ — заезд: при новой оценке полоски заполняются заново, по очереди -->
+            @for (k of crits; track lastRun()?.created_at + k) {
               <div class="bar">
                 <span class="k">{{ t()[k] }}</span>
                 <span class="track"><span class="fill" [style.--w]="pct(r, k) + '%'" [style.--heat]="pct(r, k) + '%'"></span></span>

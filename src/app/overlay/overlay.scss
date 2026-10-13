@@ -1304,3 +1304,15 @@
 .score .total b {
   font-variant-numeric: tabular-nums;
 }
+
+/* полоски оценки: плавное заполнение по очереди — угол, через 0.35 с стиль, ещё через 0.35 с траектория */
+.screen .score .bar {
+  --fd: 0ms;
+  &:nth-child(3) { --fd: 350ms; }
+  &:nth-child(4) { --fd: 700ms; }
+  .fill { animation: grow 1300ms cubic-bezier(0.22, 1, 0.36, 1) var(--fd) both; }
+  .v { animation: v-in 500ms ease-out var(--fd) both; }
+}
+@keyframes v-in {
+  from { opacity: 0; transform: translateX(-8px); }
+}
