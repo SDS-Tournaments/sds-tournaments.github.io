@@ -74,6 +74,7 @@ interface Reg {
         @if (dev) {
           <span class="testzone">
             <button class="btn btn-ghost" (click)="testPilots('create')" [disabled]="busy()">+ 24 тестовых пилота</button>
+            <button class="btn btn-ghost" (click)="testPilots('create', 100)" [disabled]="busy()">+ 100 тестовых</button>
             <button class="btn btn-ghost" (click)="testPilots('delete')" [disabled]="busy()">Удалить тестовых</button>
           </span>
         }
@@ -209,10 +210,10 @@ export class AdminParticipants implements OnInit {
     await this.load();
   }
 
-  async testPilots(action: 'create' | 'delete') {
+  async testPilots(action: 'create' | 'delete', count = 24) {
     if (action === 'delete' && !confirm('Удалить всех тестовых пилотов (test-…) со всеми их заездами?')) return;
     this.busy.set(true);
-    const { data, error } = await supabase.functions.invoke('test-pilots', { body: { action, stageId: this.stageId() } });
+    const { data, error } = await supabase.functions.invoke('test-pilots', { body: { action, stageId: this.stageId(), count } });
     this.busy.set(false);
     if (error) return this.note(error.message, false);
     await this.load();

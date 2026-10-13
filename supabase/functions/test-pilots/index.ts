@@ -1,4 +1,4 @@
-// Управление пилотами, только для admin: тестовые пилоты (создать 24 / удалить всех)
+// Управление пилотами, только для admin: тестовые пилоты (создать N, по умолчанию 24, до 120 / удалить всех)
 // и удаление настоящих пилотов — по одному или всех сразу между сезонами (штаб и организаторы не удаляются).
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
   const { data: me } = await db.from('profiles').select('role').eq('id', who.user?.id ?? '').maybeSingle();
   if (me?.role !== 'admin') return json({ error: 'Только для организатора' }, 403);
 
-  const { action, stageId, profileId } = await req.json();
+  const { action, stageId, profileId, count } = await req.json();
 
   // Удаление аккаунта каскадом убирает профиль и все его записи (заявки, оценки, результаты, санкции)
   if (action === 'remove') {
@@ -52,14 +52,14 @@ Deno.serve(async (req) => {
   }
 
   if (action === 'create') {
-    let created = 0;
-    for (const [i, nick] of NAMES.entries()) {
-      const n = i + 1;
-      const email = `test-${n}@test.sds`;
-      const res = await db.auth.admin.createUser({ email, email_confirm: true, user_metadata: { test: true } });
+    // имена по кругу: Kaido, …, Sideways, потом Kaido_2, … (до 120 пилотов — проверка «Аншлага» 100+)
+    const total = Math.min(120, Math.max(1, Number(count) || NAMES.length));
+    const make = async (n: number) => {
+      const nick = NAMES[(n - 1) % NAMES.length] + (n > NAMES.length ? `_${Math.ceil(n / NAMES.length)}` : '');
+      const res = await db.auth.admin.createUser({ email: `test-${n}@test.sds`, email_confirm: true, user_metadata: { test: true } });
       // уже есть — берём существующий профиль
       const id = res.data.user?.id ?? (await db.from('profiles').select('id').eq('steam_id', `test-${n}`).maybeSingle()).data?.id;
-      if (!id) continue;
+      if (!id) return 0;
       const { error } = await db.from('profiles').upsert({
         id,
         steam_id: `test-${n}`,
@@ -70,11 +70,21 @@ Deno.serve(async (req) => {
         gearbox: '6-ст. секвентальная',
         power_hp: 500 + n * 10,
       });
-      if (error) return json({ error: error.message }, 400);
+      if (error) throw new Error(error.message);
       if (stageId) await db.from('registrations').upsert({ stage_id: stageId, profile_id: id, status: 'registered' });
-      if (res.data.user) created++;
+      return res.data.user ? 1 : 0;
+    };
+    let created = 0;
+    try {
+      // пачками по 10 — сотня пилотов успевает за время работы функции
+      for (let from = 1; from <= total; from += 10) {
+        const batch = Array.from({ length: Math.min(10, total - from + 1) }, (_, i) => make(from + i));
+        created += (await Promise.all(batch)).reduce((a, b) => a + b, 0);
+      }
+    } catch (e) {
+      return json({ error: (e as Error).message }, 400);
     }
-    return json({ created, total: NAMES.length });
+    return json({ created, total });
   }
 
   // Протест от проигравшего последней решённой дуэли (тестовые пилоты не могут войти сами).
