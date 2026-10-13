@@ -17,8 +17,9 @@ const step = (level: number) => (Math.max(1, level) - 1) / (HYPE_STEPS.length - 
   host: {
     '[class.hype]': 'hypeOn() && hy().level > 0',
     '[class.r2]': 'hypeOn() && hy().level >= 3',
-    '[class.sweep]': 'hypeOn() && hy().level >= 7',
-    '[class.shimmer]': 'hypeOn() && hy().level >= 9',
+    '[class.g5]': 'hypeOn() && hy().level >= 5',
+    '[class.g6]': 'hypeOn() && hy().level >= 6',
+    '[class.g8]': 'hypeOn() && hy().level >= 8',
     '[class.max]': 'hypeOn() && hy().level >= 10',
     '[style.--hc]': 'color(hy().level, 0.95)',
     // свечение и частота пульса растут только до 5-го уровня — дальше уровни отличаются новыми эффектами
@@ -28,17 +29,26 @@ const step = (level: number) => (Math.max(1, level) - 1) / (HYPE_STEPS.length - 
   },
   template: `
     <i class="hglow" aria-hidden="true"></i>
-    <!-- лестница хайпа: 5 — бейдж уровня · 6 — кометы по рамке · 7 — световая волна · 8 — искры · 9 — переливающееся число · 10 — пламя и тряска -->
+    <!-- лестница хайпа — меняется сама карточка:
+         5 гоночная форма + бейдж · 6 3D-наклон · 7 «эхо»-рамки разъезжаются · 8 глитч + кометы по рамке
+         9 уголки-прицелы + искры · 10 сердцебиение, осколки, пламя, тряска -->
     @if (hypeOn() && hy().level >= 5) {
       <span class="tier" [attr.data-lv]="hy().level">{{ 'home.next.tier.' + hy().level | transloco }}</span>
     }
-    @if (hypeOn() && hy().level >= 6) { <i class="orbit" aria-hidden="true"></i> }
-    @if (hypeOn() && hy().level >= 8) {
+    @if (hypeOn() && hy().level >= 7) { <i class="echo e1" aria-hidden="true"></i><i class="echo e2" aria-hidden="true"></i> }
+    @if (hypeOn() && hy().level >= 8) { <i class="orbit" aria-hidden="true"></i> }
+    @if (hypeOn() && hy().level >= 9) {
+      <span class="lock" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
       <span class="sparks" aria-hidden="true">
         @for (k of sparks; track k.x) { <i [style.left.%]="k.x" [style.--dl.s]="k.d" [style.--du.s]="k.t" [style.--dx.px]="k.dx"></i> }
       </span>
     }
-    @if (hypeOn() && hy().level >= 10) { <i class="flames" aria-hidden="true"></i> }
+    @if (hypeOn() && hy().level >= 10) {
+      <i class="flames" aria-hidden="true"></i>
+      <span class="shards" aria-hidden="true">
+        @for (k of shards; track k.a) { <i [style.--a.deg]="k.a" [style.--dl.s]="k.d" [style.--sz.px]="k.s"></i> }
+      </span>
+    }
     @if (stage(); as s) {
       @if (live()) {
         <p class="eyebrow live"><span class="dot"></span>LIVE · {{ 'home.next.' + status() | transloco }}</p>
@@ -182,7 +192,7 @@ const step = (level: number) => (Math.max(1, level) - 1) / (HYPE_STEPS.length - 
     }
     @keyframes hype-ring { from { opacity: 0.8; transform: scale(1); } to { opacity: 0; transform: scale(1.09); } }
 
-    /* 8+: комета по рамке — вращается слой с коническим градиентом, видна только полоска рамки */
+    /* 8+: кометы по рамке — вращается слой с коническим градиентом, видна только полоска рамки */
     .orbit {
       position: absolute; inset: -1px; z-index: -1; border-radius: inherit; padding: 3px; overflow: hidden; pointer-events: none;
       mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
@@ -205,23 +215,7 @@ const step = (level: number) => (Math.max(1, level) - 1) / (HYPE_STEPS.length - 
     }
     @keyframes tier-pop { from { opacity: 0; transform: scale(0.4) rotate(-12deg); } }
 
-    /* 7+: световая волна раз в несколько секунд проходит по карточке */
-    :host(.sweep)::after {
-      content: ''; position: absolute; inset: 0; z-index: 0; border-radius: inherit; pointer-events: none; overflow: hidden;
-      background: linear-gradient(110deg, transparent 38%, color-mix(in oklab, var(--hc), transparent 75%) 48%, rgba(255, 255, 255, 0.12) 50%, transparent 62%) -150% 0 / 250% 100% no-repeat;
-      animation: sweep 3.6s ease-in-out infinite;
-    }
-    @keyframes sweep { 0%, 55% { background-position: 150% 0; } 100% { background-position: -150% 0; } }
-
-    /* 9+: число записавшихся переливается */
-    :host(.shimmer) .num {
-      background: linear-gradient(100deg, var(--hc) 20%, #fff 45%, var(--hc) 70%) 0 0 / 220% 100%;
-      -webkit-background-clip: text; background-clip: text; color: transparent;
-      animation: num-shimmer 2.4s linear infinite;
-    }
-    @keyframes num-shimmer { to { background-position: -220% 0; } }
-
-    /* 8+: искры поднимаются со дна карточки */
+    /* 9+: искры поднимаются со дна карточки */
     .sparks { position: absolute; inset: 0; z-index: -1; overflow: visible; pointer-events: none; }
     .sparks i {
       position: absolute; bottom: 4px; width: 4px; height: 4px; border-radius: 50%;
@@ -248,17 +242,66 @@ const step = (level: number) => (Math.max(1, level) - 1) / (HYPE_STEPS.length - 
       from { transform: scaleY(0.82) scaleX(1); opacity: 0.6; }
       to { transform: scaleY(1.12) scaleX(1.04); opacity: 0.95; }
     }
-    :host(.max) { animation: hype-shake 2.6s ease-in-out infinite; }
-    @keyframes hype-shake {
-      0%, 76%, 100% { transform: translate(0, 0) rotate(0); }
-      79% { transform: translate(-3px, 1px) rotate(-0.6deg); }
-      82% { transform: translate(3px, -1px) rotate(0.6deg); }
-      85% { transform: translate(-2px, 1px) rotate(-0.4deg); }
-      88% { transform: translate(2px, 0) rotate(0.3deg); }
-      91% { transform: translate(-1px, 0); }
+    /* ── геометрия хайпа ── */
+    /* 5: «гоночная» форма — острые асимметричные углы, рамка толще, карточка крупнее */
+    :host(.g5) { border-radius: 30px 6px 30px 6px; border-width: 2px; scale: 1.03; transition: border-radius 600ms var(--ease-out), scale 600ms var(--ease-out); }
+    /* 6: карточка наклоняется в 3D и покачивается */
+    :host(.g6) { animation: tilt 5s ease-in-out infinite; }
+    @keyframes tilt {
+      0%, 100% { transform: perspective(900px) rotateY(-8deg) rotateX(3deg); }
+      50% { transform: perspective(900px) rotateY(8deg) rotateX(-3deg); }
     }
-    :host(.max) .num { display: inline-block; animation: num-shimmer 2.4s linear infinite, num-pump 1.3s ease-in-out infinite; }
-    @keyframes num-pump { 50% { transform: scale(1.12); text-shadow: 0 0 40px var(--hc); } }
+    /* 7: «эхо» — копии рамки разъезжаются из-под карточки, как колода */
+    .echo {
+      --o: 14px; position: absolute; inset: -2px; z-index: -2; border-radius: inherit; border: 2px solid var(--hc); pointer-events: none;
+      opacity: 0; animation: echo 2.4s ease-in-out infinite;
+    }
+    .e2 { --o: 28px; animation-delay: 0.3s; }
+    @keyframes echo { 0%, 100% { opacity: 0; transform: translate(0, 0); } 50% { opacity: 0.65; transform: translate(var(--o), var(--o)); } }
+    /* 8: глитч — заголовок и число дёргаются с цветным расслоением */
+    :host(.g8) .title, :host(.g8) .num { display: inline-block; animation: glitch 2.8s steps(1) infinite; }
+    @keyframes glitch {
+      0%, 86%, 100% { transform: none; text-shadow: none; }
+      88% { transform: translate(-4px, 1px) skewX(-10deg); text-shadow: 3px 0 #ff2e63, -3px 0 #08f7fe; }
+      91% { transform: translate(4px, -1px); text-shadow: -4px 0 #ff2e63, 4px 0 #08f7fe; }
+      94% { transform: translate(-2px, 0) skewX(6deg); text-shadow: 2px 0 #ff2e63, -2px 0 #08f7fe; }
+      97% { transform: translate(1px, 0); text-shadow: none; }
+    }
+    /* 9: уголки-прицелы «захватывают» карточку снаружи */
+    .lock { position: absolute; inset: -18px; z-index: 2; pointer-events: none; }
+    .lock i {
+      position: absolute; width: 26px; height: 26px; border: 3px solid var(--hc);
+      filter: drop-shadow(0 0 6px var(--hc)); animation: lock 1.6s ease-in-out infinite;
+    }
+    .lock i:nth-child(1) { top: 0; left: 0; border-right: 0; border-bottom: 0; --lx: -7px; --ly: -7px; }
+    .lock i:nth-child(2) { top: 0; right: 0; border-left: 0; border-bottom: 0; --lx: 7px; --ly: -7px; }
+    .lock i:nth-child(3) { bottom: 0; left: 0; border-right: 0; border-top: 0; --lx: -7px; --ly: 7px; }
+    .lock i:nth-child(4) { bottom: 0; right: 0; border-left: 0; border-top: 0; --lx: 7px; --ly: 7px; }
+    @keyframes lock { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(var(--lx), var(--ly)); } }
+    /* 10: аншлаг — карточка бьётся как сердце, трясётся, из неё вылетают осколки */
+    :host(.max) { animation: tilt 5s ease-in-out infinite, heart 1.1s ease-in-out infinite, rattle 2.6s ease-in-out infinite; }
+    @keyframes heart { 0%, 100% { scale: 1.03; } 12% { scale: 1.09; } 24% { scale: 1.03; } 36% { scale: 1.07; } 50% { scale: 1.03; } }
+    @keyframes rattle {
+      0%, 74%, 100% { translate: 0 0; }
+      77% { translate: -5px 2px; }
+      80% { translate: 5px -2px; }
+      83% { translate: -4px 1px; }
+      86% { translate: 3px 0; }
+      89% { translate: -1px 0; }
+    }
+    .shards { position: absolute; left: 50%; top: 50%; z-index: -1; pointer-events: none; }
+    .shards i {
+      position: absolute; width: var(--sz); height: var(--sz); background: var(--hc);
+      clip-path: polygon(50% 0, 100% 100%, 0 70%); filter: drop-shadow(0 0 6px var(--hc));
+      opacity: 0; animation: shard 2.2s cubic-bezier(0.2, 0.7, 0.3, 1) var(--dl) infinite;
+    }
+    @keyframes shard {
+      0% { opacity: 0; transform: rotate(var(--a)) translateX(170px) rotate(0); }
+      12% { opacity: 1; }
+      100% { opacity: 0; transform: rotate(var(--a)) translateX(300px) rotate(540deg); }
+    }
+    :host(.max) .num { animation: glitch 2.8s steps(1) infinite, num-pump 1.1s ease-in-out infinite; }
+    @keyframes num-pump { 12% { scale: 1.18; } 24% { scale: 1; } 36% { scale: 1.1; } 50% { scale: 1; } }
 
     .hype-bar { display: grid; gap: 8px; }
     .hb-top { display: flex; justify-content: space-between; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ink-subtle); }
@@ -270,7 +313,8 @@ const step = (level: number) => (Math.max(1, level) - 1) / (HYPE_STEPS.length - 
 
     @media (prefers-reduced-motion: reduce) {
       :host(.hype) .hglow, :host(.r2)::before, .live .dot::after,
-      .orbit::before, .sparks i, .flames, :host(.max), :host(.max) .num, .tier, :host(.sweep)::after, :host(.shimmer) .num { animation: none; }
+      .orbit::before, .sparks i, .flames, :host(.max), :host(.max) .num, .tier,
+      :host(.g6), .echo, :host(.g8) .title, :host(.g8) .num, .lock i, .shards i { animation: none; }
     }
     .live { display: flex; align-items: center; gap: 8px; color: var(--error); }
     .live .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--error); }
@@ -301,6 +345,8 @@ export class NextStage {
   /** уровень для силы свечения: дальше 5-го не растёт */
   protected readonly glowLv = computed(() => Math.min(5, this.hy().level));
   /** искры: где вылетают, задержка, время полёта, снос вбок */
+  /** осколки аншлага: направление разлёта, задержка, размер */
+  protected readonly shards = Array.from({ length: 16 }, (_, i) => ({ a: i * 22.5 + ((i * 7) % 11), d: ((i * 0.37) % 2.2).toFixed(2), s: 8 + ((i * 5) % 9) }));
   protected readonly sparks = Array.from({ length: 12 }, (_, i) => ({
     x: 4 + ((i * 37) % 92),
     d: ((i * 0.53) % 2.4).toFixed(2),
