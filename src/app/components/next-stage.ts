@@ -241,18 +241,28 @@ const step = (level: number) => (Math.max(1, level) - 1) / (HYPE_STEPS.length - 
       translate: -50% -50%; rotate: -8deg; opacity: 0;
       animation: shout 5s cubic-bezier(0.3, 1.5, 0.5, 1) 0.6s infinite;
     }
-    /* 100+: в бешенстве — рваная красная плашка, потёки краски, дёргается */
+    /* 100+: «дьявольская» надпись — без плашки, выжигается слева направо, тлеет углями и уходит в дым */
     .shout.loud {
-      padding: 14px 26px 16px; border: 0; background: #e8141e; color: #fff;
-      font: 400 34px 'Rubik Wet Paint', 'Russo One', var(--font); letter-spacing: 0.02em;
-      text-shadow: 2px 2px 0 #000; box-shadow: none; filter: drop-shadow(0 0 22px rgba(255, 30, 40, 0.75));
-      clip-path: polygon(0% 14%, 6% 2%, 13% 11%, 21% 0%, 30% 9%, 38% 1%, 47% 12%, 55% 3%, 63% 10%, 72% 0%, 80% 9%, 88% 2%, 95% 12%, 100% 4%,
-        97% 30%, 100% 52%, 96% 75%, 100% 92%, 92% 100%, 84% 89%, 75% 100%, 66% 90%, 58% 98%, 49% 87%, 41% 99%, 32% 88%, 23% 100%, 15% 90%, 7% 99%, 0% 86%,
-        3% 64%, 0% 42%, 4% 26%);
-      rotate: -9deg;
-      animation: shout 3.6s cubic-bezier(0.3, 1.5, 0.5, 1) 0.6s infinite, rage 0.12s steps(2) infinite;
+      padding: 0; border: 0; background: none; box-shadow: none; rotate: -4deg;
+      font: 400 34px 'Ruslan Display', 'Russo One', var(--font); letter-spacing: 0.05em;
+      color: #ff2a12; -webkit-text-stroke: 1px #ff7a2a;
+      text-shadow: 0 0 6px #ff6a00, 0 0 18px #c40000, 0 0 42px rgba(255, 0, 0, 0.55);
+      mask-image: linear-gradient(90deg, #000 45%, transparent 55%); mask-size: 260% 100%; mask-repeat: no-repeat;
+      animation: hell 4.4s ease-out 0.6s infinite, ember 0.16s steps(2) infinite;
     }
-    @keyframes rage { 50% { translate: calc(-50% + 2px) calc(-50% - 1px); } }
+    /* дымка за надписью — без краёв, чтобы читалась поверх таймера */
+    .shout.loud::before {
+      content: ''; position: absolute; inset: -34px -46px; z-index: -1;
+      background: radial-gradient(closest-side, rgba(0, 0, 0, 0.92), rgba(20, 0, 0, 0.75) 55%, transparent);
+    }
+    @keyframes hell {
+      0% { opacity: 0; mask-position: 100% 0; filter: blur(3px); }
+      5% { opacity: 1; }
+      26% { mask-position: 0 0; filter: blur(0); }
+      64% { opacity: 1; mask-position: 0 0; filter: blur(0); translate: -50% -50%; }
+      80%, 100% { opacity: 0; mask-position: 0 0; filter: blur(6px); translate: -50% -62%; }
+    }
+    @keyframes ember { 50% { text-shadow: 0 0 4px #ffb000, 0 0 14px #ff2a00, 0 0 34px rgba(255, 0, 0, 0.45); } }
     @keyframes shout {
       0% { opacity: 0; scale: 2.4; }
       8% { opacity: 1; scale: 1; }
