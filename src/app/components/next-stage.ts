@@ -80,7 +80,7 @@ const step = (level: number) => (Math.max(1, level) - 1) / 6;
             }
           </div>
           <p class="hb-note">
-            @if (hy().toNext; as n) { {{ 'home.next.hypeNext' | transloco: { n, l: hy().level + 1 } }} }
+            @if (hy().toNext; as n) { {{ 'home.next.hypeNext' | transloco: { n, w: ('home.next.pilots.' + plural(n)) | transloco, l: hy().level + 1 } }} }
             @else { {{ 'home.next.hypeMax' | transloco }} }
           </p>
         </div>
@@ -207,6 +207,11 @@ export class NextStage {
     return Math.min(1, Math.max(0, this.fillPos() - i)) * 100;
   }
   protected readonly segs = [0, 1, 2, 3, 4, 5, 6];
+  /** форма слова «пилот» для числа: one (1, 21), few (2–4, 22–24), many (5–20, 25…) */
+  protected plural(n: number) {
+    const d = n % 10, h = n % 100;
+    return d === 1 && h !== 11 ? 'one' : d >= 2 && d <= 4 && (h < 12 || h > 14) ? 'few' : 'many';
+  }
   protected color(level: number, alpha: number) {
     return `hsl(calc(var(--hype-h0, 200) + ${step(level)} * var(--hype-span, 100)) 95% var(--hype-l, 66%) / ${Math.min(1, alpha)})`;
   }

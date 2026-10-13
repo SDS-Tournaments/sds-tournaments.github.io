@@ -43,7 +43,8 @@
       "registration": "Registration",
       "soon": "Next round date coming soon",
       "hype": "Round hype",
-      "hypeNext": "{{n}} more sign-ups to reach level {{l}}",
+      "hypeNext": "{{n}} more {{w}} to reach level {{l}}",
+      "pilots": { "one": "pilot", "few": "pilots", "many": "pilots" },
       "hypeMax": "Maximum hype! 🔥"
     },
     "leaders": "Season leaders",
