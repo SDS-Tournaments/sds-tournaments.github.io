@@ -1129,57 +1129,40 @@
 
 /* ───────── Нулевая попытка: спин / авария / выпрямление / вылет — у каждой своя анимация ───────── */
 .score .fail {
-  --red: #ff5c5c;
+  --red: #ff6b6b;
   position: relative;
   display: flex;
   align-items: center;
-  gap: 18px;
-  padding: 16px 20px;
+  gap: 16px;
+  padding: 10px 4px 10px 16px;
   overflow: hidden;
-  border: 1px solid rgba(255, 92, 92, 0.5);
-  border-radius: 14px;
-  background: rgba(255, 92, 92, 0.08);
-  box-shadow: inset 0 0 40px rgba(255, 92, 92, 0.12);
-  animation: fail-in 450ms var(--ease-spring) both;
-  /* «аварийные» полосы проезжают по плашке */
-  &::before {
-    content: '';
-    position: absolute;
-    inset: 0 -56px 0 0;
-    background: repeating-linear-gradient(-45deg, rgba(255, 92, 92, 0.16) 0 14px, transparent 14px 28px);
-    animation: fail-stripes 0.8s linear 3;
-    pointer-events: none;
-  }
+  /* минимализм: только тонкая красная черта слева */
+  box-shadow: inset 3px 0 0 var(--red);
+  animation: fail-in 400ms var(--ease-out) both;
   > * { position: relative; }
   .ic {
-    font-size: 44px;
+    font-size: 30px;
     line-height: 1;
   }
   .word {
     flex: 1;
     min-width: 0;
-    font: 400 30px 'Russo One', var(--font);
-    letter-spacing: 0.04em;
-    color: var(--red);
-    text-shadow: 0 0 22px rgba(255, 92, 92, 0.55);
+    font: 400 24px 'Russo One', var(--font);
+    letter-spacing: 0.06em;
+    color: color-mix(in oklab, var(--red), #fff 15%);
   }
   .zero {
-    font: 400 68px 'Russo One', var(--font);
+    font: 400 52px 'Russo One', var(--font);
     line-height: 1;
     color: var(--red);
-    text-shadow: 0 0 30px rgba(255, 92, 92, 0.7);
-    animation: zero-drop 650ms var(--ease-spring) 300ms both;
+    animation: zero-drop 500ms var(--ease-out) 250ms both;
   }
 }
 @keyframes fail-in {
-  from { opacity: 0; transform: scale(0.85); }
-}
-@keyframes fail-stripes {
-  to { transform: translateX(-39.6px); } /* ровно один период полос по диагонали */
+  from { opacity: 0; transform: translateX(-12px); }
 }
 @keyframes zero-drop {
-  from { opacity: 0; transform: translateY(-60px) scale(1.8); }
-  60% { opacity: 1; transform: translateY(6px) scale(0.92); }
+  from { opacity: 0; transform: translateY(-14px); }
 }
 
 /* спин: значок раскручивается, слово «заносит» влево-вправо */
@@ -1188,12 +1171,11 @@
   .word { animation: f-skid 900ms ease-out 150ms both; }
 }
 @keyframes f-spin {
-  from { opacity: 0; transform: rotate(-900deg) scale(0.3); }
+  from { opacity: 0; transform: rotate(-360deg) scale(0.6); }
 }
 @keyframes f-skid {
-  from { opacity: 0; transform: translateX(-30px) skewX(-18deg); }
-  45% { opacity: 1; transform: translateX(14px) skewX(10deg); }
-  75% { transform: translateX(-5px) skewX(-4deg); }
+  from { opacity: 0; transform: translateX(-12px) skewX(-10deg); }
+  60% { opacity: 1; transform: translateX(3px) skewX(3deg); }
 }
 
 /* авария: удар — вспышка, тряска плашки, значок взрывается */
@@ -1205,26 +1187,24 @@
     content: '';
     position: absolute;
     inset: 0;
-    background: radial-gradient(circle at 12% 50%, #fff, rgba(255, 92, 92, 0.6) 35%, transparent 70%);
+    background: radial-gradient(circle at 6% 50%, rgba(255, 107, 107, 0.35), transparent 60%);
     animation: f-flash 600ms ease-out both;
     pointer-events: none;
   }
   .ic { animation: f-boom 600ms var(--ease-spring) both; }
 }
 @keyframes f-shake {
-  0%, 100% { transform: translate(0, 0); }
-  15% { transform: translate(-10px, 4px) rotate(-1.5deg); }
-  30% { transform: translate(9px, -4px) rotate(1.5deg); }
-  45% { transform: translate(-7px, 2px) rotate(-1deg); }
-  60% { transform: translate(5px, -2px) rotate(0.6deg); }
-  80% { transform: translate(-2px, 1px); }
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  50% { transform: translateX(3px); }
+  75% { transform: translateX(-1px); }
 }
 @keyframes f-flash {
   from { opacity: 1; }
   to { opacity: 0; }
 }
 @keyframes f-boom {
-  from { opacity: 0; transform: scale(2.6) rotate(-20deg); }
+  from { opacity: 0; transform: scale(1.6); }
 }
 
 /* выпрямление: всё «проезжает» по прямой, за словом тянется шлейф */
@@ -1245,7 +1225,7 @@
   }
 }
 @keyframes f-straight {
-  from { opacity: 0; transform: translateX(-160px) scaleX(1.4); }
+  from { opacity: 0; transform: translateX(-60px); }
 }
 @keyframes f-line {
   from { opacity: 1; transform: scaleX(0); }
@@ -1259,14 +1239,12 @@
   .word { animation: f-bumpy 900ms ease-out 120ms both; }
 }
 @keyframes f-bounce {
-  from { opacity: 0; transform: translate(40px, -70px) rotate(40deg); }
+  from { opacity: 0; transform: translate(10px, -24px) rotate(20deg); }
 }
 @keyframes f-bumpy {
-  from { opacity: 0; transform: rotate(-8deg) translateY(-10px); }
-  25% { opacity: 1; transform: rotate(5deg) translateY(4px); }
-  45% { transform: rotate(-3deg) translateY(-3px); }
-  65% { transform: rotate(2deg) translateY(1px); }
-  85% { transform: rotate(-1deg); }
+  from { opacity: 0; transform: rotate(-3deg) translateY(-4px); }
+  40% { opacity: 1; transform: rotate(2deg) translateY(2px); }
+  70% { transform: rotate(-1deg); }
 }
 
 /* ───────── Подиум: тумбы по очереди 3 → 2 → 1, приземление, серебро и бронза, у чемпиона лучи, корона и конфетти ───────── */
