@@ -28,9 +28,10 @@ export interface PilotInfo {
 const ORDER: Round[] = ['r32', 'r16', 'qf', 'sf', 'third', 'final'];
 const ROUND_LABEL: Record<Round, string> = { r32: 'Top 32', r16: 'Top 16', qf: 'Top 8', sf: 'Полуфинал', third: 'За 3-е место', final: 'Финал' };
 const CRITS: { key: Crit; label: string }[] = [
+  // порядок как у судей: траектория, угол, стиль
+  { key: 'line', label: 'Траектория' },
   { key: 'angle', label: 'Угол' },
   { key: 'style', label: 'Стиль' },
-  { key: 'line', label: 'Траектория' },
 ];
 const RESULT_LABEL: Record<string, string> = { normal: '', tech_loss: 'техпоражение', bye: 'проход без соперника', qual_tiebreak: 'по квалификации после 2 OMT', contact: 'контакт — соперник врезался' };
 

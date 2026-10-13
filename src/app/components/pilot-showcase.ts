@@ -17,7 +17,7 @@ export type ShowcasePilot = Pick<CardData, 'nickname' | 'start_number' | 'avatar
     <div class="card">
       <h2 class="h">{{ 'pilot.skills' | transloco }}</h2>
       @if (sk(); as s) {
-        <app-radar [values]="[s.angle, s.style, s.line]" [labels]="radarLabels()" />
+        <app-radar [values]="[s.line, s.angle, s.style]" [labels]="radarLabels()" />
         <p class="subtle small center">{{ 'pilot.skillsNote' | transloco: { n: s.runs } }}</p>
       } @else {
         <p class="subtle">{{ 'pilot.noRuns' | transloco }}</p>
@@ -55,7 +55,7 @@ export class PilotShowcase {
   protected readonly sk = computed(() => mergeSkills(skills(this.runs()), this.legacy()));
   protected readonly radarLabels = computed(() => {
     this.lang();
-    return ['angle', 'style', 'line'].map((k) => this.t.translate('pilot.crit.' + k));
+    return ['line', 'angle', 'style'].map((k) => this.t.translate('pilot.crit.' + k));
   });
   protected readonly cardData = computed<CardData>(() => {
     const s = this.sk();

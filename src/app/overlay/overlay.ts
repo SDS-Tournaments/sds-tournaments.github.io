@@ -293,7 +293,8 @@ export class Overlay implements OnInit {
   protected readonly sponsorIdx = signal(0);
   private readonly now = signal(Date.now());
   private channel?: RealtimeChannel;
-  protected readonly crits = ['angle', 'style', 'line'] as const;
+  // порядок как у судей: траектория, угол, стиль
+  protected readonly crits = ['line', 'angle', 'style'] as const;
 
   private readonly lang = computed(() => (this.state().lang === 'auto' ? this.autoLang() : this.state().lang));
   /** ?skin=arena — посмотреть стиль без пульта */
@@ -381,9 +382,9 @@ export class Overlay implements OnInit {
       b,
       rows: [
         compareRow('ovr', a.overall, b.overall),
+        compareRow('line', a.line, b.line),
         compareRow('angle', a.angle, b.angle),
         compareRow('style', a.style, b.style),
-        compareRow('line', a.line, b.line),
         compareRow('wins', a.wins, b.wins),
         compareRow('qualPlace', qa?.place ?? null, qb?.place ?? null, true),
         compareRow('bestRun', qa?.best ?? null, qb?.best ?? null),
@@ -424,7 +425,7 @@ export class Overlay implements OnInit {
     const d = this.duel();
     if (!d) return [];
     const rows = this.voteRows().filter((v) => v.battle_id === d.id && v.try === d.omt_count);
-    return ['angle', 'style', 'line'].map((j) => rows.find((v) => v.judge === j)?.vote ?? null);
+    return ['line', 'angle', 'style'].map((j) => rows.find((v) => v.judge === j)?.vote ?? null);
   });
 
   protected readonly podium = computed(() => {

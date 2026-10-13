@@ -35,9 +35,10 @@ interface Run {
 }
 
 const CRITS: { key: Crit; label: string }[] = [
+  // порядок как у судей: траектория, угол, стиль
+  { key: 'line', label: 'Траектория' },
   { key: 'angle', label: 'Угол' },
   { key: 'style', label: 'Стиль' },
-  { key: 'line', label: 'Траектория' },
 ];
 const ATTEMPTS = [
   { n: 0, label: 'Прогрев' },

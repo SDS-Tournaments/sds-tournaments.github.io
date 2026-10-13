@@ -2,7 +2,7 @@ import { Component, computed, input } from '@angular/core';
 
 const R = 100; // радиус «паутинки»
 const C = 130; // центр в viewBox 260×260
-// оси: угол — вверх, стиль — вправо-вниз, траектория — влево-вниз
+// оси: траектория — вверх, угол — вправо-вниз, стиль — влево-вниз
 const AXES = [-90, 30, 150].map((deg) => (deg * Math.PI) / 180);
 // «жар» считается на рабочем отрезке 65–100%: у пилотов навыки обычно 75–90, на всей шкале 0–100 цвета сливаются
 const HEAT_FROM = 65;
@@ -52,9 +52,9 @@ const pt = (a: number, r: number) => `${(C + Math.cos(a) * r).toFixed(1)},${(C +
   `,
 })
 export class Radar {
-  /** [угол, стиль, траектория] в % */
+  /** [траектория, угол, стиль] в % (порядок как у судей) */
   readonly values = input.required<number[]>();
-  readonly labels = input<string[]>(['Угол', 'Стиль', 'Траектория']);
+  readonly labels = input<string[]>(['Траектория', 'Угол', 'Стиль']);
   protected readonly axes = AXES;
   protected readonly c = C;
 

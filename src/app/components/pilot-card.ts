@@ -75,9 +75,9 @@ export interface CardData {
       <p class="nick">{{ d().nickname }}</p>
       <p class="team">{{ d().team ?? 'Sad Drift Series' }}</p>
       <div class="stats mono">
+        <span><b>{{ d().line ?? '—' }}</b>LIN</span>
         <span><b>{{ d().angle ?? '—' }}</b>ANG</span>
         <span><b>{{ d().style ?? '—' }}</b>STY</span>
-        <span><b>{{ d().line ?? '—' }}</b>LIN</span>
         <span><b>{{ d().wins }}</b>WIN</span>
       </div>
       <p class="foot"><span class="tiername">{{ tier() }}</span>@if (d().car) { · {{ d().car }} }</p>
