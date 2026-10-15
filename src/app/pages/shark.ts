@@ -93,6 +93,16 @@ import { Home } from './home';
       </section>
     }
 
+    @if (road().length) {
+      <section class="section road-sec">
+        <div class="container">
+          <p class="eyebrow" reveal>{{ seasonTitle() }}</p>
+          <h2 class="display-lg" reveal>Маршрут хищника</h2>
+        </div>
+        <app-season-road [stages]="road()" />
+      </section>
+    }
+
     <!-- ── Блок партнёра: акула плывёт на фоне ── -->
     <section class="partner" aria-labelledby="partner-title">
       <i class="jaw top" aria-hidden="true"></i>
@@ -164,16 +174,6 @@ import { Home } from './home';
         }
       </div>
     </section>
-
-    @if (road().length) {
-      <section class="section road-sec">
-        <div class="container">
-          <p class="eyebrow" reveal>{{ seasonTitle() }}</p>
-          <h2 class="display-lg" reveal>{{ 'road.title' | transloco }}</h2>
-        </div>
-        <app-season-road [stages]="road()" />
-      </section>
-    }
 
     @if (pilots().length) {
       <section class="section container">
@@ -395,7 +395,24 @@ import { Home } from './home';
     .dev:hover .key { animation-duration: 1.3s; }
 
     /* ── нижние секции в «подводной» подаче ── */
+    /* дорога сезона: линия — поверхность воды, огонёк пройденного пути — плавник, плывущий к следующему этапу */
     .road-sec { position: relative; }
+    .road-sec ::ng-deep .rail { height: 6px; top: 4px; background: none; }
+    /* волна — отдельным слоем, чтобы маска не обрезала плавник над водой */
+    .road-sec ::ng-deep .rail::before {
+      content: ''; position: absolute; inset: 0; background: rgba(var(--shark-rgb), 0.18);
+      mask: radial-gradient(circle at 50% 0, transparent 3px, #000 3.5px) 0 0 / 12px 6px repeat-x;
+    }
+    .road-sec ::ng-deep .fill { background: linear-gradient(90deg, rgba(var(--shark-rgb), 0.2), var(--shark) 85%, color-mix(in oklab, var(--shark), #fff 60%)); box-shadow: none; }
+    .road-sec ::ng-deep .fill::after {
+      width: 26px; height: 22px; top: -20px; right: -10px; border-radius: 0; box-shadow: none;
+      background: color-mix(in oklab, var(--hot), var(--shark) 40%);
+      clip-path: polygon(0 100%, 30% 0, 55% 35%, 100% 100%);
+      filter: drop-shadow(0 0 6px var(--hot));
+      animation: road-fin 1.6s ease-in-out infinite;
+    }
+    @keyframes road-fin { 50% { transform: translateY(3px) rotate(-4deg); } }
+    .road-sec ::ng-deep .done .dot { clip-path: polygon(50% 100%, 0 0, 100% 0); border-radius: 0; } /* пройденные этапы — «зубы» */
     .eyebrow { color: var(--shark); }
     .board { list-style: none; margin: 0; padding: 8px; display: grid; gap: 4px; max-width: 640px; border-color: rgba(var(--shark-rgb), 0.2); }
     .board li { display: grid; grid-template-columns: 28px 36px 1fr auto; align-items: center; gap: 12px; padding: 10px 12px; border-radius: var(--r-sm); }
