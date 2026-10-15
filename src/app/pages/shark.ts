@@ -4,6 +4,7 @@ import { TranslocoPipe } from '@jsverse/transloco';
 import { LiveStage } from '../components/live-stage';
 import { NextStage } from '../components/next-stage';
 import { SeasonRoad } from '../components/season-road';
+import { SharkScene } from '../components/shark-scene';
 import { Reveal } from '../reveal';
 import { Home } from './home';
 
@@ -12,7 +13,7 @@ import { Home } from './home';
 // shortcut: тексты блока партнёра — заглушки и только по-русски; финальные — после согласования со спонсором
 @Component({
   selector: 'app-shark',
-  imports: [RouterLink, TranslocoPipe, Reveal, NextStage, LiveStage, SeasonRoad],
+  imports: [RouterLink, TranslocoPipe, Reveal, NextStage, LiveStage, SeasonRoad, SharkScene],
   template: `
     <svg width="0" height="0" style="position: absolute" aria-hidden="true">
       <defs>
@@ -29,6 +30,8 @@ import { Home } from './home';
     <section class="hero" aria-labelledby="shark-title">
       <div class="ocean" aria-hidden="true">
         <i class="caustic c1"></i><i class="caustic c2"></i><i class="caustic c3"></i>
+        <!-- 3D-акулы (Three.js); пока модель не загрузилась — CSS-слои ниже -->
+        <app-shark-scene />
         @for (b of bubbles; track $index) {
           <i class="bubble" [style.left.%]="b.x" [style.--s.px]="b.s" [style.--d.s]="b.d" [style.--t.s]="b.t"></i>
         }
@@ -107,6 +110,7 @@ import { Home } from './home';
     <section class="partner" aria-labelledby="partner-title">
       <i class="jaw top" aria-hidden="true"></i>
       <svg class="shark" viewBox="0 0 280 90" aria-hidden="true"><use href="#shark-body" /></svg>
+      <app-shark-scene mode="partner" class="pscene" />
       <div class="container">
         <p class="eyebrow" reveal>Powered by</p>
         <h2 id="partner-title" class="display-lg brand" reveal>ATTACK SHARK</h2>
@@ -212,6 +216,8 @@ import { Home } from './home';
           </article>
         }
       </div>
+      <!-- CC BY 4.0: указание автора 3D-модели обязательно -->
+      <p class="credit">3D-модель акулы: <a href="https://sketchfab.com/3d-models/297ed35c6a5f43749b0ae189d991a3f1" target="_blank" rel="noopener">«Animated Swimming Great White Shark Loop»</a> — LasquetiSpice, лицензия <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a></p>
     </section>
   `,
   styles: `
@@ -402,6 +408,13 @@ import { Home } from './home';
     @keyframes coil { 50% { transform: scaleX(0.9) translateY(2px); } }
     .dev:hover .ring { animation-duration: 1.2s; }
     .dev:hover .key { animation-duration: 1.3s; }
+
+    /* 3D готов — плоские силуэты-заглушки прячем */
+    :host:has(.hero app-shark-scene.ready) .megashark,
+    .partner:has(.pscene.ready) .shark { display: none; }
+    .pscene { z-index: -1; }
+    .credit { margin: 48px 0 0; font-size: 12px; color: var(--ink-subtle); }
+    .credit a { color: var(--ink-muted); }
 
     /* ── нижние секции в «подводной» подаче ── */
     /* дорога сезона: линия — поверхность воды, огонёк пройденного пути — плавник, плывущий к следующему этапу */
