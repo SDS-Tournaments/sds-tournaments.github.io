@@ -1,7 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { filter, take } from 'rxjs';
+import { filter, map, take } from 'rxjs';
 import { finishBoot } from './boot';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { Auth, supabase } from './auth';
@@ -22,6 +22,9 @@ import { STAGING } from './supabase.config';
 })
 export class App {
   private transloco = inject(TranslocoService);
+  private router = inject(Router);
+  /** Attack Shark в подвале — пока только на тестовой странице /test */
+  protected readonly isTest = toSignal(this.router.events.pipe(filter((e) => e instanceof NavigationEnd), map(() => this.router.url.startsWith('/test'))), { initialValue: false });
   protected readonly auth = inject(Auth);
   protected readonly live = inject(Live);
   /** стиль сайта под уровень карточки пилота (theme.ts) */
