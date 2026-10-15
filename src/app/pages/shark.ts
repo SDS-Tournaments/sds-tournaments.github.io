@@ -406,23 +406,24 @@ import { Home } from './home';
     /* ── нижние секции в «подводной» подаче ── */
     /* дорога сезона: линия — поверхность воды, огонёк пройденного пути — плавник, плывущий к следующему этапу */
     .road-sec { position: relative; }
+    /* вода — тонкая волнистая линия; пройденный путь — та же волна, только яркая */
     .road-sec ::ng-deep .rail { height: 6px; top: 4px; background: none; }
-    /* волна — отдельным слоем, чтобы маска не обрезала плавник над водой */
-    .road-sec ::ng-deep .rail::before {
-      content: ''; position: absolute; inset: 0; background: rgba(var(--shark-rgb), 0.18);
-      mask: radial-gradient(circle at 50% 0, transparent 3px, #000 3.5px) 0 0 / 12px 6px repeat-x;
+    .road-sec ::ng-deep .rail::before { content: ''; position: absolute; inset: 0; background: rgba(var(--shark-rgb), 0.3); mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 6'%3E%3Cpath d='M0 3 Q 3 0.6 6 3 T 12 3' fill='none' stroke='black' stroke-width='1.4'/%3E%3C/svg%3E") 0 50% / 12px 6px repeat-x; }
+    .road-sec ::ng-deep .fill {
+      background: linear-gradient(90deg, rgba(var(--shark-rgb), 0.35), var(--shark)); box-shadow: none; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 6'%3E%3Cpath d='M0 3 Q 3 0.6 6 3 T 12 3' fill='none' stroke='black' stroke-width='1.4'/%3E%3C/svg%3E") 0 50% / 12px 6px repeat-x;
     }
-    .road-sec ::ng-deep .fill { background: linear-gradient(90deg, rgba(var(--shark-rgb), 0.2), var(--shark) 85%, color-mix(in oklab, var(--shark), #fff 60%)); box-shadow: none; }
-    /* плавник — та же изогнутая форма, что над водой в шапке (выпуклый передний край, кончик назад), основание на волне */
-    .road-sec ::ng-deep .fill::after {
-      width: 28px; height: 22px; top: -19px; right: -10px; border-radius: 0; box-shadow: none;
-      background: linear-gradient(160deg, color-mix(in oklab, var(--shark), #fff 35%), var(--shark) 55%);
+    .road-sec ::ng-deep .fill::after { display: none; } /* огонёк заменён плавником (ниже), маска волны его бы обрезала */
+    /* плавник — отдельным слоем, едет вместе с концом пройденного пути; основание растворяется в воде */
+    .road-sec ::ng-deep .rail::after {
+      content: ''; position: absolute; left: 0; top: -17px; width: 28px; height: 22px; margin-left: -20px; opacity: 0;
+      background: linear-gradient(180deg, color-mix(in oklab, var(--shark), #fff 30%), var(--shark) 55%, transparent 96%);
       mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 64'%3E%3Cpath d='M78 62 C 62 50 44 20 8 3 C 16 18 22 34 20 62 Z'/%3E%3C/svg%3E") center / contain no-repeat;
-      filter: drop-shadow(0 0 5px rgba(var(--shark-rgb), 0.6));
-      transform-origin: bottom center;
-      animation: road-fin 1.8s ease-in-out infinite;
+      filter: drop-shadow(0 0 5px rgba(var(--shark-rgb), 0.55));
+      transition: left 1.8s var(--ease-out) 0.2s, opacity 0.4s 1.6s;
+      animation: road-fin 1.8s ease-in-out infinite; /* только вверх-вниз */
     }
-    @keyframes road-fin { 50% { transform: translateY(1.5px) rotate(-3deg); } }
+    .road-sec ::ng-deep .tl.shown .rail::after { left: var(--fill); opacity: 1; }
+    @keyframes road-fin { 50% { transform: translateY(1px); } }
     .road-sec ::ng-deep .done .dot { clip-path: polygon(50% 100%, 0 0, 100% 0); border-radius: 0; } /* пройденные этапы — «зубы» */
     .eyebrow { color: var(--shark); }
     .board { list-style: none; margin: 0; padding: 8px; display: grid; gap: 4px; max-width: 640px; border-color: rgba(var(--shark-rgb), 0.2); }
