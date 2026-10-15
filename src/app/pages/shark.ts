@@ -35,18 +35,9 @@ import { Home } from './home';
         @for (b of bubbles; track $index) {
           <i class="bubble" [style.left.%]="b.x" [style.--s.px]="b.s" [style.--d.s]="b.d" [style.--t.s]="b.t"></i>
         }
-        <svg class="waves" viewBox="0 0 1440 120" preserveAspectRatio="none">
-          <path class="w3" d="M0 70 Q 180 40 360 70 T 720 70 T 1080 70 T 1440 70 T 1800 70 T 2160 70 V120 H0 Z" />
-          <path class="w2" d="M0 80 Q 180 55 360 80 T 720 80 T 1080 80 T 1440 80 T 1800 80 T 2160 80 V120 H0 Z" />
-          <path class="w1" d="M0 92 Q 180 72 360 92 T 720 92 T 1080 92 T 1440 92 T 1800 92 T 2160 92 V120 H0 Z" />
-        </svg>
-        <!-- плавник проплывает по поверхности, за ним — след -->
-        <div class="fin-lane">
-          <div class="fin">
-            <svg viewBox="0 0 80 64"><path d="M78 62 C 62 50 44 20 8 3 C 16 18 22 34 20 62 Z" /></svg>
-            <i class="wake"></i>
-          </div>
-        </div>
+        <svg class="waves w3" viewBox="0 0 1440 120" preserveAspectRatio="none"><path d="M0 70 Q 180 40 360 70 T 720 70 T 1080 70 T 1440 70 T 1800 70 T 2160 70 V120 H0 Z" /></svg>
+        <svg class="waves w2" viewBox="0 0 1440 120" preserveAspectRatio="none"><path d="M0 80 Q 180 55 360 80 T 720 80 T 1080 80 T 1440 80 T 1800 80 T 2160 80 V120 H0 Z" /></svg>
+        <svg class="waves w1" viewBox="0 0 1440 120" preserveAspectRatio="none"><path d="M0 92 Q 180 72 360 92 T 720 92 T 1080 92 T 1440 92 T 1800 92 T 2160 92 V120 H0 Z" /></svg>
       </div>
 
       <div class="container inner">
@@ -246,7 +237,7 @@ import { Home } from './home';
     .hero { position: relative; overflow: hidden; min-height: calc(100svh - 64px); display: grid; align-items: center; isolation: isolate; }
     .ocean { position: absolute; inset: 0; z-index: -1; background: radial-gradient(120% 80% at 70% 0%, var(--sea), var(--deep) 40%, var(--abyss) 85%); }
     .caustic {
-      position: absolute; border-radius: 50%; mix-blend-mode: screen; opacity: 0.35; filter: blur(40px);
+      position: absolute; border-radius: 50%; opacity: 0.3; filter: blur(40px);
       background: radial-gradient(circle, rgba(var(--shark-rgb), 0.55), transparent 65%);
       animation: drift 18s ease-in-out infinite alternate;
     }
@@ -265,21 +256,11 @@ import { Home } from './home';
       100% { opacity: 0; transform: translate(-6px, -100vh); }
     }
     .waves { position: absolute; left: 0; bottom: 0; width: 200%; height: 120px; }
-    .waves path { animation: wave 14s linear infinite; }
-    .w3 { fill: rgba(var(--shark-rgb), 0.06); animation-duration: 22s !important; }
-    .w2 { fill: rgba(var(--shark-rgb), 0.1); animation-duration: 16s !important; animation-direction: reverse !important; }
+    .waves { animation: wave 14s linear infinite; }
+    .w3 { fill: rgba(var(--shark-rgb), 0.06); animation-duration: 22s; }
+    .w2 { fill: rgba(var(--shark-rgb), 0.1); animation-duration: 16s; animation-direction: reverse; }
     .w1 { fill: var(--canvas); }
     @keyframes wave { to { transform: translateX(-50%); } }
-    /* плавник: проплывает слева направо раз в ~11 с, покачиваясь на волне */
-    .fin-lane { position: absolute; left: 0; right: 0; bottom: 52px; height: 64px; overflow: hidden; }
-    .fin { position: absolute; left: 0; bottom: 0; width: 80px; animation: swim 11s cubic-bezier(0.45, 0, 0.55, 1) 1s infinite; }
-    .fin svg { position: relative; z-index: 1; width: 80px; height: 64px; fill: var(--surface-2); stroke: rgba(var(--shark-rgb), 0.7); stroke-width: 1.2; animation: bob 1.6s ease-in-out infinite; }
-    .wake {
-      position: absolute; right: 60px; bottom: 2px; width: 220px; height: 6px; border-radius: 6px;
-      background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--shark), var(--ink) 40%)); opacity: 0.55; filter: blur(1px);
-    }
-    @keyframes swim { 0% { transform: translateX(-140px); } 70%, 100% { transform: translateX(calc(100vw + 140px)); } }
-    @keyframes bob { 50% { transform: translateY(5px) rotate(-3deg); } }
 
     .inner { display: flex; align-items: center; justify-content: space-between; gap: 48px; padding-block: 64px 140px; }
     @media (max-width: 900px) { .inner { flex-direction: column; align-items: flex-start; } }
@@ -323,6 +304,8 @@ import { Home } from './home';
     .bite:hover::after, .bite:focus-visible::after { transform: translateY(0) rotate(180deg); }
     /* сонар за карточкой ближайшего этапа */
     .sonar-wrap { position: relative; isolation: isolate; }
+    /* над 3D-сценой размытие фона пересчитывалось бы каждый кадр — заменяем плотной подложкой */
+    .sonar-wrap ::ng-deep app-next-stage { backdrop-filter: none; background: color-mix(in oklab, var(--surface-1), transparent 8%); }
     .sonar {
       position: absolute; left: 50%; top: 50%; z-index: -1; width: 640px; aspect-ratio: 1; translate: -50% -50%; border-radius: 50%; pointer-events: none;
       background:
@@ -358,7 +341,7 @@ import { Home } from './home';
     .brand { margin: 6px 0 40px; font-family: 'Russo One', var(--font); font-weight: 400; letter-spacing: 0.04em; color: var(--shark); text-shadow: 0 0 40px rgba(var(--shark-rgb), 0.35); }
     .perks { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 36px; }
     .perk {
-      position: relative; padding: 24px; border: 1px solid rgba(var(--shark-rgb), 0.22); background: color-mix(in oklab, var(--surface-1), transparent 25%); backdrop-filter: blur(6px);
+      position: relative; padding: 24px; border: 1px solid rgba(var(--shark-rgb), 0.22); background: color-mix(in oklab, var(--surface-1), transparent 10%);
       clip-path: polygon(0 0, calc(100% - 26px) 0, 100% 26px, 100% 100%, 0 100%); /* срезанный угол — как плавник */
       transition: border-color 200ms, transform 200ms var(--ease-out);
     }
@@ -407,7 +390,8 @@ import { Home } from './home';
     .coil { fill: none; stroke: var(--shark); stroke-width: 2.2; stroke-linecap: round; transform-box: fill-box; transform-origin: left center; animation: coil 2.2s ease-in-out infinite; }
     @keyframes coil { 50% { transform: scaleX(0.9) translateY(2px); } }
     .dev:hover .ring { animation-duration: 1.2s; }
-    .dev:hover .key { animation-duration: 1.3s; }
+    .key { animation-play-state: paused; } /* 44 клавиши меняют цвет — гоняем только при наведении */
+    .dev:hover .key, .dev:focus-visible .key { animation-play-state: running; animation-duration: 1.3s; }
 
     /* 3D готов — плоские силуэты-заглушки прячем */
     :host:has(.hero app-shark-scene.ready) .megashark,
@@ -455,11 +439,10 @@ import { Home } from './home';
     :host ::ng-deep .reveal.shown { filter: none; }
 
     @media (prefers-reduced-motion: reduce) {
-      .caustic, .bubble, .waves path, .fin, .fin svg, .l2 b, .teeth polyline, .ping::after, .sonar, .track, .shark,
+      .caustic, .bubble, .waves, .l2 b, .teeth polyline, .ping::after, .sonar, .track, .shark,
       .megashark, .ring, .wheel, .key, .wave, .coil { animation: none !important; }
       .megashark { display: none; }
       .teeth polyline { stroke-dashoffset: 0; }
-      .fin { display: none; }
     }
   `,
 })

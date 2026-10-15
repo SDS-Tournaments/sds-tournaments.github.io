@@ -59,8 +59,9 @@ async function run(host: HTMLElement, mode: Mode): Promise<() => void> {
   });
 
   const canvas = host.querySelector('canvas')!;
-  const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+  // фон в тумане — сглаживание и полное разрешение не нужны: рендерим в ~80% и без MSAA (главная экономия FPS)
+  const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: false, powerPreference: 'high-performance' });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 1) * 0.8);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
 
@@ -106,7 +107,7 @@ async function run(host: HTMLElement, mode: Mode): Promise<() => void> {
     z: number;
     y: number;
     wait: number; // пауза до следующего прохода
-    close: boolean; // крупный проход у самой камеры
+    close: boolean; // атака: плывёт из глубины прямо на зрителя
     swim?: InstanceType<typeof THREE.AnimationAction>;
     bite?: InstanceType<typeof THREE.AnimationAction>;
     bitten: boolean; // уже «клацнула» в этом проходе
@@ -131,16 +132,18 @@ async function run(host: HTMLElement, mode: Mode): Promise<() => void> {
   };
   const sharks: Shark[] =
     mode === 'hero'
-      ? [make(-4, 1.4, 26), make(-14, -1.8, 38), make(4, 0, 9, true)]
+      ? [make(-6, 1.2, 10), make(-16, -1.6, 13), make(-40, 0, 6.5, true)] // две «на охоте» + атакующая
       : [make(-3, 0, 30)];
-  const big = sharks.find((s) => s.close);
-  if (big) {
-    big.t = 1;
-    big.wait = 8; // первый крупный проход — через 8 с, потом раз в ~25 с
+  if (mode === 'hero') {
+    // охотницы появляются по одной и редко; атака — впервые через ~22 с, дальше раз в 45–70 с
+    const [a, b, atk] = sharks;
+    Object.assign(a, { t: 1, wait: 1.5 });
+    Object.assign(b, { t: 1, wait: 8 });
+    Object.assign(atk, { t: 1, wait: 22 });
   }
 
   // «морской снег» — медленно оседающие частицы
-  const N = mode === 'hero' ? 500 : 220;
+  const N = mode === 'hero' ? 300 : 160;
   const pos = new Float32Array(N * 3);
   for (let i = 0; i < N; i++) {
     pos[i * 3] = (Math.random() - 0.5) * 40;
@@ -190,22 +193,26 @@ async function run(host: HTMLElement, mode: Mode): Promise<() => void> {
         s.t = 0;
         s.bitten = false;
         s.dir = s.close ? (Math.random() < 0.5 ? 1 : -1) : (-s.dir as 1 | -1);
-        s.y = s.close ? (Math.random() - 0.5) * 1.5 : s.y + (Math.random() - 0.5);
+        s.y = s.close ? (Math.random() - 0.5) * 1.2 : s.y + (Math.random() - 0.5);
         s.root.visible = true;
       }
       s.t += dt / s.dur;
-      if (s.t >= 1) s.wait = s.close ? 18 + Math.random() * 10 : 1 + Math.random() * 3;
+      if (s.t >= 1) s.wait = s.close ? 45 + Math.random() * 25 : mode === 'hero' ? 6 + Math.random() * 8 : 1 + Math.random() * 3;
       const W = halfWidth(s.z);
+      // охота — быстрый проход поперёк кадра; атака — из глубины прямо в камеру, к центру, с лёгким рысканьем
       const at = (t: number, out: InstanceType<typeof THREE.Vector3>) =>
-        out.set(s.dir * (-W + 2 * W * t), s.y + Math.sin(t * Math.PI * 2 + s.z) * 0.6, s.z + Math.sin(t * Math.PI) * 1.2);
+        s.close
+          ? out.set(s.dir * 2.5 * (1 - t) + Math.sin(t * 9) * 0.25, s.y * (1 - t) + 0.6, -40 + t * (camera.position.z + 6 + 40))
+          : out.set(s.dir * (-W + 2 * W * t), s.y + Math.sin(t * Math.PI * 2 + s.z) * 0.6, s.z + Math.sin(t * Math.PI) * 1.2);
       at(s.t, s.root.position);
       at(Math.min(s.t + 0.01, 1.01), ahead);
       s.root.lookAt(ahead);
-      if (s.bite && s.swim && !s.bitten && s.t > 0.42) {
+      if (s.close && s.root.position.z > camera.position.z - 1.5) s.root.visible = false; // проплыла «сквозь» зрителя
+      if (s.bite && s.swim && !s.bitten && s.t > 0.74) {
         s.bitten = true;
         s.swim.crossFadeTo(s.bite.reset().play(), 0.15, false);
       }
-      s.mixer.update(dt * (s.close ? 1.4 : 1));
+      s.mixer.update(dt * (s.close ? 2.1 : mode === 'hero' ? 1.7 : 1)); // на охоте хвост бьёт чаще
     }
     const p = snowGeo.attributes['position'].array as Float32Array;
     for (let i = 0; i < N; i++) {
