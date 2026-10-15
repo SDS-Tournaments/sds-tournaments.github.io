@@ -14,6 +14,17 @@ import { Home } from './home';
   selector: 'app-shark',
   imports: [RouterLink, TranslocoPipe, Reveal, NextStage, LiveStage, SeasonRoad],
   template: `
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <defs>
+        <g id="shark-body" transform="translate(280 0) scale(-1 1)">
+          <path d="M8 50 C 60 22 160 20 232 40 L 266 18 L 258 48 L 272 76 L 234 60 C 172 80 72 80 8 50 Z" />
+        <path d="M118 30 L 142 4 L 152 32 Z" />
+        <path d="M112 64 L 130 88 L 140 64 Z" />
+        </g>
+      </defs>
+    </svg>
+    <svg class="megashark" viewBox="0 0 280 90" aria-hidden="true"><use href="#shark-body" /></svg>
+
     <!-- ── Hero: глубина, каустика, пузыри, плавник режет поверхность ── -->
     <section class="hero" aria-labelledby="shark-title">
       <div class="ocean" aria-hidden="true">
@@ -29,7 +40,7 @@ import { Home } from './home';
         <!-- плавник проплывает по поверхности, за ним — след -->
         <div class="fin-lane">
           <div class="fin">
-            <svg viewBox="0 0 80 64"><path d="M2 62 C 22 46 36 16 66 2 C 58 26 60 46 78 62 Z" /></svg>
+            <svg viewBox="0 0 80 64"><g transform="translate(80 0) scale(-1 1)"><path d="M2 62 C 22 46 36 16 66 2 C 58 26 60 46 78 62 Z" /></g></svg>
             <i class="wake"></i>
           </div>
         </div>
@@ -85,11 +96,7 @@ import { Home } from './home';
     <!-- ── Блок партнёра: акула плывёт на фоне ── -->
     <section class="partner" aria-labelledby="partner-title">
       <i class="jaw top" aria-hidden="true"></i>
-      <svg class="shark" viewBox="0 0 280 90" aria-hidden="true">
-        <path d="M8 50 C 60 22 160 20 232 40 L 266 18 L 258 48 L 272 76 L 234 60 C 172 80 72 80 8 50 Z" />
-        <path d="M118 30 L 142 4 L 152 32 Z" />
-        <path d="M112 64 L 130 88 L 140 64 Z" />
-      </svg>
+      <svg class="shark" viewBox="0 0 280 90" aria-hidden="true"><use href="#shark-body" /></svg>
       <div class="container">
         <p class="eyebrow" reveal>Powered by</p>
         <h2 id="partner-title" class="display-lg brand" reveal>ATTACK SHARK</h2>
@@ -102,9 +109,60 @@ import { Home } from './home';
             </article>
           }
         </div>
-        <a class="btn bite" href="#" (click)="$event.preventDefault()">Узнать о партнёре →</a>
+        <a class="btn bite" [href]="site" target="_blank" rel="noopener">attackshark.com →</a>
       </div>
       <i class="jaw bottom" aria-hidden="true"></i>
+    </section>
+
+    <section class="arsenal section container" aria-labelledby="arsenal-title">
+      <p class="eyebrow" reveal>Девайсы Attack Shark</p>
+      <h2 id="arsenal-title" class="display-lg" reveal>Арсенал хищника</h2>
+      <div class="gear">
+        @for (g of gear; track g.k; let i = $index) {
+          <a class="dev" [class]="'dev ' + g.k" [href]="g.url" target="_blank" rel="noopener" reveal [style.--i]="i">
+            <span class="art" aria-hidden="true">
+              @switch (g.k) {
+                @case ('mouse') {
+                  <svg viewBox="0 0 120 120">
+                    <path class="body" d="M60 10 C 86 10 96 30 96 56 L 96 84 C 96 102 80 112 60 112 C 40 112 24 102 24 84 L 24 56 C 24 30 34 10 60 10 Z" />
+                    <path class="line" d="M60 10 V 48 M24 52 H 96" />
+                    <rect class="wheel" x="56" y="22" width="8" height="16" rx="4" />
+                    <circle class="ring r1" cx="60" cy="78" r="6" /><circle class="ring r2" cx="60" cy="78" r="6" /><circle class="ring r3" cx="60" cy="78" r="6" />
+                    <circle class="sensor" cx="60" cy="78" r="3.5" />
+                  </svg>
+                }
+                @case ('keyboard') {
+                  <svg viewBox="0 0 160 90">
+                    <rect class="body" x="4" y="14" width="152" height="62" rx="8" />
+                    @for (k of keys; track $index) {
+                      <rect class="key" [attr.x]="k.x" [attr.y]="k.y" [attr.width]="k.w" height="11" rx="2" [style.--kd.ms]="k.d" />
+                    }
+                  </svg>
+                }
+                @case ('headset') {
+                  <svg viewBox="0 0 120 120">
+                    <path class="body" d="M24 70 V 56 C 24 30 40 16 60 16 C 80 16 96 30 96 56 V 70" />
+                    <rect class="cup" x="16" y="62" width="20" height="34" rx="8" /><rect class="cup" x="84" y="62" width="20" height="34" rx="8" />
+                    <path class="wave w1" d="M10 70 Q 2 79 10 88" /><path class="wave w2" d="M4 64 Q -8 79 4 94" />
+                    <path class="wave w1" d="M110 70 Q 118 79 110 88" /><path class="wave w2" d="M116 64 Q 128 79 116 94" />
+                  </svg>
+                }
+                @case ('acc') {
+                  <svg viewBox="0 0 160 90">
+                    <rect class="pad" x="6" y="30" width="148" height="54" rx="10" />
+                    <path class="coil" d="M14 18 q 6 -12 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0" />
+                  </svg>
+                }
+              }
+            </span>
+            <span class="dk">{{ g.tag }}</span>
+            <h3>{{ g.t }}</h3>
+            <p>{{ g.d }}</p>
+            <span class="models mono">{{ g.models }}</span>
+            <span class="go">Смотреть →</span>
+          </a>
+        }
+      </div>
     </section>
 
     @if (road().length) {
@@ -152,17 +210,30 @@ import { Home } from './home';
     </section>
   `,
   styles: `
+    /* цвета — из темы сайта (NOIR, металлы, LEGEND): океан смешивается из акцента и фона темы */
     :host {
-      --abyss: #020a12;
-      --deep: #04202c;
-      --shark: #3fd0ff;            /* акцент коллаборации — заменить на фирменный цвет Attack Shark */
-      --shark-rgb: 63, 208, 255;
-      display: block;
-      background: linear-gradient(180deg, var(--abyss), #010508 60%);
+      --shark: var(--primary);
+      --shark-rgb: var(--accent-rgb);
+      --abyss: var(--canvas);
+      --deep: color-mix(in oklab, var(--primary) 14%, var(--canvas));
+      --sea: color-mix(in oklab, var(--primary) 26%, var(--canvas));
+      position: relative; display: block; background: var(--canvas); isolation: isolate;
+    }
+    /* большая акула: раз в ~30 с тенью проносится по фону страницы */
+    .megashark {
+      position: fixed; top: 22vh; left: 0; z-index: 5; width: 150vw; max-width: none; pointer-events: none;
+      fill: var(--shark); opacity: 0; filter: blur(3px);
+      animation: mega 30s cubic-bezier(0.55, 0.05, 0.4, 0.95) 6s infinite;
+    }
+    @keyframes mega {
+      0%, 72% { opacity: 0; transform: translateX(-160vw) scale(1); }
+      76% { opacity: 0.07; }
+      86% { opacity: 0.07; transform: translateX(10vw) translateY(-3vh) scale(1.04); }
+      90%, 100% { opacity: 0; transform: translateX(120vw) scale(1); }
     }
     /* ── Hero ── */
     .hero { position: relative; overflow: hidden; min-height: calc(100svh - 64px); display: grid; align-items: center; isolation: isolate; }
-    .ocean { position: absolute; inset: 0; z-index: -1; background: radial-gradient(120% 80% at 70% 0%, #06364a, var(--deep) 40%, var(--abyss) 85%); }
+    .ocean { position: absolute; inset: 0; z-index: -1; background: radial-gradient(120% 80% at 70% 0%, var(--sea), var(--deep) 40%, var(--abyss) 85%); }
     .caustic {
       position: absolute; border-radius: 50%; mix-blend-mode: screen; opacity: 0.35; filter: blur(40px);
       background: radial-gradient(circle, rgba(var(--shark-rgb), 0.55), transparent 65%);
@@ -186,15 +257,15 @@ import { Home } from './home';
     .waves path { animation: wave 14s linear infinite; }
     .w3 { fill: rgba(var(--shark-rgb), 0.06); animation-duration: 22s !important; }
     .w2 { fill: rgba(var(--shark-rgb), 0.1); animation-duration: 16s !important; animation-direction: reverse !important; }
-    .w1 { fill: #010508; }
+    .w1 { fill: var(--canvas); }
     @keyframes wave { to { transform: translateX(-50%); } }
     /* плавник: проплывает слева направо раз в ~11 с, покачиваясь на волне */
     .fin-lane { position: absolute; left: 0; right: 0; bottom: 52px; height: 64px; overflow: hidden; }
     .fin { position: absolute; left: 0; bottom: 0; width: 80px; animation: swim 11s cubic-bezier(0.45, 0, 0.55, 1) 1s infinite; }
-    .fin svg { position: relative; z-index: 1; width: 80px; height: 64px; fill: #0c1c26; stroke: rgba(var(--shark-rgb), 0.7); stroke-width: 1.2; animation: bob 1.6s ease-in-out infinite; }
+    .fin svg { position: relative; z-index: 1; width: 80px; height: 64px; fill: var(--surface-2); stroke: rgba(var(--shark-rgb), 0.7); stroke-width: 1.2; animation: bob 1.6s ease-in-out infinite; }
     .wake {
       position: absolute; right: 60px; bottom: 2px; width: 220px; height: 6px; border-radius: 6px;
-      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55)); filter: blur(1px);
+      background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--shark), var(--ink) 40%)); opacity: 0.55; filter: blur(1px);
     }
     @keyframes swim { 0% { transform: translateX(-140px); } 70%, 100% { transform: translateX(calc(100vw + 140px)); } }
     @keyframes bob { 50% { transform: translateY(5px) rotate(-3deg); } }
@@ -215,7 +286,7 @@ import { Home } from './home';
     .l2 { font-size: clamp(44px, 6.5vw, 88px); letter-spacing: 0.01em; color: var(--ink); text-transform: uppercase; }
     .l2 b {
       font-weight: 400; color: transparent; -webkit-text-stroke: 1.5px var(--shark);
-      background: linear-gradient(100deg, var(--shark), #e8fbff 45%, var(--shark) 60%) 0 0 / 240% 100%; -webkit-background-clip: text; background-clip: text;
+      background: linear-gradient(100deg, var(--shark), color-mix(in oklab, var(--shark), #fff 70%) 45%, var(--shark) 60%) 0 0 / 240% 100%; -webkit-background-clip: text; background-clip: text;
       animation: sheen 5s ease-in-out 1.2s infinite;
     }
     @keyframes sheen { 0%, 40% { background-position: 120% 0; color: transparent; } 70%, 100% { background-position: -120% 0; } }
@@ -227,11 +298,11 @@ import { Home } from './home';
     .cta { display: flex; flex-wrap: wrap; gap: 12px; }
     /* кнопка «укус»: при наведении сверху и снизу смыкаются зубы */
     .bite {
-      position: relative; overflow: hidden; background: var(--shark); color: #001018; font-weight: 600;
+      position: relative; overflow: hidden; background: var(--shark); color: var(--on-primary); font-weight: 600;
       transition: transform 200ms var(--ease-out), box-shadow 200ms;
     }
     .bite::before, .bite::after {
-      content: ''; position: absolute; left: 0; right: 0; height: 9px; background: #001018; transition: transform 220ms var(--ease-out);
+      content: ''; position: absolute; left: 0; right: 0; height: 9px; background: var(--canvas); transition: transform 220ms var(--ease-out);
       mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / 14px 100%;
     }
     .bite::before { top: 0; transform: translateY(-100%); }
@@ -252,7 +323,7 @@ import { Home } from './home';
     @keyframes sweep { to { rotate: 360deg; } }
 
     /* ── бегущая строка ── */
-    .ticker { overflow: hidden; border-block: 1px solid rgba(var(--shark-rgb), 0.25); background: #01070c; }
+    .ticker { overflow: hidden; border-block: 1px solid rgba(var(--shark-rgb), 0.25); background: var(--surface-1); }
     .track { display: flex; align-items: center; gap: 28px; width: max-content; padding: 14px 0; animation: tick 30s linear infinite; }
     .track span { font: 400 20px 'Russo One', var(--font); letter-spacing: 0.08em; color: var(--ink); }
     .track b { color: var(--shark); font-size: 20px; }
@@ -260,8 +331,8 @@ import { Home } from './home';
     @keyframes tick { to { transform: translateX(-50%); } }
 
     /* ── блок партнёра ── */
-    .partner { position: relative; overflow: hidden; padding: 120px 0; background: radial-gradient(80% 120% at 20% 50%, #062a3a, #020c14 70%); isolation: isolate; }
-    .jaw { position: absolute; left: 0; right: 0; height: 22px; background: #010508; z-index: 1; mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / 34px 100%; }
+    .partner { position: relative; overflow: hidden; padding: 120px 0; background: radial-gradient(80% 120% at 20% 50%, var(--sea), var(--abyss) 70%); isolation: isolate; }
+    .jaw { position: absolute; left: 0; right: 0; height: 22px; background: var(--canvas); z-index: 1; mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / 34px 100%; }
     .jaw.top { top: 0; }
     .jaw.bottom { bottom: 0; rotate: 180deg; }
     .shark {
@@ -276,7 +347,7 @@ import { Home } from './home';
     .brand { margin: 6px 0 40px; font-family: 'Russo One', var(--font); font-weight: 400; letter-spacing: 0.04em; color: var(--shark); text-shadow: 0 0 40px rgba(var(--shark-rgb), 0.35); }
     .perks { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 36px; }
     .perk {
-      position: relative; padding: 24px; border: 1px solid rgba(var(--shark-rgb), 0.22); background: rgba(2, 12, 20, 0.7); backdrop-filter: blur(6px);
+      position: relative; padding: 24px; border: 1px solid rgba(var(--shark-rgb), 0.22); background: color-mix(in oklab, var(--surface-1), transparent 25%); backdrop-filter: blur(6px);
       clip-path: polygon(0 0, calc(100% - 26px) 0, 100% 26px, 100% 100%, 0 100%); /* срезанный угол — как плавник */
       transition: border-color 200ms, transform 200ms var(--ease-out);
     }
@@ -284,6 +355,44 @@ import { Home } from './home';
     .pi { width: 28px; height: 28px; fill: none; stroke: var(--shark); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
     .perk h3 { margin: 14px 0 6px; font-size: 18px; }
     .perk p { margin: 0; color: var(--ink-muted); font-size: 14px; }
+
+    /* ── Арсенал: девайсы с живыми иллюстрациями ── */
+    .gear { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+    .dev {
+      position: relative; display: grid; gap: 6px; align-content: start; padding: 22px; color: inherit; text-decoration: none;
+      border: 1px solid rgba(var(--shark-rgb), 0.2); background: var(--surface-1);
+      clip-path: polygon(0 0, calc(100% - 26px) 0, 100% 26px, 100% 100%, 0 100%);
+      transition: border-color 200ms, transform 250ms var(--ease-out), box-shadow 250ms;
+    }
+    .dev:hover, .dev:focus-visible { border-color: var(--shark); transform: translateY(-6px); box-shadow: 0 24px 50px -24px rgba(var(--shark-rgb), 0.6); }
+    .art { display: grid; place-items: center; height: 130px; margin-bottom: 8px; border-radius: var(--r-md); background: radial-gradient(circle at 50% 60%, rgba(var(--shark-rgb), 0.14), transparent 70%); }
+    .art svg { width: 70%; max-height: 120px; overflow: visible; }
+    .art .body, .art .cup, .art .pad { fill: var(--surface-2); stroke: rgba(var(--shark-rgb), 0.7); stroke-width: 1.5; }
+    .art .line { fill: none; stroke: rgba(var(--shark-rgb), 0.35); stroke-width: 1.2; }
+    .dk { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--shark); }
+    .dev h3 { margin: 0; font: 400 22px 'Russo One', var(--font); }
+    .dev p { margin: 0; font-size: 14px; color: var(--ink-muted); }
+    .models { font-size: 12px; color: var(--ink-subtle); }
+    .go { margin-top: 8px; font-size: 14px; font-weight: 600; color: var(--shark); }
+    /* мышь: сенсор пускает сонар (8000 Гц), колесо светится */
+    .sensor { fill: var(--shark); }
+    .ring { fill: none; stroke: var(--shark); stroke-width: 1.2; transform-box: fill-box; transform-origin: center; animation: sonar 2.4s ease-out infinite; }
+    .r2 { animation-delay: 0.8s; } .r3 { animation-delay: 1.6s; }
+    @keyframes sonar { from { opacity: 0.9; transform: scale(1); } to { opacity: 0; transform: scale(7); } }
+    .wheel { fill: rgba(var(--shark-rgb), 0.3); stroke: var(--shark); animation: wheel 1.6s ease-in-out infinite; }
+    @keyframes wheel { 50% { fill: var(--shark); } }
+    /* клавиатура: по клавишам бежит волна подсветки (rapid trigger) */
+    .key { fill: color-mix(in oklab, var(--surface-2), var(--ink) 8%); stroke: rgba(var(--shark-rgb), 0.25); stroke-width: 0.8; animation: keywave 2.6s ease-in-out var(--kd) infinite; }
+    @keyframes keywave { 0%, 70%, 100% { fill: color-mix(in oklab, var(--surface-2), var(--ink) 8%); } 12% { fill: var(--shark); } }
+    /* гарнитура: звуковые волны */
+    .wave { fill: none; stroke: var(--shark); stroke-width: 2; stroke-linecap: round; animation: sound 1.4s ease-in-out infinite; }
+    .wave.w2 { animation-delay: 0.25s; }
+    @keyframes sound { 0%, 100% { opacity: 0.15; } 40% { opacity: 1; } }
+    /* коврик и витой кабель: кабель «дышит» */
+    .coil { fill: none; stroke: var(--shark); stroke-width: 2.2; stroke-linecap: round; transform-box: fill-box; transform-origin: left center; animation: coil 2.2s ease-in-out infinite; }
+    @keyframes coil { 50% { transform: scaleX(0.9) translateY(2px); } }
+    .dev:hover .ring { animation-duration: 1.2s; }
+    .dev:hover .key { animation-duration: 1.3s; }
 
     /* ── нижние секции в «подводной» подаче ── */
     .road-sec { position: relative; }
@@ -304,7 +413,9 @@ import { Home } from './home';
     :host ::ng-deep .reveal.shown { filter: none; }
 
     @media (prefers-reduced-motion: reduce) {
-      .caustic, .bubble, .waves path, .fin, .fin svg, .l2 b, .teeth polyline, .ping::after, .sonar, .track, .shark { animation: none !important; }
+      .caustic, .bubble, .waves path, .fin, .fin svg, .l2 b, .teeth polyline, .ping::after, .sonar, .track, .shark,
+      .megashark, .ring, .wheel, .key, .wave, .coil { animation: none !important; }
+      .megashark { display: none; }
       .teeth polyline { stroke-dashoffset: 0; }
       .fin { display: none; }
     }
@@ -313,6 +424,18 @@ import { Home } from './home';
 export class SharkHome extends Home {
   /** пузыри: позиция, размер, задержка, время всплытия (детерминированно) */
   protected readonly bubbles = Array.from({ length: 18 }, (_, i) => ({ x: (i * 37 + 5) % 100, s: 4 + ((i * 7) % 10), d: (i * 0.9) % 9, t: 9 + ((i * 3) % 8) }));
+  /** официальный сайт и разделы магазина Attack Shark */
+  protected readonly site = 'https://attackshark.com/';
+  protected readonly gear = [
+    { k: 'mouse', tag: '8000 Гц', t: 'Мыши', d: 'Сенсор и опрос 8K: реакция быстрее, чем машину успевает развернуть.', models: 'X8 Ultra · RS3 Ultra · X11', url: 'https://attackshark.com/collections/8000-hz' },
+    { k: 'keyboard', tag: 'HE · Rapid Trigger', t: 'Клавиатуры', d: 'Магнитные свитчи: газ и ручник срабатывают на долю миллиметра.', models: 'X68 HE · R85 HE · R98 HE', url: 'https://attackshark.com/collections/best-selling-products' },
+    { k: 'headset', tag: 'Tri-mode', t: 'Гарнитуры', d: 'Слышно мотор, отсечку и споттера — без задержек.', models: 'L80 · L90', url: 'https://attackshark.com/collections/best-selling-products' },
+    { k: 'acc', tag: 'Аксессуары', t: 'Коврики и кабели', d: 'Ровный глайд и витые кабели — сетап как у пилотов.', models: 'Коврики · C01 Ultra · C06', url: 'https://attackshark.com/collections/all-accessories' },
+  ];
+  /** клавиши HE-клавиатуры: волна подсветки слева направо */
+  protected readonly keys = Array.from({ length: 4 }, (_, row) =>
+    Array.from({ length: 11 }, (_, col) => ({ x: 12 + col * 12.6, y: 22 + row * 13, w: 10, d: col * 70 + row * 30 })),
+  ).flat();
   /** заглушки — заменить на согласованные с Attack Shark */
   protected readonly perks = [
     { t: 'Официальный партнёр', d: 'Attack Shark поддерживает сезон SDS: этапы, трансляции и комьюнити.', icon: 'M12 2l3 6 6 .9-4.5 4.3 1 6.3L12 16.6 6.5 19.5l1-6.3L3 8.9 9 8z' },
