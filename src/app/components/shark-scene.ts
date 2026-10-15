@@ -96,7 +96,6 @@ async function run(host: HTMLElement, mode: Mode): Promise<() => void> {
   const size = box.getSize(new THREE.Vector3());
   const k = 5 / Math.max(size.x, size.y, size.z);
   const clip = gltf.animations.find((a) => /swim/i.test(a.name)) ?? gltf.animations[0];
-  const biteClip = gltf.animations.find((a) => /bite/i.test(a.name));
 
   interface Shark {
     root: InstanceType<typeof THREE.Group>;
@@ -107,12 +106,19 @@ async function run(host: HTMLElement, mode: Mode): Promise<() => void> {
     z: number;
     y: number;
     wait: number; // пауза до следующего прохода
-    close: boolean; // атака: плывёт из глубины прямо на зрителя
-    swim?: InstanceType<typeof THREE.AnimationAction>;
-    bite?: InstanceType<typeof THREE.AnimationAction>;
-    bitten: boolean; // уже «клацнула» в этом проходе
+    pace: Pace; // темп этого прохода
   }
-  const make = (z: number, y: number, dur: number, close = false): Shark => {
+  /** неровное плавание: базовый (медленный) темп + рывок в точке c силой a и шириной w */
+  interface Pace {
+    base: number;
+    c: number;
+    a: number;
+    w: number;
+  }
+  const newPace = (): Pace => ({ base: 0.35 + Math.random() * 0.35, c: 0.2 + Math.random() * 0.55, a: 1.4 + Math.random() * 1.4, w: 0.06 + Math.random() * 0.07 });
+  /** множитель скорости в точке t: подкрадывается → резкий рывок → снова скользит */
+  const paceAt = (p: Pace, t: number) => p.base + p.a * Math.exp(-(((t - p.c) / p.w) ** 2));
+  const make = (z: number, y: number, dur: number): Shark => {
     // root — смотрит по ходу движения (lookAt), pivot — доворот модели головой вперёд, body — отцентрованная модель
     const body = clone(proto);
     body.scale.setScalar(k);
@@ -124,22 +130,17 @@ async function run(host: HTMLElement, mode: Mode): Promise<() => void> {
     root.add(pivot);
     scene.add(root);
     const mixer = new THREE.AnimationMixer(body);
-    const swim = clip ? mixer.clipAction(clip).play() : undefined;
-    // у крупной акулы — укус посреди прохода у камеры, потом снова плывёт
-    const bite = close && biteClip ? mixer.clipAction(biteClip).setLoop(THREE.LoopOnce, 1) : undefined;
-    if (bite && swim) mixer.addEventListener('finished', () => bite.crossFadeTo(swim.reset().play(), 0.25, false));
-    return { root, mixer, t: Math.random(), dur, dir: Math.random() < 0.5 ? 1 : -1, z, y, wait: 0, close, swim, bite, bitten: false };
+    if (clip) mixer.clipAction(clip).play();
+    return { root, mixer, t: Math.random(), dur, dir: Math.random() < 0.5 ? 1 : -1, z, y, wait: 0, pace: newPace() };
   };
   const sharks: Shark[] =
     mode === 'hero'
-      ? [make(-6, 1.2, 10), make(-16, -1.6, 13), make(-40, 0, 6.5, true)] // две «на охоте» + атакующая
+      ? [make(-6, 1.2, 12), make(-16, -1.6, 15)] // две «на охоте»
       : [make(-3, 0, 30)];
   if (mode === 'hero') {
-    // охотницы появляются по одной и редко; атака — впервые через ~22 с, дальше раз в 45–70 с
-    const [a, b, atk] = sharks;
-    Object.assign(a, { t: 1, wait: 1.5 });
-    Object.assign(b, { t: 1, wait: 8 });
-    Object.assign(atk, { t: 1, wait: 22 });
+    // охотницы появляются по одной и редко
+    Object.assign(sharks[0], { t: 1, wait: 1.5 });
+    Object.assign(sharks[1], { t: 1, wait: 8 });
   }
 
   // «морской снег» — медленно оседающие частицы
@@ -182,6 +183,7 @@ async function run(host: HTMLElement, mode: Mode): Promise<() => void> {
   const clock = new THREE.Clock();
   const ahead = new THREE.Vector3();
   const prev = new THREE.Vector3();
+  let prevReset: Shark | null = null;
   const tick = () => {
     const dt = Math.min(clock.getDelta(), 0.05);
     const time = clock.elapsedTime;
@@ -192,36 +194,37 @@ async function run(host: HTMLElement, mode: Mode): Promise<() => void> {
         if (s.wait > 0) continue;
         // новый проход: другая сторона, глубина и высота немного иные
         s.t = 0;
-        s.bitten = false;
-        s.dir = s.close ? (Math.random() < 0.5 ? 1 : -1) : (-s.dir as 1 | -1);
-        s.y = s.close ? (Math.random() - 0.5) * 1.2 : s.y + (Math.random() - 0.5);
+        s.dir = -s.dir as 1 | -1;
+        s.y += (Math.random() - 0.5) * 0.8;
+        s.y = Math.max(-2.5, Math.min(2.5, s.y));
+        s.pace = newPace(); // каждый проход — своя манера: где рывок, насколько резкий
+        prevReset = s;
         s.root.visible = true;
       }
-      s.t += dt / s.dur;
-      if (s.t >= 1) s.wait = s.close ? 45 + Math.random() * 25 : mode === 'hero' ? 6 + Math.random() * 8 : 1 + Math.random() * 3;
+      s.t += (dt / s.dur) * paceAt(s.pace, s.t);
+      if (s.t >= 1) s.wait = mode === 'hero' ? 6 + Math.random() * 8 : 1 + Math.random() * 3;
       const W = halfWidth(s.z);
-      // охота — быстрый проход поперёк кадра; атака — из глубины прямо в камеру, к центру, с лёгким рысканьем
-      const at = (t: number, out: InstanceType<typeof THREE.Vector3>) =>
-        s.close
-          ? out.set(s.dir * 2.5 * (1 - t) + Math.sin(t * 9) * 0.25, s.y * (1 - t) + 0.6, -40 + t * (camera.position.z + 6 + 40))
-          : out.set(s.dir * (-W + 2 * W * t), s.y + Math.sin(t * Math.PI * 2 + s.z) * 0.6, s.z + Math.sin(t * Math.PI) * 1.2);
+      // проход поперёк кадра по волне; на рывке акула чуть ныряет и уходит глубже
+      const at = (t: number, out: InstanceType<typeof THREE.Vector3>) => {
+        const burst = Math.exp(-(((t - s.pace.c) / (s.pace.w * 2)) ** 2));
+        return out.set(s.dir * (-W + 2 * W * t), s.y + Math.sin(t * Math.PI * 2 + s.z) * 0.6 - burst * 0.5, s.z + Math.sin(t * Math.PI) * 1.2 - burst * 1.5);
+      };
       prev.copy(s.root.position);
       at(s.t, s.root.position);
+      if (prevReset === s) {
+        prev.copy(s.root.position); // первый кадр нового прохода — без ложного «скачка» скорости
+        prevReset = null;
+      }
       // скорость в «длинах тела» (модель ~5 ед.) в секунду — по ней частота взмахов хвоста
       const speed = s.root.position.distanceTo(prev) / Math.max(dt, 1e-3) / 5;
       at(Math.min(s.t + 0.01, 1.01), ahead);
       s.root.lookAt(ahead);
       // крен в повороты волнистой траектории — не «на рельсах»
-      s.root.rotateZ(Math.cos(s.t * Math.PI * 2 + s.z) * (s.close ? 0.05 : 0.18));
-      if (s.close && s.root.position.z > camera.position.z - 1.5) s.root.visible = false; // проплыла «сквозь» зрителя
-      if (s.bite && s.swim && !s.bitten && s.t > 0.74) {
-        s.bitten = true;
-        s.swim.crossFadeTo(s.bite.reset().play(), 0.15, false);
-      }
-      // цикл плавания модели — 2 с; за взмах акула проходит ~0.6 длины тела, поэтому частота растёт со скоростью
-      // (охотницы ≈ 1.2 взмаха/с, атака — предел 4.5×); укус проигрываем в обычном темпе
-      const beat = Math.min(4.5, Math.max(1, speed * 3.5));
-      s.mixer.update(dt * (s.bite?.isRunning() ? 1.3 : beat));
+      s.root.rotateZ(Math.cos(s.t * Math.PI * 2 + s.z) * 0.18);
+      // цикл плавания модели — 2 с; за взмах акула проходит ~0.6 длины тела, поэтому частота следует за скоростью:
+      // подкрадывается — хвост почти замирает, рывок — бьёт часто (предел 4.5×, чтобы не «дрожала»)
+      const beat = Math.min(4.5, Math.max(0.6, speed * 3.5));
+      s.mixer.update(dt * beat);
     }
     const p = snowGeo.attributes['position'].array as Float32Array;
     for (let i = 0; i < N; i++) {
