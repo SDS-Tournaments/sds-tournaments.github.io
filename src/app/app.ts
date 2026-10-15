@@ -23,8 +23,8 @@ import { STAGING } from './supabase.config';
 export class App {
   private transloco = inject(TranslocoService);
   private router = inject(Router);
-  /** Attack Shark в подвале — пока только на тестовой странице /test */
-  protected readonly isTest = toSignal(this.router.events.pipe(filter((e) => e instanceof NavigationEnd), map(() => this.router.url.startsWith('/test'))), { initialValue: false });
+  /** Attack Shark в подвале — пока только на странице партнёра /attack-shark */
+  protected readonly isSharkPage = toSignal(this.router.events.pipe(filter((e) => e instanceof NavigationEnd), map(() => this.router.url.startsWith('/attack-shark'))), { initialValue: false });
   protected readonly auth = inject(Auth);
   protected readonly live = inject(Live);
   /** стиль сайта под уровень карточки пилота (theme.ts) */

@@ -69,7 +69,7 @@
     @if (general(); as g) {
       <a class="sponsor" [href]="g.url" target="_blank" rel="noopener">{{ 'sponsor.general' | transloco }}: <b>{{ g.name }}</b></a>
     }
-    @if (isTest()) {
+    @if (isSharkPage()) {
       <a class="sponsor" href="https://attackshark.com/" target="_blank" rel="noopener">{{ 'sponsor.partner' | transloco }}: <b>Attack Shark</b></a>
     }
     <a routerLink="/archive">{{ 'nav.archive' | transloco }}</a>

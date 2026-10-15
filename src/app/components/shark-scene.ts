@@ -1,7 +1,7 @@
 import { afterNextRender, Component, DestroyRef, ElementRef, inject, input, isDevMode } from '@angular/core';
 import type { GLTF } from 'three/addons/loaders/GLTFLoader.js';
 
-// 3D-акулы на фоне (страница /test, коллаборация с Attack Shark).
+// 3D-акулы на фоне (страница /attack-shark, коллаборация с Attack Shark).
 // Модель: «Animated Swimming Great White Shark Loop» — LasquetiSpice, Sketchfab, CC BY 4.0 (подпись — на странице).
 // Three.js грузится только здесь (динамический import) — остальной сайт его не тянет.
 // Нет файла модели, включено «уменьшение движения» или экономия трафика — сцена не стартует, остаются CSS-слои.

@@ -45,6 +45,6 @@ export const routes: Routes = [
   // UI kit — только в локальной разработке; на опубликованном сайте адрес ведёт на главную
   { path: 'dev/ui', canMatch: [() => isDevMode()], loadComponent: () => import('./pages/ui-showcase').then((m) => m.UiShowcase) },
   // черновик главной в коллаборации с Attack Shark — пока только локально
-  { path: 'test', canMatch: [() => isDevMode()], loadComponent: () => import('./pages/shark').then((m) => m.SharkHome) },
+  { path: 'attack-shark', loadComponent: () => import('./pages/shark').then((m) => m.SharkHome) },
   { path: '**', redirectTo: '' },
 ];
