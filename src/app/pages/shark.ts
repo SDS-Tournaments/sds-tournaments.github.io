@@ -40,7 +40,7 @@ import { Home } from './home';
         <!-- плавник проплывает по поверхности, за ним — след -->
         <div class="fin-lane">
           <div class="fin">
-            <svg viewBox="0 0 80 64"><g transform="translate(80 0) scale(-1 1)"><path d="M2 62 C 22 46 36 16 66 2 C 58 26 60 46 78 62 Z" /></g></svg>
+            <svg viewBox="0 0 80 64"><path d="M78 62 C 62 50 44 20 8 3 C 16 18 22 34 20 62 Z" /></svg>
             <i class="wake"></i>
           </div>
         </div>
@@ -119,7 +119,12 @@ import { Home } from './home';
             </article>
           }
         </div>
-        <a class="btn bite" [href]="site" target="_blank" rel="noopener">attackshark.com →</a>
+        <a class="btn bite site" [href]="site" target="_blank" rel="noopener">
+          <svg class="sf" viewBox="0 0 80 64" aria-hidden="true"><path d="M78 62 C 62 50 44 20 8 3 C 16 18 22 34 20 62 Z" /></svg>
+          Сайт Attack Shark
+          <svg class="ext" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" /></svg>
+          <span class="sr-only">(откроется в новой вкладке)</span>
+        </a>
       </div>
       <i class="jaw bottom" aria-hidden="true"></i>
     </section>
@@ -356,6 +361,10 @@ import { Home } from './home';
     .perk h3 { margin: 14px 0 6px; font-size: 18px; }
     .perk p { margin: 0; color: var(--ink-muted); font-size: 14px; }
 
+    .site { display: inline-flex; align-items: center; gap: 10px; padding-inline: 22px; }
+    .site .sf { width: 18px; height: 15px; fill: currentColor; }
+    .site .ext { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
     /* ── Арсенал: девайсы с живыми иллюстрациями ── */
     .gear { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
     .dev {
@@ -404,14 +413,16 @@ import { Home } from './home';
       mask: radial-gradient(circle at 50% 0, transparent 3px, #000 3.5px) 0 0 / 12px 6px repeat-x;
     }
     .road-sec ::ng-deep .fill { background: linear-gradient(90deg, rgba(var(--shark-rgb), 0.2), var(--shark) 85%, color-mix(in oklab, var(--shark), #fff 60%)); box-shadow: none; }
+    /* плавник — та же изогнутая форма, что над водой в шапке (выпуклый передний край, кончик назад), основание на волне */
     .road-sec ::ng-deep .fill::after {
-      width: 26px; height: 22px; top: -20px; right: -10px; border-radius: 0; box-shadow: none;
-      background: color-mix(in oklab, var(--hot), var(--shark) 40%);
-      clip-path: polygon(0 100%, 30% 0, 55% 35%, 100% 100%);
-      filter: drop-shadow(0 0 6px var(--hot));
-      animation: road-fin 1.6s ease-in-out infinite;
+      width: 28px; height: 22px; top: -19px; right: -10px; border-radius: 0; box-shadow: none;
+      background: linear-gradient(160deg, color-mix(in oklab, var(--shark), #fff 35%), var(--shark) 55%);
+      mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 64'%3E%3Cpath d='M78 62 C 62 50 44 20 8 3 C 16 18 22 34 20 62 Z'/%3E%3C/svg%3E") center / contain no-repeat;
+      filter: drop-shadow(0 0 5px rgba(var(--shark-rgb), 0.6));
+      transform-origin: bottom center;
+      animation: road-fin 1.8s ease-in-out infinite;
     }
-    @keyframes road-fin { 50% { transform: translateY(3px) rotate(-4deg); } }
+    @keyframes road-fin { 50% { transform: translateY(1.5px) rotate(-3deg); } }
     .road-sec ::ng-deep .done .dot { clip-path: polygon(50% 100%, 0 0, 100% 0); border-radius: 0; } /* пройденные этапы — «зубы» */
     .eyebrow { color: var(--shark); }
     .board { list-style: none; margin: 0; padding: 8px; display: grid; gap: 4px; max-width: 640px; border-color: rgba(var(--shark-rgb), 0.2); }
