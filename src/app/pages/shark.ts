@@ -42,7 +42,7 @@ import { Home } from './home';
 
       <div class="container inner">
         <div class="text">
-          <p class="partner-chip rise"><span class="ping"></span>Официальный партнёр сезона</p>
+          <p class="partner-chip rise"><span class="ping"></span>{{ 'shark.chip' | transloco }}</p>
           <h1 id="shark-title" class="rise" style="--i: 1">
             <span class="l1">Sad Drift Series</span>
             <span class="x">×</span>
@@ -51,7 +51,7 @@ import { Home } from './home';
               <polyline points="0,2 15,16 30,2 45,16 60,2 75,16 90,2 105,16 120,2 135,16 150,2 165,16 180,2 195,16 210,2 225,16 240,2 255,16 270,2 285,16 300,2" />
             </svg>
           </h1>
-          <p class="lead rise" style="--i: 2">Дрифт-чемпионат в CarX Drift Racing Online 2 и команда Attack Shark — вместе в этом сезоне. Хищная точность на каждом заезде.</p>
+          <p class="lead rise" style="--i: 2">{{ 'shark.lead' | transloco }}</p>
           <div class="cta rise" style="--i: 3">
             <a routerLink="/stages" class="btn bite">{{ 'home.toStages' | transloco }} →</a>
             <a routerLink="/standings" class="btn btn-secondary">{{ 'home.toStandings' | transloco }}</a>
@@ -91,7 +91,7 @@ import { Home } from './home';
       <section class="section road-sec">
         <div class="container">
           <p class="eyebrow" reveal>{{ seasonTitle() }}</p>
-          <h2 class="display-lg" reveal>Маршрут хищника</h2>
+          <h2 class="display-lg" reveal>{{ 'shark.road' | transloco }}</h2>
         </div>
         <app-season-road [stages]="road()" />
       </section>
@@ -106,27 +106,27 @@ import { Home } from './home';
         <p class="eyebrow" reveal>Powered by</p>
         <h2 id="partner-title" class="display-lg brand" reveal>ATTACK SHARK</h2>
         <div class="perks">
-          @for (p of perks; track p.t; let i = $index) {
+          @for (p of perks; track p.k; let i = $index) {
             <article class="perk" reveal [style.--i]="i">
               <svg class="pi" viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="p.icon" /></svg>
-              <h3>{{ p.t }}</h3>
-              <p>{{ p.d }}</p>
+              <h3>{{ 'shark.perks.' + p.k + '.t' | transloco }}</h3>
+              <p>{{ 'shark.perks.' + p.k + '.d' | transloco }}</p>
             </article>
           }
         </div>
         <a class="btn bite site" [href]="site" target="_blank" rel="noopener">
           <svg class="sf" viewBox="0 0 80 64" aria-hidden="true"><path d="M78 62 C 62 50 44 20 8 3 C 16 18 22 34 20 62 Z" /></svg>
-          Сайт Attack Shark
+          {{ 'shark.site' | transloco }}
           <svg class="ext" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" /></svg>
-          <span class="sr-only">(откроется в новой вкладке)</span>
+          <span class="sr-only">{{ 'shark.newTab' | transloco }}</span>
         </a>
       </div>
       <i class="jaw bottom" aria-hidden="true"></i>
     </section>
 
     <section class="arsenal section container" aria-labelledby="arsenal-title">
-      <p class="eyebrow" reveal>Девайсы Attack Shark</p>
-      <h2 id="arsenal-title" class="display-lg" reveal>Арсенал хищника</h2>
+      <p class="eyebrow" reveal>{{ 'shark.devices' | transloco }}</p>
+      <h2 id="arsenal-title" class="display-lg" reveal>{{ 'shark.arsenal' | transloco }}</h2>
       <div class="gear">
         @for (g of gear; track g.k; let i = $index) {
           <a class="dev" [class]="'dev ' + g.k" [href]="g.url" target="_blank" rel="noopener" reveal [style.--i]="i">
@@ -165,11 +165,11 @@ import { Home } from './home';
                 }
               }
             </span>
-            <span class="dk">{{ g.tag }}</span>
-            <h3>{{ g.t }}</h3>
-            <p>{{ g.d }}</p>
-            <span class="models mono">{{ g.models }}</span>
-            <span class="go">Смотреть →</span>
+            <span class="dk">{{ 'shark.gear.' + g.k + '.tag' | transloco }}</span>
+            <h3>{{ 'shark.gear.' + g.k + '.t' | transloco }}</h3>
+            <p>{{ 'shark.gear.' + g.k + '.d' | transloco }}</p>
+            <span class="models mono">{{ 'shark.gear.' + g.k + '.models' | transloco }}</span>
+            <span class="go">{{ 'shark.look' | transloco }} →</span>
           </a>
         }
       </div>
@@ -178,7 +178,7 @@ import { Home } from './home';
     @if (pilots().length) {
       <section class="section container">
         <p class="eyebrow" reveal>{{ seasonTitle() }}</p>
-        <h2 class="display-lg" reveal>Хищники сезона</h2>
+        <h2 class="display-lg" reveal>{{ 'shark.leaders' | transloco }}</h2>
         <ol class="card board" reveal>
           <li class="bhead"><span>{{ 'home.pilots' | transloco }}</span><span class="subtle">{{ 'home.points' | transloco }}</span></li>
           @for (p of pilots(); track p.id; let i = $index) {
@@ -208,7 +208,7 @@ import { Home } from './home';
         }
       </div>
       <!-- CC BY 4.0: указание автора 3D-модели обязательно -->
-      <p class="credit">3D-модель акулы: <a href="https://sketchfab.com/3d-models/297ed35c6a5f43749b0ae189d991a3f1" target="_blank" rel="noopener">«Animated Swimming Great White Shark Loop»</a> — LasquetiSpice, лицензия <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a></p>
+      <p class="credit">{{ 'shark.credit' | transloco }} <a href="https://sketchfab.com/3d-models/297ed35c6a5f43749b0ae189d991a3f1" target="_blank" rel="noopener">«Animated Swimming Great White Shark Loop»</a> — LasquetiSpice, {{ 'shark.license' | transloco }} <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a></p>
     </section>
   `,
   styles: `
@@ -452,10 +452,10 @@ export class SharkHome extends Home {
   /** официальный сайт и разделы магазина Attack Shark */
   protected readonly site = 'https://attackshark.com/';
   protected readonly gear = [
-    { k: 'mouse', tag: '8000 Гц', t: 'Мыши', d: 'Сенсор и опрос 8K: реакция быстрее, чем машину успевает развернуть.', models: 'X8 Ultra · RS3 Ultra · X11', url: 'https://attackshark.com/collections/8000-hz' },
-    { k: 'keyboard', tag: 'HE · Rapid Trigger', t: 'Клавиатуры', d: 'Магнитные свитчи: газ и ручник срабатывают на долю миллиметра.', models: 'X68 HE · R85 HE · R98 HE', url: 'https://attackshark.com/collections/best-selling-products' },
-    { k: 'headset', tag: 'Tri-mode', t: 'Гарнитуры', d: 'Слышно мотор, отсечку и споттера — без задержек.', models: 'L80 · L90', url: 'https://attackshark.com/collections/best-selling-products' },
-    { k: 'acc', tag: 'Аксессуары', t: 'Коврики и кабели', d: 'Ровный глайд и витые кабели — сетап как у пилотов.', models: 'Коврики · C01 Ultra · C06', url: 'https://attackshark.com/collections/all-accessories' },
+    { k: 'mouse', url: 'https://attackshark.com/collections/8000-hz' },
+    { k: 'keyboard', url: 'https://attackshark.com/collections/best-selling-products' },
+    { k: 'headset', url: 'https://attackshark.com/collections/best-selling-products' },
+    { k: 'acc', url: 'https://attackshark.com/collections/all-accessories' },
   ];
   /** клавиши HE-клавиатуры: волна подсветки слева направо */
   protected readonly keys = Array.from({ length: 4 }, (_, row) =>
@@ -463,8 +463,8 @@ export class SharkHome extends Home {
   ).flat();
   /** заглушки — заменить на согласованные с Attack Shark */
   protected readonly perks = [
-    { t: 'Официальный партнёр', d: 'Attack Shark поддерживает сезон SDS: этапы, трансляции и комьюнити.', icon: 'M12 2l3 6 6 .9-4.5 4.3 1 6.3L12 16.6 6.5 19.5l1-6.3L3 8.9 9 8z' },
-    { t: 'Хищная точность', d: 'Девайсы, на которых пилоты ловят угол и держат траекторию.', icon: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zm0 4v5l3 3' },
-    { t: 'Для комьюнити', d: 'Следите за анонсами партнёра в Discord и на трансляциях этапов.', icon: 'M4 6h16v10H8l-4 4z' },
+    { k: 'official', icon: 'M12 2l3 6 6 .9-4.5 4.3 1 6.3L12 16.6 6.5 19.5l1-6.3L3 8.9 9 8z' },
+    { k: 'precision', icon: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zm0 4v5l3 3' },
+    { k: 'community', icon: 'M4 6h16v10H8l-4 4z' },
   ];
 }

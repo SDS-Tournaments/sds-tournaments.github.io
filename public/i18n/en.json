@@ -44,7 +44,7 @@
       "soon": "Next round date coming soon",
       "hype": "Round hype",
       "hypeNext": "{{n}} more {{w}} to reach level {{l}}",
-      "pilots": { "one": "pilot", "few": "pilots", "many": "pilots" },
+      "pilots": { "one": "driver", "few": "drivers", "many": "drivers" },
       "hypeMax": "Sold out! Max hype 🔥",
       "shout9": "Why so many?",
       "shout10": "WHAT ARE YOU DOING?"
@@ -75,7 +75,8 @@
     }
   },
   "sponsor": {
-    "general": "General sponsor"
+    "general": "General sponsor",
+    "partner": "Season partner"
   },
   "role": {
     "admin": "Organizer",
@@ -328,5 +329,58 @@
   "common": {
     "soon": "Coming soon.",
     "loading": "Loading…"
+  },
+  "shark": {
+    "chip": "Official season partner",
+    "lead": "A drift championship in CarX Drift Racing Online 2 and Attack Shark — together this season. Predator precision on every run.",
+    "road": "The predator’s route",
+    "site": "Attack Shark website",
+    "newTab": "(opens in a new tab)",
+    "devices": "Attack Shark gear",
+    "arsenal": "Predator’s arsenal",
+    "look": "Explore",
+    "leaders": "Apex predators of the season",
+    "credit": "Shark 3D model:",
+    "license": "licensed under",
+    "gear": {
+      "mouse": {
+        "tag": "8000 Hz",
+        "t": "Mice",
+        "d": "8K sensor and polling: you react before the car even starts to rotate.",
+        "models": "X8 Ultra · RS3 Ultra · X11"
+      },
+      "keyboard": {
+        "tag": "HE · Rapid Trigger",
+        "t": "Keyboards",
+        "d": "Magnetic switches: throttle and handbrake fire within a fraction of a millimetre.",
+        "models": "X68 HE · R85 HE · R98 HE"
+      },
+      "headset": {
+        "tag": "Tri-mode",
+        "t": "Headsets",
+        "d": "Hear the engine, the limiter and your spotter — with zero lag.",
+        "models": "L80 · L90"
+      },
+      "acc": {
+        "tag": "Accessories",
+        "t": "Mousepads & cables",
+        "d": "Smooth glide and coiled cables — a setup like the drivers have.",
+        "models": "Mousepads · C01 Ultra · C06"
+      }
+    },
+    "perks": {
+      "official": {
+        "t": "Official partner",
+        "d": "Attack Shark backs the SDS season: rounds, broadcasts and the community."
+      },
+      "precision": {
+        "t": "Predator precision",
+        "d": "Gear that lets drivers catch the angle and hold the line."
+      },
+      "community": {
+        "t": "For the community",
+        "d": "Watch for partner news on Discord and on round broadcasts."
+      }
+    }
   }
 }

@@ -308,6 +308,9 @@ main {
   gap: 16px;
   .sponsor {
     margin-left: auto;
+    & + .sponsor {
+      margin-left: 0;
+    }
     color: var(--ink-subtle);
     b {
       color: var(--ink);
