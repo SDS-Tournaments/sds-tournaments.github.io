@@ -1,4 +1,4 @@
-import { afterNextRender, Component, DestroyRef, ElementRef, inject, input } from '@angular/core';
+import { afterNextRender, Component, DestroyRef, ElementRef, inject, input, isDevMode } from '@angular/core';
 import type { GLTF } from 'three/addons/loaders/GLTFLoader.js';
 
 // 3D-акулы на фоне (страница /test, коллаборация с Attack Shark).
@@ -45,12 +45,14 @@ export class SharkScene {
 }
 
 async function run(host: HTMLElement, mode: Mode): Promise<() => void> {
-  const [THREE, { GLTFLoader }, { clone }] = await Promise.all([
+  const [THREE, { GLTFLoader }, { clone }, { MeshoptDecoder }] = await Promise.all([
     import('three'),
     import('three/addons/loaders/GLTFLoader.js'),
     import('three/addons/utils/SkeletonUtils.js'),
+    import('three/addons/libs/meshopt_decoder.module.js'),
   ]);
-  model ??= new GLTFLoader().loadAsync(MODEL_URL);
+  // модель сжата meshopt (17 МБ → ~0.9 МБ, без упрощения геометрии)
+  model ??= new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(MODEL_URL);
   const gltf = await model.catch((e) => {
     model = null;
     throw e;
@@ -93,6 +95,7 @@ async function run(host: HTMLElement, mode: Mode): Promise<() => void> {
   const size = box.getSize(new THREE.Vector3());
   const k = 5 / Math.max(size.x, size.y, size.z);
   const clip = gltf.animations.find((a) => /swim/i.test(a.name)) ?? gltf.animations[0];
+  const biteClip = gltf.animations.find((a) => /bite/i.test(a.name));
 
   interface Shark {
     root: InstanceType<typeof THREE.Group>;
@@ -104,6 +107,9 @@ async function run(host: HTMLElement, mode: Mode): Promise<() => void> {
     y: number;
     wait: number; // пауза до следующего прохода
     close: boolean; // крупный проход у самой камеры
+    swim?: InstanceType<typeof THREE.AnimationAction>;
+    bite?: InstanceType<typeof THREE.AnimationAction>;
+    bitten: boolean; // уже «клацнула» в этом проходе
   }
   const make = (z: number, y: number, dur: number, close = false): Shark => {
     // root — смотрит по ходу движения (lookAt), pivot — доворот модели головой вперёд, body — отцентрованная модель
@@ -117,8 +123,11 @@ async function run(host: HTMLElement, mode: Mode): Promise<() => void> {
     root.add(pivot);
     scene.add(root);
     const mixer = new THREE.AnimationMixer(body);
-    if (clip) mixer.clipAction(clip).play();
-    return { root, mixer, t: Math.random(), dur, dir: Math.random() < 0.5 ? 1 : -1, z, y, wait: 0, close };
+    const swim = clip ? mixer.clipAction(clip).play() : undefined;
+    // у крупной акулы — укус посреди прохода у камеры, потом снова плывёт
+    const bite = close && biteClip ? mixer.clipAction(biteClip).setLoop(THREE.LoopOnce, 1) : undefined;
+    if (bite && swim) mixer.addEventListener('finished', () => bite.crossFadeTo(swim.reset().play(), 0.25, false));
+    return { root, mixer, t: Math.random(), dur, dir: Math.random() < 0.5 ? 1 : -1, z, y, wait: 0, close, swim, bite, bitten: false };
   };
   const sharks: Shark[] =
     mode === 'hero'
@@ -164,6 +173,9 @@ async function run(host: HTMLElement, mode: Mode): Promise<() => void> {
   };
   addEventListener('pointermove', onMove, { passive: true });
 
+  // локальная отладка: можно остановить и расставить акул из консоли
+  if (isDevMode()) (window as unknown as Record<string, unknown>)['__sharks_' + mode] = { sharks, camera, scene };
+
   const clock = new THREE.Clock();
   const ahead = new THREE.Vector3();
   const tick = () => {
@@ -176,6 +188,7 @@ async function run(host: HTMLElement, mode: Mode): Promise<() => void> {
         if (s.wait > 0) continue;
         // новый проход: другая сторона, глубина и высота немного иные
         s.t = 0;
+        s.bitten = false;
         s.dir = s.close ? (Math.random() < 0.5 ? 1 : -1) : (-s.dir as 1 | -1);
         s.y = s.close ? (Math.random() - 0.5) * 1.5 : s.y + (Math.random() - 0.5);
         s.root.visible = true;
@@ -188,6 +201,10 @@ async function run(host: HTMLElement, mode: Mode): Promise<() => void> {
       at(s.t, s.root.position);
       at(Math.min(s.t + 0.01, 1.01), ahead);
       s.root.lookAt(ahead);
+      if (s.bite && s.swim && !s.bitten && s.t > 0.42) {
+        s.bitten = true;
+        s.swim.crossFadeTo(s.bite.reset().play(), 0.15, false);
+      }
       s.mixer.update(dt * (s.close ? 1.4 : 1));
     }
     const p = snowGeo.attributes['position'].array as Float32Array;
