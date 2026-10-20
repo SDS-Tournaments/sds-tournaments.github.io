@@ -72,6 +72,7 @@
     @if (isSharkPage()) {
       <a class="sponsor" href="https://attackshark.com/" target="_blank" rel="noopener">{{ 'sponsor.partner' | transloco }}: <b>Attack Shark</b></a>
     }
+    @if (discord(); as d) { <a [href]="d" target="_blank" rel="noopener">Discord</a> }
     <a routerLink="/archive">{{ 'nav.archive' | transloco }}</a>
   </div>
 </footer>

@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { supabase } from '../auth';
 import { LiveStage } from '../components/live-stage';
+import { Loader } from '../components/loader';
 import { NextStage } from '../components/next-stage';
 import { RoadStage, SeasonRoad } from '../components/season-road';
 import { currentSeason, loadStandings, PilotStanding, TeamStanding } from '../data/standings';
@@ -11,8 +12,11 @@ import { Reveal } from '../reveal';
 // Главная: ближайший/идущий этап, LIVE с Twitch, лидеры сезона, спонсоры
 @Component({
   selector: 'app-home',
-  imports: [RouterLink, TranslocoPipe, Reveal, NextStage, LiveStage, SeasonRoad],
+  imports: [RouterLink, TranslocoPipe, Reveal, NextStage, LiveStage, SeasonRoad, Loader],
   template: `
+    @if (!ready()) {
+      <app-loader />
+    } @else {
     <section class="hero">
       <span class="kanji" aria-hidden="true">ドリフト</span>
 
@@ -126,6 +130,7 @@ import { Reveal } from '../reveal';
           }
         </div>
       </section>
+    }
     }
   `,
   styles: `
@@ -311,6 +316,8 @@ export class Home implements OnInit {
   /** идущий этап, иначе ближайший с открытой регистрацией */
   protected readonly next = signal<StageCard | null>(null);
   protected readonly nextCount = signal(0);
+  /** всё для первого экрана загружено — до этого показываем лоадер, а не пустые блоки */
+  protected readonly ready = signal(false);
   protected readonly live = computed(() => (this.next()?.status === 'qualifying' || this.next()?.status === 'battles' ? this.next() : null));
   protected readonly twitch = signal<string | null>(null);
   protected readonly pilots = signal<PilotStanding[]>([]);
@@ -329,6 +336,15 @@ export class Home implements OnInit {
   }
 
   async ngOnInit() {
+    // finally: даже если база не ответила, не оставляем вечный лоадер — покажем то, что есть
+    try {
+      await this.load();
+    } finally {
+      this.ready.set(true);
+    }
+  }
+
+  private async load() {
     const [stages, settings, sponsors, season] = await Promise.all([
       supabase.from('stages').select('id, title_ru, title_en, track, starts_at, battles_at, status, twitch_channel').in('status', ['registration', 'qualifying', 'qual_done', 'battles']).order('starts_at'),
       supabase.from('app_settings').select('twitch_channel').single(),
@@ -341,21 +357,28 @@ export class Home implements OnInit {
     this.twitch.set(settings.data?.twitch_channel ?? null);
     this.sponsors.set((sponsors.data ?? []) as Sponsor[]);
     // счётчик записавшихся, дорога сезона и зачёт — одновременно, а не по очереди
+    const jobs: PromiseLike<unknown>[] = [];
     if (next) {
-      supabase
-        .from('registrations')
-        .select('profile_id', { count: 'exact', head: true })
-        .eq('stage_id', next.id)
-        .eq('status', 'registered')
-        .then(({ count }) => this.nextCount.set(count ?? 0));
+      jobs.push(
+        supabase
+          .from('registrations')
+          .select('profile_id', { count: 'exact', head: true })
+          .eq('stage_id', next.id)
+          .eq('status', 'registered')
+          .then(({ count }) => this.nextCount.set(count ?? 0)),
+      );
     }
     if (season) {
       this.seasonTitle.set(season.title);
-      this.loadRoad(season.id);
-      const st = await loadStandings(season.id, season.team_counted);
-      this.pilots.set(st.pilots.slice(0, 5));
-      this.teams.set(st.teams.slice(0, 3));
+      jobs.push(
+        this.loadRoad(season.id),
+        loadStandings(season.id, season.team_counted).then((st) => {
+          this.pilots.set(st.pilots.slice(0, 5));
+          this.teams.set(st.teams.slice(0, 3));
+        }),
+      );
     }
+    await Promise.allSettled(jobs);
   }
 
   protected stageTitle(s: StageCard) {

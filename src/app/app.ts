@@ -44,6 +44,8 @@ export class App {
 
   /** генеральный спонсор для подвала — из Админки → Спонсоры */
   protected readonly general = signal<{ name: string; url: string | null } | null>(null);
+  /** приглашение в Discord для подвала — из Админки → Настройки */
+  protected readonly discord = signal<string | null>(null);
 
   constructor() {
     this.transloco.langChanges$.subscribe((l) => (document.documentElement.lang = l));
@@ -60,6 +62,12 @@ export class App {
         .limit(1)
         .maybeSingle()
         .then(({ data }) => this.general.set(data));
+    if (!this.bare)
+      supabase
+        .from('app_settings')
+        .select('discord_invite')
+        .single()
+        .then(({ data }) => this.discord.set(data?.discord_invite ?? null));
   }
 
   protected onScroll() {

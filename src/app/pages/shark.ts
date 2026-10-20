@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { LiveStage } from '../components/live-stage';
+import { Loader } from '../components/loader';
 import { NextStage } from '../components/next-stage';
 import { SeasonRoad } from '../components/season-road';
 import { SharkScene } from '../components/shark-scene';
@@ -13,8 +14,11 @@ import { Home } from './home';
 // shortcut: тексты блока партнёра — заглушки и только по-русски; финальные — после согласования со спонсором
 @Component({
   selector: 'app-shark',
-  imports: [RouterLink, TranslocoPipe, Reveal, NextStage, LiveStage, SeasonRoad, SharkScene],
+  imports: [RouterLink, TranslocoPipe, Reveal, NextStage, LiveStage, SeasonRoad, SharkScene, Loader],
   template: `
+    @if (!ready()) {
+      <app-loader />
+    } @else {
     <svg width="0" height="0" style="position: absolute" aria-hidden="true">
       <defs>
         <g id="shark-body" transform="translate(280 0) scale(-1 1)">
@@ -210,6 +214,7 @@ import { Home } from './home';
       <!-- CC BY 4.0: указание автора 3D-модели обязательно -->
       <p class="credit">{{ 'shark.credit' | transloco }} <a href="https://sketchfab.com/3d-models/297ed35c6a5f43749b0ae189d991a3f1" target="_blank" rel="noopener">«Animated Swimming Great White Shark Loop»</a> — LasquetiSpice, {{ 'shark.license' | transloco }} <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a></p>
     </section>
+    }
   `,
   styles: `
     /* цвета — из темы сайта (NOIR, металлы, LEGEND): океан смешивается из акцента и фона темы */

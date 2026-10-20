@@ -1,14 +1,18 @@
 import { Component, computed, effect, input, signal } from '@angular/core';
 import { TranslocoPipe } from '@jsverse/transloco';
+import { Loader } from './loader';
 import { supabase } from '../auth';
 import { ACHIEVEMENTS } from '../scoring/scoring';
 
 // Полка достижений пилота: все ачивки, полученные горят со счётчиком (по одной за этап), остальные приглушены
 @Component({
   selector: 'app-achievement-shelf',
-  imports: [TranslocoPipe],
+  imports: [TranslocoPipe, Loader],
   template: `
-    <h2 class="h sec">{{ 'pilot.achievements' | transloco }} <span class="subtle mono">{{ earned() }}/{{ list().length }}</span></h2>
+    <h2 class="h sec">{{ 'pilot.achievements' | transloco }} @if (codes()) { <span class="subtle mono">{{ earned() }}/{{ list().length }}</span> }</h2>
+    @if (!codes()) {
+      <app-loader [inline]="true" />
+    } @else {
     <div class="ach">
       @for (a of list(); track a.code) {
         <div class="ach-i card" [class.off]="!a.n">
@@ -19,6 +23,7 @@ import { ACHIEVEMENTS } from '../scoring/scoring';
         </div>
       }
     </div>
+    }
   `,
   styles: `
     :host { display: block; }
@@ -44,16 +49,18 @@ import { ACHIEVEMENTS } from '../scoring/scoring';
 })
 export class AchievementShelf {
   readonly profileId = input.required<string>();
-  private readonly codes = signal<string[]>([]);
+  /** null — ещё грузим */
+  protected readonly codes = signal<string[] | null>(null);
   protected readonly list = computed(() => {
     const counts = new Map<string, number>();
-    for (const c of this.codes()) counts.set(c, (counts.get(c) ?? 0) + 1);
+    for (const c of this.codes() ?? []) counts.set(c, (counts.get(c) ?? 0) + 1);
     return ACHIEVEMENTS.map((code) => ({ code, n: counts.get(code) ?? 0 })).sort((a, b) => +!a.n - +!b.n);
   });
   protected readonly earned = computed(() => this.list().filter((a) => a.n).length);
 
   constructor() {
     effect(async () => {
+      this.codes.set(null);
       const { data } = await supabase.from('achievements').select('code').eq('profile_id', this.profileId());
       this.codes.set((data ?? []).map((a) => a.code));
     });

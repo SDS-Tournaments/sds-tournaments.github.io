@@ -4,6 +4,7 @@ import { TranslocoPipe } from '@jsverse/transloco';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '../auth';
 import { qualStandings } from '../scoring/scoring';
+import { Loader } from './loader';
 
 interface Pilot {
   nickname: string;
@@ -24,7 +25,7 @@ const ORDER = ['r32', 'r16', 'qf', 'sf', 'third', 'final'];
 // Прямой эфир этапа на главной: Twitch + живые данные (топ квалификации или текущая дуэль)
 @Component({
   selector: 'app-live-stage',
-  imports: [TranslocoPipe],
+  imports: [TranslocoPipe, Loader],
   template: `
     <div class="wrap">
       <div class="player">
@@ -36,6 +37,9 @@ const ORDER = ['r32', 'r16', 'qf', 'sf', 'third', 'final'];
       </div>
 
       <aside class="card side" [class.fill]="status() === 'qualifying' && !top().length">
+        @if (!loaded()) {
+          <app-loader [inline]="true" />
+        } @else {
         @if (status() === 'battles') {
           <div class="head">
             <p class="eyebrow">{{ 'live.battle' | transloco }}</p>
@@ -94,6 +98,7 @@ const ORDER = ['r32', 'r16', 'qf', 'sf', 'third', 'final'];
               }
             }
           </ol>
+        }
         }
       </aside>
     </div>
@@ -165,6 +170,7 @@ export class LiveStage implements OnInit {
   readonly channel = input<string | null>(null);
 
   private readonly pilots = signal(new Map<string, Pilot>());
+  protected readonly loaded = signal(false);
   private readonly regs = signal<{ profile_id: string; queue_order: number | null }[]>([]);
   private readonly runs = signal<{ profile_id: string; attempt: number; total: number }[]>([]);
   private readonly battles = signal<Battle[]>([]);
@@ -223,6 +229,7 @@ export class LiveStage implements OnInit {
     this.regs.set(r);
     this.runs.set(runs.data ?? []);
     this.battles.set(battles.data ?? []);
+    this.loaded.set(true);
   }
 
   protected p(id: string | null): Pilot {

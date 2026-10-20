@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { supabase } from '../auth';
 
-// Настройки сайта (только организатор): Twitch, регламент RU/EN, вебхук Discord
+// Настройки сайта (только организатор): Twitch, регламент RU/EN, Discord (приглашение и вебхук)
 @Component({
   selector: 'app-admin-settings',
   imports: [FormsModule, RouterLink],
@@ -40,6 +40,10 @@ import { supabase } from '../auth';
 
       <section class="card stack">
         <h2 class="h">Discord</h2>
+        <label class="field">
+          <span class="lbl">Приглашение на сервер — ссылка в подвале сайта (пусто — ссылки нет)</span>
+          <input class="input mono" name="inv" type="url" placeholder="https://discord.gg/…" [(ngModel)]="invite" />
+        </label>
         <label class="field">
           <span class="lbl">Вебхук канала для оповещений (виден только организатору)</span>
           <input class="input mono" name="dc" type="url" placeholder="https://discord.com/api/webhooks/…" [(ngModel)]="discord" />
@@ -79,13 +83,14 @@ export class AdminSettings implements OnInit {
   protected ru = '';
   protected en = '';
   protected discord = '';
+  protected invite = '';
   protected readonly busy = signal(false);
   protected readonly msg = signal<string | null>(null);
   protected readonly ok = signal(true);
 
   async ngOnInit() {
     const [s, p] = await Promise.all([
-      supabase.from('app_settings').select('twitch_channel, regulation_ru, regulation_en, regulation_version').single(),
+      supabase.from('app_settings').select('twitch_channel, regulation_ru, regulation_en, regulation_version, discord_invite').single(),
       supabase.from('private_settings').select('discord_webhook_url').maybeSingle(),
     ]);
     this.twitch = s.data?.twitch_channel ?? '';
@@ -93,6 +98,7 @@ export class AdminSettings implements OnInit {
     this.ru = s.data?.regulation_ru ?? '';
     this.en = s.data?.regulation_en ?? '';
     this.discord = p.data?.discord_webhook_url ?? '';
+    this.invite = s.data?.discord_invite ?? '';
   }
 
   protected readonly hookMsg = signal<string | null>(null);
@@ -113,7 +119,7 @@ export class AdminSettings implements OnInit {
     this.busy.set(true);
     const nul = (v: string) => v.trim() || null;
     const [a, b] = await Promise.all([
-      supabase.from('app_settings').update({ twitch_channel: nul(this.twitch), regulation_version: nul(this.version), regulation_ru: nul(this.ru), regulation_en: nul(this.en) }).eq('id', 1).select('id'),
+      supabase.from('app_settings').update({ twitch_channel: nul(this.twitch), regulation_version: nul(this.version), regulation_ru: nul(this.ru), regulation_en: nul(this.en), discord_invite: nul(this.invite) }).eq('id', 1).select('id'),
       supabase.from('private_settings').update({ discord_webhook_url: nul(this.discord) }).eq('id', 1).select('id'),
     ]);
     this.busy.set(false);
