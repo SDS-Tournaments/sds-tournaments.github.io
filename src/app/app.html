@@ -66,14 +66,15 @@
   <div class="container foot">
     <span class="logo-mark">SDS</span>
     <span class="subtle">© {{ year }} Sad Drift Series · CarX Drift Racing Online 2</span>
+    <!-- наши ссылки — слева, рядом с SDS; спонсоры — справа -->
+    @if (discord(); as d) { <a [href]="d" target="_blank" rel="noopener">Discord</a> }
+    <a routerLink="/archive">{{ 'nav.archive' | transloco }}</a>
     @if (general(); as g) {
       <a class="sponsor" [href]="g.url" target="_blank" rel="noopener">{{ 'sponsor.general' | transloco }}: <b>{{ g.name }}</b></a>
     }
     @if (isSharkPage()) {
       <a class="sponsor" href="https://attackshark.com/" target="_blank" rel="noopener">{{ 'sponsor.partner' | transloco }}: <b>Attack Shark</b></a>
     }
-    @if (discord(); as d) { <a [href]="d" target="_blank" rel="noopener">Discord</a> }
-    <a routerLink="/archive">{{ 'nav.archive' | transloco }}</a>
   </div>
 </footer>
 }
