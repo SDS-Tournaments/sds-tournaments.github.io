@@ -122,9 +122,13 @@
   },
   "signup": {
     "title": "Round registration",
+    "ticket": "Driver pass",
+    "pilot": "Driver",
+    "stamp": "Admitted",
     "count": "signed up: {{n}}",
     "in": "You're in",
     "join": "Register",
+    "joinShort": "Sign up",
     "leave": "Withdraw",
     "none": "No rounds are open for registration right now.",
     "needNumber": "Pick and save a race number below to register.",
