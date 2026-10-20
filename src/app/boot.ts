@@ -5,11 +5,27 @@ let started = 0;
 let done = 0;
 let onChange: (() => void) | null = null;
 
+/**
+ * Обрыв связи (ERR_CONNECTION_RESET у провайдера, мигнул Wi-Fi) — повторяем чтение ещё до 2 раз.
+ * Только GET/HEAD: запись или вход повторно не отправляем, чтобы не сделать действие дважды.
+ */
+export async function retryFetch(input: RequestInfo | URL, init?: RequestInit, wait = 400): Promise<Response> {
+  const method = (init?.method ?? (input instanceof Request ? input.method : 'GET')).toUpperCase();
+  for (let i = 0; ; i++) {
+    try {
+      return await fetch(input, init);
+    } catch (e) {
+      if (i >= 2 || (method !== 'GET' && method !== 'HEAD') || init?.signal?.aborted) throw e;
+      await new Promise((r) => setTimeout(r, wait * (i + 1)));
+    }
+  }
+}
+
 /** fetch для supabase-js: считает запросы, чтобы двигать заливку */
 export const trackedFetch: typeof fetch = (input, init) => {
   started++;
   onChange?.();
-  return fetch(input, init).finally(() => {
+  return retryFetch(input, init).finally(() => {
     done++;
     onChange?.();
   });

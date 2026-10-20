@@ -34,6 +34,8 @@ jobs:
       - run: cp dist/sds/browser/index.html dist/sds/browser/404.html
       # основные разделы отдаются с кодом 200 и без редиректа на «/» в конце (pilots.html → /pilots) — их индексируют поисковики
       - run: for p in stages standings pilots teams rules archive me; do cp dist/sds/browser/index.html dist/sds/browser/$p.html; done
+      # возврат после входа (Steam, ссылка из письма) — тоже 200, а не «404» в консоли
+      - run: mkdir -p dist/sds/browser/auth && for p in callback steam; do cp dist/sds/browser/index.html dist/sds/browser/auth/$p.html; done
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist/sds/browser
