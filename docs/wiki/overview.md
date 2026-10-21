@@ -47,6 +47,6 @@
 ## Внешние сервисы
 - Google Search Console — подтверждён (`public/google54a4e28697b1c8fa.html`).
 - Яндекс.Вебмастер — права подтверждены (`public/yandex_ecbf3a7d4ebf63fc.html`); sitemap ещё не добавлен (у Яндекса был сбой).
-- Discord: приглашение на сервер и вебхуки RU/EN — в «Админка → Discord». Настройка самого сервера ведётся отдельно — папка `Z:devsds-discord` (свои CLAUDE.md и notes.md).
+- Discord: приглашение на сервер и вебхуки RU/EN — в «Админка → Discord». Настройка самого сервера ведётся отдельно — папка `Z:\dev\sds-discord` (свои CLAUDE.md и notes.md).
 - Twitch-канал по умолчанию — «Админка → Настройки», у этапа может быть свой.
 - Спонсоры: генеральный — CarX Technologies (из таблицы `sponsors`); партнёр Attack Shark — пока только на `/attack-shark`.
