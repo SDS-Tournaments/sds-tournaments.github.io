@@ -1,4 +1,4 @@
-import { DatePipe, NgTemplateOutlet } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -21,7 +21,7 @@ interface StageRow {
 // Этапы сезона: карточки со статусом и победителем
 @Component({
   selector: 'app-stages',
-  imports: [FormsModule, NgTemplateOutlet, TranslocoPipe, DatePipe, Loader],
+  imports: [FormsModule, TranslocoPipe, DatePipe, Loader],
   template: `
     @if (!ready()) {
       <app-loader />
@@ -64,19 +64,18 @@ interface StageRow {
                 }
                 @if (winners()[s.id]; as w) { <p class="winner">🏆 {{ w }}</p> }
               </div>
-              <ng-template #stub>
-                <span class="no"><small>{{ 'stages.round' | transloco }}</small><b class="mono">{{ s.ord < 10 ? '0' + s.ord : s.ord }}</b></span>
-                @if (s.status === 'registration') {
-                  <span class="cta">{{ 'stages.regOpen' | transloco }} →</span>
-                } @else if (s.status === 'qualifying' || s.status === 'battles') {
-                  <span class="cta">{{ 'home.next.watch' | transloco }} →</span>
-                } @else {
-                  <i class="code" aria-hidden="true"></i>
-                }
-              </ng-template>
               <div class="stubs">
-                <div class="stub base"><ng-container [ngTemplateOutlet]="stub" /></div>
-                <div class="stub flap" aria-hidden="true"><ng-container [ngTemplateOutlet]="stub" /></div>
+                <div class="stub">
+                  <span class="no"><small>{{ 'stages.round' | transloco }}</small><b class="mono">{{ s.ord < 10 ? '0' + s.ord : s.ord }}</b></span>
+                  @if (s.status === 'registration') {
+                    <span class="cta">{{ 'stages.regOpen' | transloco }} →</span>
+                  } @else if (s.status === 'qualifying' || s.status === 'battles') {
+                    <span class="cta">{{ 'home.next.watch' | transloco }} →</span>
+                  } @else {
+                    <i class="code" aria-hidden="true"></i>
+                  }
+                </div>
+                <i class="roll" aria-hidden="true"></i>
               </div>
           </a>
         } @empty {
@@ -93,14 +92,13 @@ interface StageRow {
     .season { width: auto; min-width: 200px; }
     .grid { display: grid; gap: 20px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); }
     /* ── билет этапа ── */
-    /* разрыв по линии отрыва: --cut — докуда корешок ещё держится (100% — целый), --ang — насколько отогнут оторванный кусок */
+    /* разрыв по линии отрыва: --cut — докуда корешок ещё не скручен (100% — целый) */
     @property --cut { syntax: '<percentage>'; inherits: true; initial-value: 100%; }
-    @property --ang { syntax: '<angle>'; inherits: true; initial-value: 0deg; }
     /* обёртка даёт свечение по форме билета (drop-shadow повторяет вырезы) */
     .tk-wrap {
-      --r: 12px; --cut: 100%; --ang: 0deg;
+      --r: 12px; --cut: 100%;
       display: grid; grid-template-rows: 1fr 68px; color: var(--ink); text-decoration: none;
-      transition: --cut 300ms cubic-bezier(0.2, 0.8, 0.3, 1), --ang 300ms cubic-bezier(0.2, 0.8, 0.3, 1);
+      transition: --cut 300ms cubic-bezier(0.2, 0.8, 0.3, 1);
     }
     /* общий стиль ссылок (бирюзовый текст и линия-подчёркивание снизу) билету не нужен */
     .tk-wrap, .tk-wrap:hover { color: var(--ink); background: none; }
@@ -123,10 +121,9 @@ interface StageRow {
       content: ''; position: absolute; left: var(--cut); right: var(--r); bottom: 0; height: 2px;
       background: repeating-linear-gradient(90deg, var(--hairline-strong) 0 6px, transparent 6px 10px);
     }
-    /* корешок: вырезы в верхних углах, пунктир отрыва по верху; две копии лежат друг на друге */
-    .stubs { display: grid; }
+    /* корешок: вырезы в верхних углах, пунктир отрыва по верху */
     .stub {
-      grid-area: 1 / 1;
+      height: 100%; box-sizing: border-box;
       display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 22px;
       border-top: 2px dashed var(--hairline-strong); border-radius: 0 0 var(--r-lg) var(--r-lg);
       -webkit-mask: radial-gradient(circle var(--r) at 0 0, #0000 98%, #000) left / 51% 100% no-repeat,
@@ -134,17 +131,29 @@ interface StageRow {
       mask: radial-gradient(circle var(--r) at 0 0, #0000 98%, #000) left / 51% 100% no-repeat,
         radial-gradient(circle var(--r) at 100% 0, #0000 98%, #000) right / 51% 100% no-repeat;
     }
-    /* левая часть — до линии разрыва; правая — оторванный лоскут, отогнут вокруг точки разрыва */
-    .base { clip-path: inset(0 calc(100% - var(--cut)) 0 0); }
-    .flap { clip-path: inset(0 0 0 var(--cut)); transform-origin: var(--cut) 0; rotate: var(--ang); filter: brightness(1.12); }
-    /* наведение: корешок надрывается справа — примерно на треть */
-    .tk-wrap:hover { --cut: 70%; --ang: 8deg; }
-    .tk-wrap:hover .main, .tk-wrap:hover .stub { border-color: var(--hairline-strong); }
-    /* клик: разрыв быстро доходит до левого края, корешок улетает вправо и исчезает — потом переход */
-    .tk-wrap.torn { position: relative; z-index: 2; animation: rip 170ms ease-in forwards; } /* улетающий корешок — поверх соседнего билета */
-    .tk-wrap.torn .flap { animation: fly 200ms ease-in 160ms forwards; }
-    @keyframes rip { from { --cut: 70%; --ang: 8deg; } to { --cut: 0%; --ang: 5deg; } }
-    @keyframes fly { to { translate: 160px 24px; rotate: 18deg; opacity: 0; } }
+    /* корешок виден до линии разрыва; всё, что правее, уже скручено в рулон */
+    .stubs { position: relative; }
+    .stub { clip-path: inset(0 calc(100% - var(--cut)) 0 0); }
+    /* рулон: бумажный валик с объёмной тенью; чем больше скручено, тем он толще */
+    .roll {
+      --w: calc((100% - var(--cut)) * 0.09 + 8px);
+      position: absolute; top: 1px; bottom: 1px; left: calc(var(--cut) - var(--w) * 0.6); width: var(--w);
+      border-radius: 999px; border: 1px solid var(--hairline-strong);
+      background: linear-gradient(90deg, #050505 0%, var(--surface-3) 30%, #3a3a3a 52%, var(--surface-2) 72%, #050505 100%);
+      box-shadow: -6px 0 10px -4px rgba(0, 0, 0, 0.7), inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+      opacity: 0; transition: opacity 120ms;
+    }
+    .registration .roll { border-color: rgba(var(--accent-rgb), 0.55); background: linear-gradient(90deg, #031413 0%, #0d3331 30%, #1d5a57 52%, #0d2b2a 72%, #031413 100%); }
+    .qualifying .roll, .battles .roll { border-color: var(--error); }
+    /* наведение: корешок скручивается справа — примерно на треть */
+    .tk-wrap:hover { --cut: 70%; }
+    .tk-wrap:hover .roll, .tk-wrap.torn .roll { opacity: 1; }
+    .tk-wrap:hover .main { border-color: var(--hairline-strong); }
+    /* клик: рулон быстро докатывается до левого края и улетает влево — потом переход */
+    .tk-wrap.torn { position: relative; z-index: 2; animation: rip 180ms ease-in forwards; } /* улетающий рулон — поверх соседнего билета */
+    .tk-wrap.torn .roll { animation: fly 180ms ease-in 170ms forwards; }
+    @keyframes rip { from { --cut: 70%; } to { --cut: 0%; } }
+    @keyframes fly { to { translate: -150px 6px; rotate: -8deg; opacity: 0; } }
     .main p { margin: 0; }
     .main h2 { font-size: 22px; margin: 8px 0 0; }
     .track { font-size: 14px; }
