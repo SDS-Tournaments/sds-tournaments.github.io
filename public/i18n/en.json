@@ -228,7 +228,7 @@
     "qual_king": { "icon": "📞", "name": "Call me, I'll teach you...", "desc": "Top qualifying" },
     "perfect_100": { "icon": "💵", "name": "Exact change only", "desc": "Score 100 points on a run" },
     "omt2": { "icon": "🔂", "name": "One more, one more", "desc": "Win a battle after two one-more-times" },
-    "regicide": { "icon": "⚔️", "name": "The king is dead", "desc": "Beat the previous round champion in a battle. Long live the king!" },
+    "regicide": { "icon": "⚔️", "name": "The king is dead. Long live the king!", "desc": "Beat the previous round champion in a battle" },
     "giant_slayer": { "icon": "🪨", "name": "David vs Goliath", "desc": "Beat a rival who qualified 8+ places higher" },
     "debut": { "icon": "🥩", "name": "Fresh meat", "desc": "Race your first round" },
     "revenge": { "icon": "💅", "name": "I wasn't finished", "desc": "Knock out the pilot who knocked you out last round" },
