@@ -151,7 +151,7 @@ interface StageRow {
       border-radius: 50% / 9px;
       background: linear-gradient(90deg, var(--c0) 0%, var(--c1) 12%, var(--c2) 30%, var(--hi) 40%, var(--c2) 49%, var(--c3) 68%, var(--c1) 86%, var(--c0) 100%);
       box-shadow: -9px 0 12px -6px rgba(0, 0, 0, 0.85), 7px 2px 10px -6px rgba(0, 0, 0, 0.7);
-      opacity: 0; transition: opacity 120ms;
+      opacity: 0; visibility: hidden; transition: opacity 120ms, visibility 0s 120ms;
     }
     /* торцы: витки спирали (сверху светлее — на свету, снизу в тени) */
     .roll::before, .roll::after {
@@ -167,11 +167,12 @@ interface StageRow {
     .lip {
       position: absolute; top: 2px; bottom: 1px; width: 30px; left: calc(var(--cut) - 30px);
       background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.25) 45%, rgba(0, 0, 0, 0.55) 80%, rgba(255, 255, 255, 0.07) 92%, rgba(0, 0, 0, 0.6));
-      opacity: 0; transition: opacity 120ms; pointer-events: none;
+      opacity: 0; visibility: hidden; transition: opacity 120ms, visibility 0s 120ms; pointer-events: none;
     }
     /* наведение: корешок скручивается справа — на 15% */
     .tk-wrap:hover { --cut: 85%; }
-    .tk-wrap:hover .roll, .tk-wrap.torn .roll, .tk-wrap:hover .lip, .tk-wrap.torn .lip { opacity: 1; }
+    /* в покое рулон стоит в правой выемке — убираем его из отрисовки целиком (только opacity оставлял след в свечении билета) */
+    .tk-wrap:hover .roll, .tk-wrap.torn .roll, .tk-wrap:hover .lip, .tk-wrap.torn .lip { opacity: 1; visibility: visible; transition: opacity 120ms, visibility 0s; }
     .tk-wrap:hover .main { border-color: var(--hairline-strong); }
     /* клик: рулон быстро докатывается до левого края и улетает влево — потом переход */
     .tk-wrap.torn { position: relative; z-index: 2; animation: rip 180ms ease-in forwards; } /* улетающий рулон — поверх соседнего билета */
