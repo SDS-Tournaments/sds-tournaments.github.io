@@ -93,6 +93,8 @@ interface StageRow {
     /* ── билет этапа ── */
     /* обёртка даёт свечение по форме билета (drop-shadow повторяет вырезы), сам билет обрезан маской */
     .tk-wrap { display: grid; color: var(--ink); text-decoration: none; transition: translate var(--base), filter var(--base); }
+    /* общий стиль ссылок (бирюзовый текст и линия-подчёркивание снизу) билету не нужен */
+    .tk-wrap, .tk-wrap:hover { color: var(--ink); background: none; }
     .tk-wrap:hover { translate: 0 -3px; }
     .tk {
       --stub: 68px;
