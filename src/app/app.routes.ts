@@ -45,7 +45,7 @@ export const routes: Routes = [
   { path: 'overlay', loadComponent: () => import('./overlay/overlay').then((m) => m.Overlay) },
   // UI kit — только в локальной разработке; на опубликованном сайте адрес ведёт на главную
   { path: 'dev/ui', canMatch: [() => isDevMode()], loadComponent: () => import('./pages/ui-showcase').then((m) => m.UiShowcase) },
-  // черновик главной в коллаборации с Attack Shark — пока только локально
+  // главная в коллаборации с Attack Shark — по прямой ссылке, в меню нет
   { path: 'attack-shark', loadComponent: () => import('./pages/shark').then((m) => m.SharkHome) },
   { path: '**', redirectTo: '' },
 ];
