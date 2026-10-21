@@ -75,6 +75,7 @@ interface StageRow {
                     <i class="code" aria-hidden="true"></i>
                   }
                 </div>
+                <i class="lip" aria-hidden="true"></i>
                 <i class="roll" aria-hidden="true"></i>
               </div>
           </a>
@@ -134,25 +135,42 @@ interface StageRow {
     /* корешок виден до линии разрыва; всё, что правее, уже скручено в рулон */
     .stubs { position: relative; }
     .stub { clip-path: inset(0 calc(100% - var(--cut)) 0 0); }
-    /* рулон: бумажный валик с объёмной тенью; чем больше скручено, тем он толще */
+    /* рулон: свёрнутый картон — цилиндр с бликом, на торцах витки спирали; чем больше скручено, тем толще */
     .roll {
-      --w: calc((100% - var(--cut)) * 0.09 + 8px);
-      position: absolute; top: 1px; bottom: 1px; left: calc(var(--cut) - var(--w) * 0.6); width: var(--w);
-      border-radius: 999px; border: 1px solid var(--hairline-strong);
-      background: linear-gradient(90deg, #050505 0%, var(--surface-3) 30%, #3a3a3a 52%, var(--surface-2) 72%, #050505 100%);
-      box-shadow: -6px 0 10px -4px rgba(0, 0, 0, 0.7), inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+      --w: calc((100% - var(--cut)) * 0.12 + 12px);
+      --c0: #050505; --c1: #1b1b1b; --c2: #3b3b3b; --hi: #9a9a9a; --c3: #2a2a2a;
+      position: absolute; top: -3px; bottom: -3px; left: calc(var(--cut) - var(--w) * 0.55); width: var(--w);
+      border-radius: 50% / 9px;
+      background: linear-gradient(90deg, var(--c0) 0%, var(--c1) 12%, var(--c2) 30%, var(--hi) 40%, var(--c2) 49%, var(--c3) 68%, var(--c1) 86%, var(--c0) 100%);
+      box-shadow: -9px 0 12px -6px rgba(0, 0, 0, 0.85), 7px 2px 10px -6px rgba(0, 0, 0, 0.7);
       opacity: 0; transition: opacity 120ms;
     }
-    .registration .roll { border-color: rgba(var(--accent-rgb), 0.55); background: linear-gradient(90deg, #031413 0%, #0d3331 30%, #1d5a57 52%, #0d2b2a 72%, #031413 100%); }
-    .qualifying .roll, .battles .roll { border-color: var(--error); }
-    /* наведение: корешок скручивается справа — примерно на треть */
-    .tk-wrap:hover { --cut: 70%; }
-    .tk-wrap:hover .roll, .tk-wrap.torn .roll { opacity: 1; }
+    /* торцы: витки спирали (сверху светлее — на свету, снизу в тени) */
+    .roll::before, .roll::after {
+      content: ''; position: absolute; left: 6%; right: 6%; height: 9px; border-radius: 50%;
+      background: repeating-radial-gradient(ellipse at 46% 50%, var(--c2) 0 0.8px, var(--c0) 0.8px 2.2px);
+      box-shadow: inset 0 0 2px rgba(0, 0, 0, 0.9);
+    }
+    .roll::before { top: 1px; }
+    .roll::after { bottom: 1px; filter: brightness(0.6); }
+    .registration .roll { --c0: #021110; --c1: #0a2a28; --c2: #15504c; --hi: #5fd6cf; --c3: #0e3835; }
+    .qualifying .roll, .battles .roll { --c1: #2a0e0e; --c2: #5a1d1d; --hi: #ff9a9a; --c3: #3a1414; }
+    /* изгиб: бумага перед рулоном плавно уходит в трубку — затенение и отблеск на сгибе */
+    .lip {
+      position: absolute; top: 2px; bottom: 1px; width: 30px; left: calc(var(--cut) - 30px);
+      background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.25) 45%, rgba(0, 0, 0, 0.55) 80%, rgba(255, 255, 255, 0.07) 92%, rgba(0, 0, 0, 0.6));
+      opacity: 0; transition: opacity 120ms; pointer-events: none;
+    }
+    /* наведение: корешок скручивается справа — на 15% */
+    .tk-wrap:hover { --cut: 85%; }
+    .tk-wrap:hover .roll, .tk-wrap.torn .roll, .tk-wrap:hover .lip, .tk-wrap.torn .lip { opacity: 1; }
     .tk-wrap:hover .main { border-color: var(--hairline-strong); }
     /* клик: рулон быстро докатывается до левого края и улетает влево — потом переход */
     .tk-wrap.torn { position: relative; z-index: 2; animation: rip 180ms ease-in forwards; } /* улетающий рулон — поверх соседнего билета */
     .tk-wrap.torn .roll { animation: fly 180ms ease-in 170ms forwards; }
-    @keyframes rip { from { --cut: 70%; } to { --cut: 0%; } }
+    .tk-wrap.torn .lip { animation: fade 120ms linear 170ms forwards; }
+    @keyframes fade { to { opacity: 0; } }
+    @keyframes rip { from { --cut: 85%; } to { --cut: 0%; } }
     @keyframes fly { to { translate: -150px 6px; rotate: -8deg; opacity: 0; } }
     .main p { margin: 0; }
     .main h2 { font-size: 22px; margin: 8px 0 0; }
