@@ -1,4 +1,4 @@
-import { DatePipe } from '@angular/common';
+import { DatePipe, NgTemplateOutlet } from '@angular/common';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -21,7 +21,7 @@ interface StageRow {
 // Этапы сезона: карточки со статусом и победителем
 @Component({
   selector: 'app-stages',
-  imports: [FormsModule, TranslocoPipe, DatePipe, Loader],
+  imports: [FormsModule, NgTemplateOutlet, TranslocoPipe, DatePipe, Loader],
   template: `
     @if (!ready()) {
       <app-loader />
@@ -64,7 +64,7 @@ interface StageRow {
                 }
                 @if (winners()[s.id]; as w) { <p class="winner">🏆 {{ w }}</p> }
               </div>
-              <div class="stub">
+              <ng-template #stub>
                 <span class="no"><small>{{ 'stages.round' | transloco }}</small><b class="mono">{{ s.ord < 10 ? '0' + s.ord : s.ord }}</b></span>
                 @if (s.status === 'registration') {
                   <span class="cta">{{ 'stages.regOpen' | transloco }} →</span>
@@ -73,6 +73,10 @@ interface StageRow {
                 } @else {
                   <i class="code" aria-hidden="true"></i>
                 }
+              </ng-template>
+              <div class="stubs">
+                <div class="stub base"><ng-container [ngTemplateOutlet]="stub" /></div>
+                <div class="stub flap" aria-hidden="true"><ng-container [ngTemplateOutlet]="stub" /></div>
               </div>
           </a>
         } @empty {
@@ -89,9 +93,15 @@ interface StageRow {
     .season { width: auto; min-width: 200px; }
     .grid { display: grid; gap: 20px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); }
     /* ── билет этапа ── */
-    /* обёртка даёт свечение по форме билета (drop-shadow повторяет вырезы), сам билет обрезан маской */
-    /* обёртка даёт свечение по форме билета (drop-shadow повторяет вырезы); половинки — отдельные, чтобы корешок мог оторваться */
-    .tk-wrap { --r: 12px; display: grid; grid-template-rows: 1fr 68px; color: var(--ink); text-decoration: none; }
+    /* разрыв по линии отрыва: --cut — докуда корешок ещё держится (100% — целый), --ang — насколько отогнут оторванный кусок */
+    @property --cut { syntax: '<percentage>'; inherits: true; initial-value: 100%; }
+    @property --ang { syntax: '<angle>'; inherits: true; initial-value: 0deg; }
+    /* обёртка даёт свечение по форме билета (drop-shadow повторяет вырезы) */
+    .tk-wrap {
+      --r: 12px; --cut: 100%; --ang: 0deg;
+      display: grid; grid-template-rows: 1fr 68px; color: var(--ink); text-decoration: none;
+      transition: --cut 300ms cubic-bezier(0.2, 0.8, 0.3, 1), --ang 300ms cubic-bezier(0.2, 0.8, 0.3, 1);
+    }
     /* общий стиль ссылок (бирюзовый текст и линия-подчёркивание снизу) билету не нужен */
     .tk-wrap, .tk-wrap:hover { color: var(--ink); background: none; }
     .main, .stub {
@@ -100,6 +110,7 @@ interface StageRow {
     }
     /* основная часть: полукруглые вырезы в нижних углах */
     .main {
+      position: relative;
       display: grid; gap: 6px; align-content: start; padding: 22px 22px 18px;
       border-bottom: 0; border-radius: var(--r-lg) var(--r-lg) 0 0;
       -webkit-mask: radial-gradient(circle var(--r) at 0 100%, #0000 98%, #000) left / 51% 100% no-repeat,
@@ -107,38 +118,33 @@ interface StageRow {
       mask: radial-gradient(circle var(--r) at 0 100%, #0000 98%, #000) left / 51% 100% no-repeat,
         radial-gradient(circle var(--r) at 100% 100%, #0000 98%, #000) right / 51% 100% no-repeat;
     }
-    /* корешок: вырезы в верхних углах, пунктир отрыва по верху. Держится за правый край — отрывается слева */
+    /* край основной части там, где корешок уже оторвался */
+    .main::after {
+      content: ''; position: absolute; left: var(--cut); right: var(--r); bottom: 0; height: 2px;
+      background: repeating-linear-gradient(90deg, var(--hairline-strong) 0 6px, transparent 6px 10px);
+    }
+    /* корешок: вырезы в верхних углах, пунктир отрыва по верху; две копии лежат друг на друге */
+    .stubs { display: grid; }
     .stub {
-      position: relative;
+      grid-area: 1 / 1;
       display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 22px;
       border-top: 2px dashed var(--hairline-strong); border-radius: 0 0 var(--r-lg) var(--r-lg);
-      background: var(--surface-1);
       -webkit-mask: radial-gradient(circle var(--r) at 0 0, #0000 98%, #000) left / 51% 100% no-repeat,
         radial-gradient(circle var(--r) at 100% 0, #0000 98%, #000) right / 51% 100% no-repeat;
       mask: radial-gradient(circle var(--r) at 0 0, #0000 98%, #000) left / 51% 100% no-repeat,
         radial-gradient(circle var(--r) at 100% 0, #0000 98%, #000) right / 51% 100% no-repeat;
-      transform-origin: 100% 0;
-      transition: rotate 380ms cubic-bezier(0.3, 1.5, 0.5, 1), translate 380ms cubic-bezier(0.3, 1.5, 0.5, 1);
     }
-    /* наведение: корешок надрывается — отходит по линии отрыва слева */
-    .tk-wrap:hover .stub { rotate: -4deg; translate: 0 3px; }
-    .tk-wrap:hover .main { border-color: var(--hairline-strong); }
-    /* край основной части по линии отрыва — проявляется, когда корешок отходит */
-    .main { position: relative; }
-    .main::after {
-      content: ''; position: absolute; left: var(--r); right: var(--r); bottom: 0; height: 2px; opacity: 0; transition: opacity var(--base);
-      background: repeating-linear-gradient(90deg, var(--hairline-strong) 0 6px, transparent 6px 10px);
-    }
-    .tk-wrap:hover .main::after, .tk-wrap.torn .main::after { opacity: 1; }
-    .stub, .tk-wrap:hover .stub { border-top-color: var(--hairline-strong); }
-    .tk-wrap:hover .stub { border-left-color: var(--hairline-strong); border-right-color: var(--hairline-strong); border-bottom-color: var(--hairline-strong); }
-    /* клик: корешок отрывается и падает, потом — переход на страницу этапа */
-    .tk-wrap.torn .stub { animation: tear-off 520ms cubic-bezier(0.5, 0, 0.75, 0) forwards; }
-    @keyframes tear-off {
-      0% { rotate: -4deg; translate: 0 3px; opacity: 1; }
-      30% { rotate: -14deg; translate: -4px 10px; opacity: 1; }
-      100% { rotate: -32deg; translate: -30px 140px; opacity: 0; }
-    }
+    /* левая часть — до линии разрыва; правая — оторванный лоскут, отогнут вокруг точки разрыва */
+    .base { clip-path: inset(0 calc(100% - var(--cut)) 0 0); }
+    .flap { clip-path: inset(0 0 0 var(--cut)); transform-origin: var(--cut) 0; rotate: var(--ang); filter: brightness(1.12); }
+    /* наведение: корешок надрывается справа — примерно на треть */
+    .tk-wrap:hover { --cut: 70%; --ang: 8deg; }
+    .tk-wrap:hover .main, .tk-wrap:hover .stub { border-color: var(--hairline-strong); }
+    /* клик: разрыв быстро доходит до левого края, корешок улетает вправо и исчезает — потом переход */
+    .tk-wrap.torn { position: relative; z-index: 2; animation: rip 170ms ease-in forwards; } /* улетающий корешок — поверх соседнего билета */
+    .tk-wrap.torn .flap { animation: fly 200ms ease-in 160ms forwards; }
+    @keyframes rip { from { --cut: 70%; --ang: 8deg; } to { --cut: 0%; --ang: 5deg; } }
+    @keyframes fly { to { translate: 160px 24px; rotate: 18deg; opacity: 0; } }
     .main p { margin: 0; }
     .main h2 { font-size: 22px; margin: 8px 0 0; }
     .track { font-size: 14px; }
@@ -146,8 +152,6 @@ interface StageRow {
     .days small { display: inline-block; min-width: 52px; margin-right: 6px; font-family: var(--font); font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--ink-subtle); }
     .date { font-size: 13px; color: var(--ink-muted); margin-top: 8px !important; }
     .winner { font-weight: 600; margin-top: 8px !important; }
-    /* корешок: пунктир отрыва между вырезами, номер этапа и штрихкод */
-    .stub { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 16px; padding: 0 6px; border-top: 2px dashed var(--hairline-strong); }
     .no { display: grid; line-height: 1; }
     .no small { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--ink-subtle); }
     .no b { margin-top: 4px; font-size: 26px; font-weight: 500; color: var(--ink-muted); }
@@ -174,7 +178,7 @@ interface StageRow {
 
     /* идёт сейчас: красная рамка, пульсирующее свечение */
     .qualifying .main, .qualifying .stub, .battles .main, .battles .stub { border-color: var(--error); }
-    .qualifying, .battles { animation: live-glow 2.4s ease-in-out infinite; }
+    .qualifying:not(.torn), .battles:not(.torn) { animation: live-glow 2.4s ease-in-out infinite; }
     .qualifying .no b, .battles .no b, .qualifying .cta, .battles .cta { color: var(--error); }
     @keyframes live-glow { 0%, 100% { filter: drop-shadow(0 0 6px rgba(255, 92, 92, 0.2)); } 50% { filter: drop-shadow(0 0 20px rgba(255, 92, 92, 0.55)); } }
 
@@ -186,7 +190,7 @@ interface StageRow {
 
     @media (prefers-reduced-motion: reduce) {
       .pip::after, .qualifying, .battles { animation: none !important; }
-      .tk-wrap:hover .stub { rotate: none; translate: none; }
+      .tk-wrap { transition: none; }
     }
   `,
 })
@@ -238,6 +242,6 @@ export class Stages implements OnInit {
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) return void this.router.navigate(['/stages', id]);
     if (this.tearing() !== null) return;
     this.tearing.set(id);
-    setTimeout(() => this.router.navigate(['/stages', id]), 480);
+    setTimeout(() => this.router.navigate(['/stages', id]), 360);
   }
 }
