@@ -1,7 +1,7 @@
 import { DatePipe } from '@angular/common';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { supabase } from '../auth';
 import { Loader } from '../components/loader';
@@ -21,7 +21,7 @@ interface StageRow {
 // Этапы сезона: карточки со статусом и победителем
 @Component({
   selector: 'app-stages',
-  imports: [FormsModule, RouterLink, TranslocoPipe, DatePipe, Loader],
+  imports: [FormsModule, TranslocoPipe, DatePipe, Loader],
   template: `
     @if (!ready()) {
       <app-loader />
@@ -45,8 +45,7 @@ interface StageRow {
       <div class="grid page-in">
         @for (s of stages(); track s.id) {
           <!-- билет этапа: сверху статус, название и дни; по линии отрыва — корешок с номером этапа -->
-          <a class="tk-wrap" [class]="s.status" [routerLink]="['/stages', s.id]">
-            <div class="tk">
+          <a class="tk-wrap" [class]="s.status" [class.torn]="tearing() === s.id" [attr.href]="'/stages/' + s.id" (click)="tear($event, s.id)">
               <div class="main">
                 <span class="badge" [class]="'st-' + s.status">
                   @if (s.status === 'qualifying' || s.status === 'battles' || s.status === 'registration') { <i class="pip"></i> }
@@ -75,7 +74,6 @@ interface StageRow {
                   <i class="code" aria-hidden="true"></i>
                 }
               </div>
-            </div>
           </a>
         } @empty {
           <p class="subtle">{{ 'stages.empty' | transloco }}</p>
@@ -92,22 +90,55 @@ interface StageRow {
     .grid { display: grid; gap: 20px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); }
     /* ── билет этапа ── */
     /* обёртка даёт свечение по форме билета (drop-shadow повторяет вырезы), сам билет обрезан маской */
-    .tk-wrap { display: grid; color: var(--ink); text-decoration: none; transition: translate var(--base), filter var(--base); }
+    /* обёртка даёт свечение по форме билета (drop-shadow повторяет вырезы); половинки — отдельные, чтобы корешок мог оторваться */
+    .tk-wrap { --r: 12px; display: grid; grid-template-rows: 1fr 68px; color: var(--ink); text-decoration: none; }
     /* общий стиль ссылок (бирюзовый текст и линия-подчёркивание снизу) билету не нужен */
     .tk-wrap, .tk-wrap:hover { color: var(--ink); background: none; }
-    .tk-wrap:hover { translate: 0 -3px; }
-    .tk {
-      --stub: 68px;
-      display: grid; grid-template-rows: 1fr var(--stub);
-      border: 1px solid var(--hairline); border-radius: var(--r-lg);
+    .main, .stub {
+      border: 1px solid var(--hairline);
       background: linear-gradient(160deg, rgba(var(--accent-rgb), 0.04), transparent 50%), var(--surface-1);
-      -webkit-mask: radial-gradient(circle 12px at 0 calc(100% - var(--stub)), #0000 98%, #000) left / 51% 100% no-repeat,
-        radial-gradient(circle 12px at 100% calc(100% - var(--stub)), #0000 98%, #000) right / 51% 100% no-repeat;
-      mask: radial-gradient(circle 12px at 0 calc(100% - var(--stub)), #0000 98%, #000) left / 51% 100% no-repeat,
-        radial-gradient(circle 12px at 100% calc(100% - var(--stub)), #0000 98%, #000) right / 51% 100% no-repeat;
     }
-    .tk-wrap:hover .tk { border-color: var(--hairline-strong); }
-    .main { display: grid; gap: 6px; align-content: start; padding: 22px 22px 18px; }
+    /* основная часть: полукруглые вырезы в нижних углах */
+    .main {
+      display: grid; gap: 6px; align-content: start; padding: 22px 22px 18px;
+      border-bottom: 0; border-radius: var(--r-lg) var(--r-lg) 0 0;
+      -webkit-mask: radial-gradient(circle var(--r) at 0 100%, #0000 98%, #000) left / 51% 100% no-repeat,
+        radial-gradient(circle var(--r) at 100% 100%, #0000 98%, #000) right / 51% 100% no-repeat;
+      mask: radial-gradient(circle var(--r) at 0 100%, #0000 98%, #000) left / 51% 100% no-repeat,
+        radial-gradient(circle var(--r) at 100% 100%, #0000 98%, #000) right / 51% 100% no-repeat;
+    }
+    /* корешок: вырезы в верхних углах, пунктир отрыва по верху. Держится за правый край — отрывается слева */
+    .stub {
+      position: relative;
+      display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 22px;
+      border-top: 2px dashed var(--hairline-strong); border-radius: 0 0 var(--r-lg) var(--r-lg);
+      background: var(--surface-1);
+      -webkit-mask: radial-gradient(circle var(--r) at 0 0, #0000 98%, #000) left / 51% 100% no-repeat,
+        radial-gradient(circle var(--r) at 100% 0, #0000 98%, #000) right / 51% 100% no-repeat;
+      mask: radial-gradient(circle var(--r) at 0 0, #0000 98%, #000) left / 51% 100% no-repeat,
+        radial-gradient(circle var(--r) at 100% 0, #0000 98%, #000) right / 51% 100% no-repeat;
+      transform-origin: 100% 0;
+      transition: rotate 380ms cubic-bezier(0.3, 1.5, 0.5, 1), translate 380ms cubic-bezier(0.3, 1.5, 0.5, 1);
+    }
+    /* наведение: корешок надрывается — отходит по линии отрыва слева */
+    .tk-wrap:hover .stub { rotate: -4deg; translate: 0 3px; }
+    .tk-wrap:hover .main { border-color: var(--hairline-strong); }
+    /* край основной части по линии отрыва — проявляется, когда корешок отходит */
+    .main { position: relative; }
+    .main::after {
+      content: ''; position: absolute; left: var(--r); right: var(--r); bottom: 0; height: 2px; opacity: 0; transition: opacity var(--base);
+      background: repeating-linear-gradient(90deg, var(--hairline-strong) 0 6px, transparent 6px 10px);
+    }
+    .tk-wrap:hover .main::after, .tk-wrap.torn .main::after { opacity: 1; }
+    .stub, .tk-wrap:hover .stub { border-top-color: var(--hairline-strong); }
+    .tk-wrap:hover .stub { border-left-color: var(--hairline-strong); border-right-color: var(--hairline-strong); border-bottom-color: var(--hairline-strong); }
+    /* клик: корешок отрывается и падает, потом — переход на страницу этапа */
+    .tk-wrap.torn .stub { animation: tear-off 520ms cubic-bezier(0.5, 0, 0.75, 0) forwards; }
+    @keyframes tear-off {
+      0% { rotate: -4deg; translate: 0 3px; opacity: 1; }
+      30% { rotate: -14deg; translate: -4px 10px; opacity: 1; }
+      100% { rotate: -32deg; translate: -30px 140px; opacity: 0; }
+    }
     .main p { margin: 0; }
     .main h2 { font-size: 22px; margin: 8px 0 0; }
     .track { font-size: 14px; }
@@ -136,11 +167,13 @@ interface StageRow {
 
     /* регистрация: бирюзовая рамка, подсветка и свечение по контуру билета */
     .registration { filter: drop-shadow(0 0 16px rgba(var(--accent-rgb), 0.3)); }
-    .registration .tk { border-color: rgba(var(--accent-rgb), 0.55); background: linear-gradient(160deg, rgba(var(--accent-rgb), 0.14), transparent 60%), var(--surface-1); }
+    .registration .main, .registration .stub { border-color: rgba(var(--accent-rgb), 0.55); }
+    .registration .main { background: linear-gradient(160deg, rgba(var(--accent-rgb), 0.14), transparent 60%), var(--surface-1); }
+    .registration .stub { background: linear-gradient(rgba(var(--accent-rgb), 0.05), rgba(var(--accent-rgb), 0.05)), var(--surface-1); }
     .registration .no b, .registration .cta { color: var(--primary); }
 
     /* идёт сейчас: красная рамка, пульсирующее свечение */
-    .qualifying .tk, .battles .tk { border-color: var(--error); }
+    .qualifying .main, .qualifying .stub, .battles .main, .battles .stub { border-color: var(--error); }
     .qualifying, .battles { animation: live-glow 2.4s ease-in-out infinite; }
     .qualifying .no b, .battles .no b, .qualifying .cta, .battles .cta { color: var(--error); }
     @keyframes live-glow { 0%, 100% { filter: drop-shadow(0 0 6px rgba(255, 92, 92, 0.2)); } 50% { filter: drop-shadow(0 0 20px rgba(255, 92, 92, 0.55)); } }
@@ -153,7 +186,7 @@ interface StageRow {
 
     @media (prefers-reduced-motion: reduce) {
       .pip::after, .qualifying, .battles { animation: none !important; }
-      .tk-wrap:hover { translate: none; }
+      .tk-wrap:hover .stub { rotate: none; translate: none; }
     }
   `,
 })
@@ -162,6 +195,9 @@ export class Stages implements OnInit {
   protected readonly season = signal<Season | null>(null);
   protected readonly stages = signal<StageRow[]>([]);
   protected readonly winners = signal<Record<number, string>>({});
+  /** этап, у которого сейчас отрывается корешок (клик → анимация → переход) */
+  protected readonly tearing = signal<number | null>(null);
+  private readonly router = inject(Router);
   protected readonly loading = signal(true);
   /** первая загрузка — страница целиком скрыта до готовности данных */
   protected readonly ready = signal(false);
@@ -193,5 +229,15 @@ export class Stages implements OnInit {
     this.stages.set(data ?? []);
     this.winners.set(Object.fromEntries(((w ?? []) as unknown as { stage_id: number; pilot: { nickname: string } | null }[]).map((r) => [r.stage_id, r.pilot?.nickname ?? ''])));
     this.loading.set(false);
+  }
+
+  /** клик по билету: корешок отрывается, через полсекунды — страница этапа. Ctrl/Shift/средняя кнопка — как обычная ссылка (href), без анимации */
+  protected tear(e: MouseEvent, id: number) {
+    if (e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+    e.preventDefault();
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return void this.router.navigate(['/stages', id]);
+    if (this.tearing() !== null) return;
+    this.tearing.set(id);
+    setTimeout(() => this.router.navigate(['/stages', id]), 480);
   }
 }
