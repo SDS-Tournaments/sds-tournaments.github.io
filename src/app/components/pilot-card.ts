@@ -54,9 +54,8 @@ export interface CardData {
       }
       <div class="top">
         <div class="ovr">
-          <span class="big">{{ d().overall ?? '—' }}</span>
+          <span class="big" [class.w3]="(d().overall ?? 0) >= 100">{{ d().overall ?? '—' }}</span>
           <span class="tag">OVR</span>
-          <span class="num mono">#{{ d().start_number ?? '—' }}</span>
         </div>
         <span class="brand mono">SDS</span>
       </div>
@@ -147,10 +146,12 @@ export interface CardData {
     }
     .fut.champ .face { box-shadow: 0 0 0 3px var(--body), 0 0 0 5px var(--champ), 0 0 30px color-mix(in srgb, var(--champ), transparent 45%); }
     .top { width: 100%; display: flex; justify-content: space-between; align-items: start; }
-    .ovr { display: grid; justify-items: center; line-height: 1; }
+    /* номер пилота не показываем; отступ снизу держит аватар и венок на прежнем месте */
+    .ovr { display: grid; justify-items: center; line-height: 1; padding-bottom: 28px; }
     .big { font: 600 48px var(--mono); color: var(--accent); }
+    /* «100» шире двух цифр — уменьшаем, чтобы не налезать на корону чемпиона */
+    .fut .big.w3 { font-size: 36px; letter-spacing: -0.04em; }
     .tag { font-size: 11px; letter-spacing: 2px; color: var(--muted); margin-top: 2px; }
-    .num { margin-top: 10px; font-size: 18px; font-style: italic; }
     .brand { font-size: 12px; padding: 3px 7px; border: 1px solid var(--accent); border-radius: 6px; color: var(--accent); letter-spacing: 1px; }
     .face { width: 124px; height: 124px; border-radius: 50%; overflow: hidden; box-shadow: 0 0 0 3px var(--body), 0 0 0 5px var(--accent); }
     .face img { width: 100%; height: 100%; object-fit: cover; }
