@@ -119,18 +119,26 @@ interface StageRow {
     }
     /* край основной части там, где корешок уже оторвался */
     .main::after {
-      content: ''; position: absolute; left: var(--cut); right: var(--r); bottom: 0; height: 2px;
+      content: ''; position: absolute; left: var(--cut); right: calc(var(--r) + 4px); bottom: 0; height: 2px;
       background: repeating-linear-gradient(90deg, var(--hairline-strong) 0 6px, transparent 6px 10px);
     }
     /* корешок: вырезы в верхних углах, пунктир отрыва по верху */
     .stub {
       height: 100%; box-sizing: border-box;
       display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 22px;
-      border-top: 2px dashed var(--hairline-strong); border-radius: 0 0 var(--r-lg) var(--r-lg);
+      position: relative;
+      border-top: 2px solid transparent; border-radius: 0 0 var(--r-lg) var(--r-lg);
       -webkit-mask: radial-gradient(circle var(--r) at 0 0, #0000 98%, #000) left / 51% 100% no-repeat,
         radial-gradient(circle var(--r) at 100% 0, #0000 98%, #000) right / 51% 100% no-repeat;
       mask: radial-gradient(circle var(--r) at 0 0, #0000 98%, #000) left / 51% 100% no-repeat,
         radial-gradient(circle var(--r) at 100% 0, #0000 98%, #000) right / 51% 100% no-repeat;
+    }
+    /* пунктир отрыва — не до самых выемок: иначе крайний штрих светится внутри выреза */
+    .tk-wrap { --perf: var(--hairline-strong); }
+    .tk-wrap .stubs .stub { border-top-color: transparent; } /* рамки статусов красят border-color целиком — верх не трогаем */
+    .stub::before {
+      content: ''; position: absolute; top: -2px; left: calc(var(--r) + 4px); right: calc(var(--r) + 4px); height: 2px;
+      background: repeating-linear-gradient(90deg, var(--perf) 0 6px, transparent 6px 10px);
     }
     /* корешок виден до линии разрыва; всё, что правее, уже скручено в рулон */
     .stubs { position: relative; }
@@ -199,12 +207,14 @@ interface StageRow {
     /* регистрация: бирюзовая рамка, подсветка и свечение по контуру билета */
     .registration { filter: drop-shadow(0 0 16px rgba(var(--accent-rgb), 0.3)); }
     .registration .main, .registration .stub { border-color: rgba(var(--accent-rgb), 0.55); }
+    .registration { --perf: rgba(var(--accent-rgb), 0.55); }
     .registration .main { background: linear-gradient(160deg, rgba(var(--accent-rgb), 0.14), transparent 60%), var(--surface-1); }
     .registration .stub { background: linear-gradient(rgba(var(--accent-rgb), 0.05), rgba(var(--accent-rgb), 0.05)), var(--surface-1); }
     .registration .no b, .registration .cta { color: var(--primary); }
 
     /* идёт сейчас: красная рамка, пульсирующее свечение */
     .qualifying .main, .qualifying .stub, .battles .main, .battles .stub { border-color: var(--error); }
+    .qualifying, .battles { --perf: var(--error); }
     .qualifying:not(.torn), .battles:not(.torn) { animation: live-glow 2.4s ease-in-out infinite; }
     .qualifying .no b, .battles .no b, .qualifying .cta, .battles .cta { color: var(--error); }
     @keyframes live-glow { 0%, 100% { filter: drop-shadow(0 0 6px rgba(255, 92, 92, 0.2)); } 50% { filter: drop-shadow(0 0 20px rgba(255, 92, 92, 0.55)); } }
