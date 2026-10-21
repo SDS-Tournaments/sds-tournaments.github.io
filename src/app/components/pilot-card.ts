@@ -144,6 +144,9 @@ export interface CardData {
       width: 200px; height: 160px; fill: var(--champ); opacity: 0.95;
       filter: drop-shadow(0 0 6px color-mix(in srgb, var(--champ), transparent 50%));
     }
+    /* венок ниже аватара — у чемпиона аватар чуть выше, ник чуть ниже, чтобы листья не касались ника */
+    .fut.champ .ovr { padding-bottom: 16px; }
+    .fut.champ .nick { margin-top: 30px; }
     .fut.champ .face { box-shadow: 0 0 0 3px var(--body), 0 0 0 5px var(--champ), 0 0 30px color-mix(in srgb, var(--champ), transparent 45%); }
     .top { width: 100%; display: flex; justify-content: space-between; align-items: start; }
     /* номер пилота не показываем; отступ снизу держит аватар и венок на прежнем месте */
