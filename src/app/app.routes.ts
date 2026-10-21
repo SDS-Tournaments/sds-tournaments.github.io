@@ -32,6 +32,7 @@ export const routes: Routes = [
       { path: 'stages/:id', loadComponent: () => import('./admin/stage').then((m) => m.AdminStage) },
       { path: 'teams', loadComponent: () => import('./admin/teams').then((m) => m.AdminTeams) },
       { path: 'protests', loadComponent: () => import('./admin/protests').then((m) => m.AdminProtests) },
+      { path: 'discord', loadComponent: () => import('./admin/discord').then((m) => m.AdminDiscord) },
       { path: 'settings', loadComponent: () => import('./admin/settings').then((m) => m.AdminSettings) },
       { path: 'sponsors', loadComponent: () => import('./admin/sponsors').then((m) => m.AdminSponsors) },
       { path: 'pilots', loadComponent: () => import('./admin/pilots').then((m) => m.AdminPilots) },

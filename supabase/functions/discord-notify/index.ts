@@ -1,5 +1,6 @@
-// Оповещения в Discord: регистрация открыта, этап начался, итоги этапа (+ лидер сезона), новый протест, тест из настроек.
-// Вебхук — в private_settings (виден только admin). Вызывать может: штаб — любые события, пилот — только свой свежий протест.
+// Оповещения в Discord: регистрация открыта, этап начался, итоги этапа (+ лидер сезона), новый протест, тест из админки.
+// Два канала: RU и EN (зарубежные пилоты) — каждое объявление уходит в оба на своём языке; протесты — только в RU (штабу).
+// Вебхуки — в private_settings (видны только admin). Вызывать может: штаб — любые события, пилот — только свой свежий протест.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, {
@@ -10,16 +11,74 @@ const TIFFANY = 0x0abab5;
 const RED = 0xff5c5c;
 const AMBER = 0xf5b942;
 
+type Lang = 'ru' | 'en';
+type Embed = Record<string, unknown>;
+
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey, x-client-info' };
 const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { status, headers: { ...cors, 'Content-Type': 'application/json' } });
 /** канал Twitch: в настройках могут вписать и имя, и ссылку twitch.tv/имя */
 const twitchName = (v: string | null | undefined) => v?.trim().replace(/^.*twitch\.tv\//i, '').split(/[/?#]/)[0] || null;
-const date = (iso: string | null) =>
-  iso ? new Date(iso).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) + ' МСК' : 'дата уточняется';
+const date = (iso: string | null, l: Lang) =>
+  iso
+    ? new Date(iso).toLocaleString(l === 'en' ? 'en-GB' : 'ru-RU', { timeZone: 'Europe/Moscow', day: '2-digit', month: l === 'en' ? 'short' : '2-digit', hour: '2-digit', minute: '2-digit' }) +
+      (l === 'en' ? ' MSK (UTC+3)' : ' МСК')
+    : l === 'en' ? 'date TBA' : 'дата уточняется';
+
+const T = {
+  ru: {
+    testTitle: '✅ Вебхук работает',
+    testText: 'Тестовое сообщение из «Админка → Discord». Сюда будут приходить: открытие регистрации, старт этапа, итоги и новые протесты.',
+    regTitle: '📝 Открыта регистрация',
+    day1: 'День 1 · Квалификация',
+    day2: 'День 2 · Парные заезды Top 32',
+    regWhere: 'Регистрация — в личном кабинете на сайте',
+    liveTitle: '🔴 LIVE — этап начался',
+    liveText: 'Квалификация уже идёт!',
+    table: 'Онлайн-таблица',
+    battlesTitle: '🔴 LIVE — парные заезды',
+    battlesText: 'Top 32 стартует — дуэли до финала!',
+    bracket: 'Сетка',
+    resTitle: '🏁 Итоги этапа',
+    leader: 'Лидер сезона',
+  },
+  en: {
+    testTitle: '✅ Webhook works',
+    testText: 'Test message from the SDS admin panel. This channel will get: registration opening, round start, results.',
+    regTitle: '📝 Registration is open',
+    day1: 'Day 1 · Qualifying',
+    day2: 'Day 2 · Top 32 battles',
+    regWhere: 'Sign up in your account on the website',
+    liveTitle: '🔴 LIVE — the round has started',
+    liveText: 'Qualifying is underway!',
+    table: 'Live standings',
+    battlesTitle: '🔴 LIVE — battles',
+    battlesText: 'Top 32 is on — battles all the way to the final!',
+    bracket: 'Bracket',
+    resTitle: '🏁 Round results',
+    leader: 'Season leader',
+  },
+};
 
 async function stageInfo(id: number) {
-  const { data } = await db.from('stages').select('id, ord, title_ru, track, starts_at, battles_at, twitch_channel, season:seasons(id, title, team_counted)').eq('id', id).single();
-  return data as unknown as { id: number; ord: number; title_ru: string; track: string | null; starts_at: string | null; battles_at: string | null; twitch_channel: string | null; season: { id: number; title: string } };
+  const { data } = await db
+    .from('stages')
+    .select('id, ord, title_ru, title_en, track, starts_at, battles_at, twitch_channel, season:seasons(id, title, team_counted)')
+    .eq('id', id)
+    .single();
+  return data as unknown as { id: number; ord: number; title_ru: string; title_en: string | null; track: string | null; starts_at: string | null; battles_at: string | null; twitch_channel: string | null; season: { id: number; title: string } };
+}
+
+async function send(hook: string, embed: Embed) {
+  const res = await fetch(hook, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      username: 'Sad Drift Series',
+      avatar_url: SITE ? `${SITE}/icon.png` : undefined,
+      embeds: [{ ...embed, thumbnail: SITE ? { url: `${SITE}/icon.png` } : undefined, footer: { text: 'Sad Drift Series · CarX Drift Racing Online 2' }, timestamp: new Date().toISOString() }],
+    }),
+  });
+  return res.ok ? null : `Discord ответил ${res.status}`;
 }
 
 Deno.serve(async (req) => {
@@ -32,21 +91,19 @@ Deno.serve(async (req) => {
   const { data: me } = await db.from('profiles').select('role').eq('id', uid).single();
   const staff = me?.role === 'admin' || me?.role === 'staff';
 
-  const { type, id } = await req.json();
-  const { data: settings } = await db.from('private_settings').select('discord_webhook_url').eq('id', 1).single();
-  const hook = settings?.discord_webhook_url;
-  if (!hook) return json({ skipped: 'вебхук не настроен' });
+  const { type, id, lang } = await req.json();
+  const { data: settings } = await db.from('private_settings').select('discord_webhook_url, discord_webhook_en').eq('id', 1).single();
+  const hooks: Partial<Record<Lang, string>> = {};
+  if (settings?.discord_webhook_url) hooks.ru = settings.discord_webhook_url;
+  if (settings?.discord_webhook_en) hooks.en = settings.discord_webhook_en;
 
-  let embed: Record<string, unknown> | null = null;
+  /** готовое сообщение на нужном языке; null — в этот канал не шлём */
+  let build: (l: Lang) => Embed | null;
 
   if (type === 'test') {
     if (!staff) return json({ error: 'Только для штаба' }, 403);
-    embed = {
-      title: '✅ Вебхук работает',
-      description: 'Тестовое сообщение из «Админка → Настройки». Сюда будут приходить: открытие регистрации, старт этапа, итоги и новые протесты.',
-      color: TIFFANY,
-      url: SITE || undefined,
-    };
+    const only: Lang = lang === 'en' ? 'en' : 'ru';
+    build = (l) => (l === only ? { title: T[l].testTitle, description: T[l].testText, color: TIFFANY, url: SITE || undefined } : null);
   } else if (type === 'protest') {
     const { data: p } = await db
       .from('protests')
@@ -57,29 +114,42 @@ Deno.serve(async (req) => {
     if (!pr || (!staff && pr.profile_id !== uid)) return json({ error: 'Нет доступа' }, 403);
     if (pr.notified_at) return json({ skipped: 'уже отправлено' });
     if (Date.now() - Date.parse(pr.created_at) > 10 * 60_000) return json({ skipped: 'протест старше 10 минут' });
+    if (!hooks.ru) return json({ skipped: 'вебхук не настроен' });
     await db.from('protests').update({ notified_at: new Date().toISOString() }).eq('id', id);
-    embed = {
-      title: '⚠ Новый протест',
-      description: `**#${pr.pilot?.start_number ?? '—'} ${pr.pilot?.nickname}** оспаривает поражение (${pr.battle?.round ?? ''}) — ${pr.stage?.title_ru ?? ''}\n\n> ${pr.reason.slice(0, 300)}`,
-      color: AMBER,
-      fields: [{ name: 'Видео', value: pr.video_url }],
-      url: SITE ? `${SITE}/admin/protests` : undefined,
-    };
+    // протест — дело штаба, только в русский канал
+    build = (l) =>
+      l === 'ru'
+        ? {
+            title: '⚠ Новый протест',
+            description: `**#${pr.pilot?.start_number ?? '—'} ${pr.pilot?.nickname}** оспаривает поражение (${pr.battle?.round ?? ''}) — ${pr.stage?.title_ru ?? ''}\n\n> ${pr.reason.slice(0, 300)}`,
+            color: AMBER,
+            fields: [{ name: 'Видео', value: pr.video_url }],
+            url: SITE ? `${SITE}/admin/protests` : undefined,
+          }
+        : null;
   } else {
     if (!staff) return json({ error: 'Только для штаба' }, 403);
     const s = await stageInfo(id);
     if (!s) return json({ error: 'Этап не найден' }, 404);
     const link = SITE ? `${SITE}/stages/${s.id}` : undefined;
-    const name = `${s.season.title} · ${s.title_ru}${s.track ? ` · ${s.track}` : ''}`;
+    const name = (l: Lang) => `${s.season.title} · ${(l === 'en' && s.title_en) || s.title_ru}${s.track ? ` · ${s.track}` : ''}`;
 
     if (type === 'registration') {
-      embed = { title: '📝 Открыта регистрация', description: `**${name}**\nДень 1 · Квалификация: ${date(s.starts_at)}${s.battles_at ? `\nДень 2 · Парные заезды Top 32: ${date(s.battles_at)}` : ''}\n\nРегистрация — в личном кабинете на сайте${SITE ? `: ${SITE}/me` : '.'}`, color: TIFFANY, url: link };
-    } else if (type === 'stage_start') {
+      build = (l) => ({
+        title: T[l].regTitle,
+        description: `**${name(l)}**\n${T[l].day1}: ${date(s.starts_at, l)}${s.battles_at ? `\n${T[l].day2}: ${date(s.battles_at, l)}` : ''}\n\n${T[l].regWhere}${SITE ? `: ${SITE}/me` : '.'}`,
+        color: TIFFANY,
+        url: link,
+      });
+    } else if (type === 'stage_start' || type === 'battles_start') {
       const tw = twitchName(s.twitch_channel ?? (await db.from('app_settings').select('twitch_channel').eq('id', 1).single()).data?.twitch_channel);
-      embed = { title: '🔴 LIVE — этап начался', description: `**${name}**\nКвалификация уже идёт!${tw ? `\n\n📺 https://twitch.tv/${tw}` : ''}${link ? `\n🏁 Онлайн-таблица: ${link}` : ''}`, color: RED, url: link };
-    } else if (type === 'battles_start') {
-      const tw = twitchName(s.twitch_channel ?? (await db.from('app_settings').select('twitch_channel').eq('id', 1).single()).data?.twitch_channel);
-      embed = { title: '🔴 LIVE — парные заезды', description: `**${name}**\nTop 32 стартует — дуэли до финала!${tw ? `\n\n📺 https://twitch.tv/${tw}` : ''}${link ? `\n🏁 Сетка: ${link}` : ''}`, color: RED, url: link };
+      const qual = type === 'stage_start';
+      build = (l) => ({
+        title: qual ? T[l].liveTitle : T[l].battlesTitle,
+        description: `**${name(l)}**\n${qual ? T[l].liveText : T[l].battlesText}${tw ? `\n\n📺 https://twitch.tv/${tw}` : ''}${link ? `\n🏁 ${qual ? T[l].table : T[l].bracket}: ${link}` : ''}`,
+        color: RED,
+        url: link,
+      });
     } else if (type === 'results') {
       const { data: top } = await db.from('stage_results').select('stage_place, total, pilot:profiles(nickname)').eq('stage_id', id).lte('stage_place', 3).order('stage_place');
       const medals = ['🥇', '🥈', '🥉'];
@@ -96,25 +166,22 @@ Deno.serve(async (req) => {
         sum.set(r.profile_id, cur);
       }
       const leader = [...sum.values()].sort((a, b) => b.t - a.t)[0];
-      embed = {
-        title: '🏁 Итоги этапа',
-        description: `**${name}**\n\n${podium || '—'}${leader ? `\n\n👑 Лидер сезона: **${leader.n}** (${leader.t})` : ''}`,
+      build = (l) => ({
+        title: T[l].resTitle,
+        description: `**${name(l)}**\n\n${podium || '—'}${leader ? `\n\n👑 ${T[l].leader}: **${leader.n}** (${leader.t})` : ''}`,
         color: TIFFANY,
         url: link,
-      };
+      });
     } else {
       return json({ error: 'unknown type' }, 400);
     }
   }
 
-  const res = await fetch(hook, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      username: 'Sad Drift Series',
-      avatar_url: SITE ? `${SITE}/icon.png` : undefined,
-      embeds: [{ ...embed, thumbnail: SITE ? { url: `${SITE}/icon.png` } : undefined, footer: { text: 'Sad Drift Series · CarX Drift Racing Online 2' }, timestamp: new Date().toISOString() }],
-    }),
+  const jobs = (Object.entries(hooks) as [Lang, string][]).flatMap(([l, hook]) => {
+    const e = build(l);
+    return e ? [send(hook, e)] : [];
   });
-  return json(res.ok ? { sent: true } : { error: `Discord ответил ${res.status}` }, res.ok ? 200 : 502);
+  if (!jobs.length) return json({ skipped: 'вебхук не настроен' });
+  const errors = (await Promise.all(jobs)).filter(Boolean);
+  return json(errors.length ? { error: errors.join('; ') } : { sent: true }, errors.length ? 502 : 200);
 });

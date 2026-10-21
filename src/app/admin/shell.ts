@@ -15,6 +15,7 @@ import { clearStandingsCache } from '../data/standings';
         <a routerLink="/admin/teams" routerLinkActive="active">Команды</a>
         <a routerLink="/admin/sponsors" routerLinkActive="active">Спонсоры</a>
         <a routerLink="/admin/protests" routerLinkActive="active">Протесты</a>
+        <a routerLink="/admin/discord" routerLinkActive="active">Discord</a>
         <a routerLink="/admin/settings" routerLinkActive="active">Настройки</a>
         <a routerLink="/broadcast" class="ext">Пульт трансляции ↗</a>
       </nav>

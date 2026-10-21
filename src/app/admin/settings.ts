@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { supabase } from '../auth';
 
-// Настройки сайта (только организатор): Twitch, регламент RU/EN, Discord (приглашение и вебхук)
+// Настройки сайта (только организатор): Twitch, регламент RU/EN. Discord — отдельная вкладка (discord.ts)
 @Component({
   selector: 'app-admin-settings',
   imports: [FormsModule, RouterLink],
@@ -38,23 +38,6 @@ import { supabase } from '../auth';
         </label>
       </section>
 
-      <section class="card stack">
-        <h2 class="h">Discord</h2>
-        <label class="field">
-          <span class="lbl">Приглашение на сервер — ссылка в подвале сайта (пусто — ссылки нет)</span>
-          <input class="input mono" name="inv" type="url" placeholder="https://discord.gg/…" [(ngModel)]="invite" />
-        </label>
-        <label class="field">
-          <span class="lbl">Вебхук канала для оповещений (виден только организатору)</span>
-          <input class="input mono" name="dc" type="url" placeholder="https://discord.com/api/webhooks/…" [(ngModel)]="discord" />
-        </label>
-        <div class="row">
-          <button class="btn btn-secondary" type="button" (click)="testDiscord()" [disabled]="busy() || !discord.trim()">Отправить тестовое сообщение</button>
-          @if (hookMsg()) { <span [class]="hookOk() ? 'ok' : 'bad'">{{ hookMsg() }}</span> }
-        </div>
-        <p class="muted small">Сначала сохраните вебхук. Сообщения приходят сами: открытие регистрации, старт этапа (квалификация), итоги этапа, новый протест.</p>
-      </section>
-
       <div class="row">
         <button class="btn btn-primary" type="submit" [disabled]="busy()">Сохранить</button>
         @if (msg()) { <span [class]="ok() ? 'ok' : 'bad'">{{ msg() }}</span> }
@@ -82,49 +65,25 @@ export class AdminSettings implements OnInit {
   protected version = '';
   protected ru = '';
   protected en = '';
-  protected discord = '';
-  protected invite = '';
   protected readonly busy = signal(false);
   protected readonly msg = signal<string | null>(null);
   protected readonly ok = signal(true);
 
   async ngOnInit() {
-    const [s, p] = await Promise.all([
-      supabase.from('app_settings').select('twitch_channel, regulation_ru, regulation_en, regulation_version, discord_invite').single(),
-      supabase.from('private_settings').select('discord_webhook_url').maybeSingle(),
-    ]);
+    const s = await supabase.from('app_settings').select('twitch_channel, regulation_ru, regulation_en, regulation_version').single();
     this.twitch = s.data?.twitch_channel ?? '';
     this.version = s.data?.regulation_version ?? '';
     this.ru = s.data?.regulation_ru ?? '';
     this.en = s.data?.regulation_en ?? '';
-    this.discord = p.data?.discord_webhook_url ?? '';
-    this.invite = s.data?.discord_invite ?? '';
-  }
-
-  protected readonly hookMsg = signal<string | null>(null);
-  protected readonly hookOk = signal(true);
-
-  /** проверка вебхука: функция отправляет в канал тестовое сообщение и говорит, что ответил Discord */
-  async testDiscord() {
-    this.busy.set(true);
-    this.hookMsg.set(null);
-    const { data, error } = await supabase.functions.invoke('discord-notify', { body: { type: 'test', id: 0 } });
-    this.busy.set(false);
-    const fail = error ? ((await error.context?.json?.().catch(() => null))?.error ?? error.message) : (data?.error ?? (data?.skipped ? 'Вебхук не сохранён — нажмите «Сохранить»' : null));
-    this.hookOk.set(!fail);
-    this.hookMsg.set(fail ?? 'Отправлено — проверьте канал в Discord');
   }
 
   async save() {
     this.busy.set(true);
     const nul = (v: string) => v.trim() || null;
-    const [a, b] = await Promise.all([
-      supabase.from('app_settings').update({ twitch_channel: nul(this.twitch), regulation_version: nul(this.version), regulation_ru: nul(this.ru), regulation_en: nul(this.en), discord_invite: nul(this.invite) }).eq('id', 1).select('id'),
-      supabase.from('private_settings').update({ discord_webhook_url: nul(this.discord) }).eq('id', 1).select('id'),
-    ]);
+    const a = await supabase.from('app_settings').update({ twitch_channel: nul(this.twitch), regulation_version: nul(this.version), regulation_ru: nul(this.ru), regulation_en: nul(this.en) }).eq('id', 1).select('id');
     this.busy.set(false);
     // RLS не даёт ошибку, а просто не обновляет строку — проверяем, что строка правда записалась
-    const err = a.error?.message ?? b.error?.message ?? (!a.data?.length || !b.data?.length ? 'База не приняла изменения: сохранять настройки может только организатор (роль «Организатор»).' : null);
+    const err = a.error?.message ?? (!a.data?.length ? 'База не приняла изменения: сохранять настройки может только организатор (роль «Организатор»).' : null);
     this.msg.set(err ?? 'Сохранено');
     this.ok.set(!err);
   }
