@@ -26,8 +26,8 @@ export class App {
   private readonly url = toSignal(this.router.events.pipe(filter((e) => e instanceof NavigationEnd), map(() => this.router.url)), { initialValue: '' });
   /** Attack Shark в подвале — пока только на странице партнёра /attack-shark */
   protected readonly isSharkPage = computed(() => this.url().startsWith('/attack-shark'));
-  /** пилот вошёл, а ник в Discord не указал — напоминание (в кабинете не нужно: там само поле подсвечено) */
-  protected readonly needDiscord = computed(() => !this.bare && this.auth.profile()?.discord === null && !this.url().startsWith('/me'));
+  /** пилот вошёл, а ник в Discord не указал — напоминание (не в кабинете — там подсвечено само поле — и не в админке/пультах) */
+  protected readonly needDiscord = computed(() => !this.bare && this.auth.profile()?.discord === null && !/^\/(me|admin|judge|broadcast)/.test(this.url()));
   protected readonly auth = inject(Auth);
   protected readonly live = inject(Live);
   /** стиль сайта под уровень карточки пилота (theme.ts) */

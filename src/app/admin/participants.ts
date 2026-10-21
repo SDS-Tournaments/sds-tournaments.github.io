@@ -38,8 +38,7 @@ interface Reg {
                 <li cdkDrag class="pilot">
                   <span cdkDragHandle class="grip" aria-hidden="true">⋮⋮</span>
                   <span class="num mono">{{ r.profile?.start_number ?? '—' }}</span>
-                  <span class="nick">{{ r.profile?.nickname }}</span>
-                  @if (discord().get(r.profile_id); as d) { <span class="dc mono subtle" title="Discord">{{ d }}</span> } @else { <span class="nodc">нет DS</span> }
+                  <span class="who"><span class="nick">{{ r.profile?.nickname }}</span>@if (discord().get(r.profile_id); as d) { <span class="dc mono subtle" title="Discord">{{ d }}</span> } @else { <span class="nodc">нет Discord</span> }</span>
                   <span class="team subtle">{{ r.team?.name ?? '' }}</span>
                   <button class="x" title="Снять с этапа" (click)="withdraw(r)">✕</button>
                 </li>
@@ -55,8 +54,7 @@ interface Reg {
                 <li cdkDrag class="pilot">
                   <span cdkDragHandle class="grip" aria-hidden="true">⋮⋮</span>
                   <span class="num mono">{{ r.profile?.start_number ?? '—' }}</span>
-                  <span class="nick">{{ r.profile?.nickname }}</span>
-                  @if (discord().get(r.profile_id); as d) { <span class="dc mono subtle" title="Discord">{{ d }}</span> } @else { <span class="nodc">нет DS</span> }
+                  <span class="who"><span class="nick">{{ r.profile?.nickname }}</span>@if (discord().get(r.profile_id); as d) { <span class="dc mono subtle" title="Discord">{{ d }}</span> } @else { <span class="nodc">нет Discord</span> }</span>
                   <span class="team subtle">{{ r.team?.name ?? '' }}</span>
                   <button class="x" title="Снять с этапа" (click)="withdraw(r)">✕</button>
                 </li>
@@ -101,7 +99,7 @@ interface Reg {
     ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; min-height: 44px; }
     .pilot {
       display: grid;
-      grid-template-columns: 20px 40px 1fr auto auto 24px;
+      grid-template-columns: 20px 40px 1fr auto 24px;
       align-items: center;
       gap: 8px;
       padding: 8px 10px;
@@ -113,8 +111,10 @@ interface Reg {
     .num { color: var(--primary); }
     .nick { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .team { font-size: 12px; }
-    .dc { font-size: 12px; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .nodc { font-size: 11px; color: var(--warning); }
+    /* ник и под ним Discord */
+    .who { display: grid; min-width: 0; line-height: 1.25; }
+    .dc, .nodc { font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .nodc { color: var(--warning); }
     .x { border: 0; background: none; color: var(--ink-tertiary); cursor: pointer; &:hover { color: var(--error); } }
     .empty { padding: 10px; font-size: 13px; text-align: center; }
     .cdk-drag-preview { box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 0 1px var(--primary); }
