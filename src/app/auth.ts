@@ -24,6 +24,8 @@ export interface Profile {
   bio_ru: string | null;
   bio_en: string | null;
   legacy?: Legacy | null;
+  /** ник в Discord — из закрытой таблицы pilot_contacts (видят пилот и штаб); null — не указан */
+  discord?: string | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -81,7 +83,10 @@ export class Auth {
         .select('*') // все колонки: если миграция ещё не запущена, вход не ломается
         .eq('id', id)
         .maybeSingle();
-      if (!error) return this.profile.set(data);
+      if (!error) {
+        const c = data ? await supabase.from('pilot_contacts').select('discord').eq('profile_id', id).maybeSingle() : null;
+        return this.profile.set(data && { ...data, discord: c?.data?.discord ?? null });
+      }
       await new Promise((r) => setTimeout(r, 600 * (attempt + 1)));
     }
     // сеть или база мигнули — не «выкидываем» пилота из аккаунта: профиль, что уже был, остаётся

@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter, map, take } from 'rxjs';
@@ -23,8 +23,11 @@ import { STAGING } from './supabase.config';
 export class App {
   private transloco = inject(TranslocoService);
   private router = inject(Router);
+  private readonly url = toSignal(this.router.events.pipe(filter((e) => e instanceof NavigationEnd), map(() => this.router.url)), { initialValue: '' });
   /** Attack Shark в подвале — пока только на странице партнёра /attack-shark */
-  protected readonly isSharkPage = toSignal(this.router.events.pipe(filter((e) => e instanceof NavigationEnd), map(() => this.router.url.startsWith('/attack-shark'))), { initialValue: false });
+  protected readonly isSharkPage = computed(() => this.url().startsWith('/attack-shark'));
+  /** пилот вошёл, а ник в Discord не указал — напоминание (в кабинете не нужно: там само поле подсвечено) */
+  protected readonly needDiscord = computed(() => !this.bare && this.auth.profile()?.discord === null && !this.url().startsWith('/me'));
   protected readonly auth = inject(Auth);
   protected readonly live = inject(Live);
   /** стиль сайта под уровень карточки пилота (theme.ts) */

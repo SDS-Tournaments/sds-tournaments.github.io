@@ -88,6 +88,10 @@
     "unsaved": "You have unsaved changes",
     "allSaved": "All changes saved",
     "discard": "Discard",
+    "discordHint": "Your Discord username, so the organizers can reach you. Only you and the organizers can see it. Required to sign up for a round.",
+    "discordLbl": "Discord username",
+    "discordPh": "username, e.g. drifter_27",
+    "discordShort": "Username is too short",
     "bioPh": "A few words about you",
     "secSeason": "Season",
     "secProfile": "Driver profile",
@@ -132,6 +136,7 @@
     "leave": "Withdraw",
     "none": "No rounds are open for registration right now.",
     "needNumber": "Pick and save a race number below to register.",
+    "needDiscord": "To sign up, add your Discord username above.",
     "lockConfirm": "Signing up locks #{{n}} for the rest of the season — only an admin can change it after that. Sign up?"
   },
   "team": {
@@ -386,5 +391,9 @@
         "d": "Watch for partner news on Discord and on round broadcasts."
       }
     }
+  },
+  "nag": {
+    "discord": "Add your Discord username — you need it to sign up for a round",
+    "fill": "Add"
   }
 }

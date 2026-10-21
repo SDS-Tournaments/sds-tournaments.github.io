@@ -39,6 +39,7 @@ interface Reg {
                   <span cdkDragHandle class="grip" aria-hidden="true">⋮⋮</span>
                   <span class="num mono">{{ r.profile?.start_number ?? '—' }}</span>
                   <span class="nick">{{ r.profile?.nickname }}</span>
+                  @if (discord().get(r.profile_id); as d) { <span class="dc mono subtle" title="Discord">{{ d }}</span> } @else { <span class="nodc">нет DS</span> }
                   <span class="team subtle">{{ r.team?.name ?? '' }}</span>
                   <button class="x" title="Снять с этапа" (click)="withdraw(r)">✕</button>
                 </li>
@@ -55,6 +56,7 @@ interface Reg {
                   <span cdkDragHandle class="grip" aria-hidden="true">⋮⋮</span>
                   <span class="num mono">{{ r.profile?.start_number ?? '—' }}</span>
                   <span class="nick">{{ r.profile?.nickname }}</span>
+                  @if (discord().get(r.profile_id); as d) { <span class="dc mono subtle" title="Discord">{{ d }}</span> } @else { <span class="nodc">нет DS</span> }
                   <span class="team subtle">{{ r.team?.name ?? '' }}</span>
                   <button class="x" title="Снять с этапа" (click)="withdraw(r)">✕</button>
                 </li>
@@ -99,7 +101,7 @@ interface Reg {
     ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; min-height: 44px; }
     .pilot {
       display: grid;
-      grid-template-columns: 20px 40px 1fr auto 24px;
+      grid-template-columns: 20px 40px 1fr auto auto 24px;
       align-items: center;
       gap: 8px;
       padding: 8px 10px;
@@ -111,6 +113,8 @@ interface Reg {
     .num { color: var(--primary); }
     .nick { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .team { font-size: 12px; }
+    .dc { font-size: 12px; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .nodc { font-size: 11px; color: var(--warning); }
     .x { border: 0; background: none; color: var(--ink-tertiary); cursor: pointer; &:hover { color: var(--error); } }
     .empty { padding: 10px; font-size: 13px; text-align: center; }
     .cdk-drag-preview { box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 0 1px var(--primary); }
@@ -126,6 +130,8 @@ export class AdminParticipants implements OnInit {
   readonly stageId = input.required<number>();
   protected readonly unassigned = signal<Reg[]>([]);
   protected readonly groups = signal<Reg[][]>([]);
+  /** ник Discord участника (pilot_contacts) */
+  protected readonly discord = signal(new Map<string, string>());
   protected readonly total = signal(0);
   protected readonly busy = signal(false);
   protected readonly dirty = signal(false);
@@ -148,6 +154,8 @@ export class AdminParticipants implements OnInit {
       .order('created_at');
     if (error) return this.note(error.message, false);
     const rows = data as unknown as Reg[];
+    const { data: dc } = await supabase.from('pilot_contacts').select('profile_id, discord').in('profile_id', rows.map((r) => r.profile_id));
+    this.discord.set(new Map((dc ?? []).map((c) => [c.profile_id, c.discord])));
     const max = Math.max(0, ...rows.map((r) => r.group_no ?? 0));
     this.groups.set(Array.from({ length: max }, (_, g) => rows.filter((r) => r.group_no === g + 1)));
     this.unassigned.set(rows.filter((r) => !r.group_no));

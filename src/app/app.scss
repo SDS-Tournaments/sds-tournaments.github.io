@@ -319,6 +319,33 @@ main {
   }
 }
 
+/* напоминание указать Discord — плашка внизу, не сдвигает страницу */
+.dc-nag {
+  position: fixed;
+  left: 50%;
+  bottom: 16px;
+  z-index: 90;
+  translate: -50% 0;
+  width: max-content;
+  max-width: calc(100% - 32px);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4px 12px;
+  padding: 10px 18px;
+  border: 1px solid var(--warning);
+  border-radius: var(--r-pill);
+  background: color-mix(in srgb, var(--surface-2) 92%, transparent);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 32px -8px rgba(0, 0, 0, 0.6);
+  color: var(--ink);
+  font-size: 13px;
+  text-decoration: none;
+  b { color: var(--warning); white-space: nowrap; }
+  &:hover b { text-decoration: underline; }
+}
+
 /* метка тестовой базы (ng serve --configuration staging) */
 .staging {
   position: fixed;

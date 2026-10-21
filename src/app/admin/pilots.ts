@@ -49,6 +49,7 @@ const TYPE: Record<Sanction['type'], string> = { warning: 'Предупрежд�
           <div class="row">
             @if (p.avatar_url) { <img [src]="p.avatar_url" alt="" width="40" height="40" loading="lazy" decoding="async" /> } @else { <span class="ph">{{ p.nickname[0] }}</span> }
             <a class="nick" [routerLink]="['/pilots', p.steam_id]" target="_blank">{{ p.nickname }}</a>
+            @if (discord().get(p.id); as d) { <span class="dc mono" title="Discord">{{ d }}</span> } @else { <span class="badge nodc">нет Discord</span> }
             @if (isBanned(p.id)) { <span class="badge ban">БАН</span> }
             @else if (ss.length) { <span class="badge warn">санкций: {{ ss.length }}</span> }
             <label class="num">№ <input class="input mono" type="number" min="1" max="999" [ngModel]="p.start_number" (change)="setNumber(p, $any($event.target).value)" [disabled]="!isAdmin()" /></label>
@@ -141,6 +142,8 @@ const TYPE: Record<Sanction['type'], string> = { warning: 'Предупрежд�
     .row img, .ph { width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0; }
     .ph { display: grid; place-items: center; background: var(--surface-3); color: var(--primary); font-weight: 600; }
     .nick { flex: 1; min-width: 120px; color: var(--ink); font-weight: 500; background: none; }
+    .dc { font-size: 12px; color: var(--ink-muted); }
+    .badge.nodc { background: rgba(245, 185, 66, 0.12); color: var(--warning); }
     .badge.ban { background: rgba(255, 92, 92, 0.15); color: var(--error); }
     .badge.warn { background: rgba(245, 185, 66, 0.15); color: var(--warning); }
     .num { display: flex; gap: 6px; align-items: center; color: var(--ink-subtle); font-size: 13px; input { width: 80px; min-height: 38px; } }
@@ -174,6 +177,8 @@ export class AdminPilots implements OnInit {
   protected readonly me = computed(() => this.auth.profile()?.id);
   protected readonly pilots = signal<Pilot[]>([]);
   protected readonly sanctions = signal<Sanction[]>([]);
+  /** ник Discord пилота (pilot_contacts) */
+  protected readonly discord = signal(new Map<string, string>());
   protected readonly stages = signal<{ id: number; title_ru: string }[]>([]);
   protected readonly open = signal<string | null>(null);
   protected readonly busy = signal(false);
@@ -185,7 +190,7 @@ export class AdminPilots implements OnInit {
   protected form: { type: Sanction['type']; stageId: number | null; reason: string } = { type: 'warning', stageId: null, reason: '' };
   protected readonly shown = computed(() => {
     const q = this.q().trim().toLowerCase();
-    return q ? this.pilots().filter((p) => p.nickname.toLowerCase().includes(q) || String(p.start_number ?? '').startsWith(q)) : this.pilots();
+    return q ? this.pilots().filter((p) => p.nickname.toLowerCase().includes(q) || (this.discord().get(p.id) ?? '').toLowerCase().includes(q) || String(p.start_number ?? '').startsWith(q)) : this.pilots();
   });
 
   async ngOnInit() {
@@ -193,11 +198,13 @@ export class AdminPilots implements OnInit {
   }
 
   private async load() {
-    const [p, s, st] = await Promise.all([
+    const [p, s, st, dc] = await Promise.all([
       supabase.from('profiles').select('*').order('nickname'),
       supabase.from('sanctions').select('id, profile_id, type, reason, created_at, stage:stages(title_ru)').order('created_at', { ascending: false }),
       supabase.from('stages').select('id, title_ru').order('id', { ascending: false }),
+      supabase.from('pilot_contacts').select('profile_id, discord'),
     ]);
+    this.discord.set(new Map((dc.data ?? []).map((c) => [c.profile_id, c.discord])));
     this.pilots.set((p.data ?? []) as Pilot[]);
     this.sanctions.set((s.data ?? []) as unknown as Sanction[]);
     this.stages.set(st.data ?? []);

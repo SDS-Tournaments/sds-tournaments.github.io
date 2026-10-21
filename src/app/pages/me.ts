@@ -62,8 +62,19 @@ import { compressImage } from '../image';
 
         <!-- 2. Сезон: главные действия — запись на этап и команда -->
         <p class="eyebrow sec">{{ 'me.secSeason' | transloco }}</p>
+        <form class="card dc" [class.need]="!me.discord" (ngSubmit)="saveDiscord()">
+          <div class="dc-text">
+            <h2 class="h">Discord</h2>
+            <p class="muted dc-hint">{{ 'me.discordHint' | transloco }}</p>
+          </div>
+          <div class="dc-row">
+            <input class="input mono" name="discord" maxlength="64" autocomplete="off" [attr.aria-label]="'me.discordLbl' | transloco" [placeholder]="'me.discordPh' | transloco" [(ngModel)]="discord" />
+            <button class="btn btn-primary" type="submit" [disabled]="dcSaving() || discord.trim() === (me.discord ?? '')">{{ 'me.save' | transloco }}</button>
+          </div>
+          @if (dcMsg(); as m) { <p class="hint" [class.bad]="!m.ok" [class.ok]="m.ok">{{ m.text }}</p> }
+        </form>
         <div class="cols eq">
-          <app-stage-signup class="card" [profileId]="me.id" [hasNumber]="!!me.start_number" [number]="me.start_number" [numberLocked]="numberLocked()" (changed)="loadLock(me.id)" />
+          <app-stage-signup class="card" [profileId]="me.id" [hasNumber]="!!me.start_number" [hasDiscord]="!!me.discord" [number]="me.start_number" [numberLocked]="numberLocked()" (changed)="loadLock(me.id)" />
           <app-my-team class="card" [profileId]="me.id" />
         </div>
 
@@ -231,6 +242,16 @@ import { compressImage } from '../image';
     .cols > * { align-content: start; }
     @media (max-width: 860px) { .cols { grid-template-columns: 1fr; } }
     .wide { grid-column: 1 / -1; }
+    /* Discord: подсвечен, пока ник не указан — без него не записаться на этап */
+    .dc { display: grid; grid-template-columns: 1fr minmax(260px, 380px); gap: 12px 24px; align-items: center; margin-bottom: 24px; }
+    .dc.need { border-color: var(--warning); box-shadow: 0 0 24px -12px var(--warning); }
+    .dc .h { margin: 0 0 4px; }
+    .dc-hint { margin: 0; font-size: 13px; }
+    .dc-row { display: flex; gap: 8px; }
+    .dc-row .input { flex: 1; min-width: 0; }
+    .dc .hint { grid-column: 1 / -1; margin: 0; }
+    .ok { color: var(--primary); }
+    @media (max-width: 700px) { .dc { grid-template-columns: 1fr; } }
     .fit { justify-self: start; }
     .warn { color: var(--warning); }
     /* свёрнутый номер: заголовок / наклейка на всю свободную высоту / подсказка с кнопкой */
@@ -332,6 +353,9 @@ export class Me {
   protected power: number | null = null;
   protected bioRu = '';
   protected bioEn = '';
+  protected discord = '';
+  protected readonly dcSaving = signal(false);
+  protected readonly dcMsg = signal<{ ok: boolean; text: string } | null>(null);
   /** занятые номера: номер → ник (кроме своего) */
   protected readonly taken = signal(new Map<number, string>());
   protected readonly saving = signal(false);
@@ -400,6 +424,7 @@ export class Me {
     this.power = p.power_hp;
     this.bioRu = p.bio_ru ?? '';
     this.bioEn = p.bio_en ?? '';
+    this.discord = p.discord ?? '';
     this.editNumber.set(false);
     this.error.set(null);
   }
@@ -458,6 +483,19 @@ export class Me {
     await this.auth.reload();
     this.editNumber.set(false);
     this.saved.set(true);
+  }
+
+  async saveDiscord() {
+    const me = this.auth.profile();
+    const nick = this.discord.trim();
+    if (!me) return;
+    if (nick.length < 2) return this.dcMsg.set({ ok: false, text: this.transloco.translate('me.discordShort') });
+    this.dcSaving.set(true);
+    const { error } = await supabase.from('pilot_contacts').upsert({ profile_id: me.id, discord: nick, updated_at: new Date().toISOString() });
+    this.dcSaving.set(false);
+    if (error) return this.dcMsg.set({ ok: false, text: error.message });
+    await this.auth.reload();
+    this.dcMsg.set({ ok: true, text: this.transloco.translate('me.allSaved') });
   }
 
   async upload(e: Event) {

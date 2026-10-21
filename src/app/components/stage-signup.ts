@@ -48,13 +48,14 @@ interface OpenStage {
           @if (mine) {
             <button class="leave" (click)="set(s, 'withdrawn')" [disabled]="busy()">{{ 'signup.leave' | transloco }}</button>
           } @else {
-            <button class="btn btn-primary join" (click)="set(s, 'registered')" [disabled]="busy() || !hasNumber()">{{ 'signup.joinShort' | transloco }}</button>
+            <button class="btn btn-primary join" (click)="set(s, 'registered')" [disabled]="busy() || !hasNumber() || !hasDiscord()">{{ 'signup.joinShort' | transloco }}</button>
           }
         </div>
       </article>
     } @empty {
       @if (loading()) { <app-loader [inline]="true" /> } @else { <p class="subtle">{{ 'signup.none' | transloco }}</p> }
     }
+    @if (!hasDiscord() && stages().length) { <p class="hint">{{ 'signup.needDiscord' | transloco }}</p> }
     @if (!hasNumber() && stages().length) { <p class="hint">{{ 'signup.needNumber' | transloco }}</p> }
     @if (error()) { <p class="bad">{{ error() }}</p> }
   `,
@@ -146,6 +147,8 @@ interface OpenStage {
 export class StageSignup implements OnInit {
   readonly profileId = input.required<string>();
   readonly hasNumber = input(false);
+  /** ник в Discord указан — без него база не запишет (0019) */
+  readonly hasDiscord = input(false);
   readonly number = input<number | null>(null);
   /** номер уже закреплён в этом сезоне — предупреждать при записи не нужно */
   readonly numberLocked = input(false);

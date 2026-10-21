@@ -78,4 +78,10 @@
   </div>
 </footer>
 }
+@if (needDiscord()) {
+  <a class="dc-nag" routerLink="/me" role="status">
+    <span>{{ 'nag.discord' | transloco }}</span>
+    <b>{{ 'nag.fill' | transloco }} →</b>
+  </a>
+}
 @if (staging && !bare) { <div class="staging">ТЕСТОВАЯ БАЗА</div> }
