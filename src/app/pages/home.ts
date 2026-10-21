@@ -181,8 +181,10 @@ import { Reveal } from '../reveal';
       font-size: clamp(120px, 20vw, 300px);
       font-weight: 600;
       line-height: 1;
-      color: transparent;
-      -webkit-text-stroke: 1px rgba(var(--accent-rgb), 0.25);
+      /* контур ярче + лёгкая заливка и свечение — надпись читается, но остаётся фоном */
+      color: rgba(var(--accent-rgb), 0.05);
+      -webkit-text-stroke: 1.5px rgba(var(--accent-rgb), 0.55);
+      filter: drop-shadow(0 0 14px rgba(var(--accent-rgb), 0.25));
       user-select: none;
       pointer-events: none;
     }
