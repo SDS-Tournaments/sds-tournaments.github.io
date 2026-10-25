@@ -1,4 +1,4 @@
-import { Component, effect, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
@@ -62,7 +62,35 @@ import { compressImage } from '../image';
 
         <!-- 2. Сезон: главные действия — запись на этап и команда -->
         <p class="eyebrow sec">{{ 'me.secSeason' | transloco }}</p>
-        <form class="card dc" [class.need]="!me.discord" (ngSubmit)="saveDiscord()">
+        <!-- чек-лист «как попасть на этап»: сделанное — ✓, следующий шаг подсвечен, клик — к нужному полю -->
+        @if (checkDone() === steps().length) {
+          <div class="card ck-ready" role="status">
+            <span class="ck-dot done">✓</span>
+            <span><b>{{ 'check.readyTitle' | transloco }}</b>&nbsp;<span class="muted">{{ 'check.readyText' | transloco }}</span></span>
+          </div>
+        } @else {
+          <nav class="card ck" [attr.aria-label]="'check.title' | transloco">
+            <div class="ck-head">
+              <h2 class="h">{{ 'check.title' | transloco }}</h2>
+              <span class="mono ck-count">{{ checkDone() }} / {{ steps().length }}</span>
+            </div>
+            <div class="ck-bar" aria-hidden="true"><i [style.width.%]="(checkDone() / steps().length) * 100"></i></div>
+            <ol class="ck-steps">
+              @for (s of steps(); track s.k; let i = $index) {
+                <li [class.done]="s.done" [class.now]="s.k === nextStep()">
+                  <button type="button" (click)="goTo(s.target)" [disabled]="s.done || !s.target">
+                    <span class="ck-dot">{{ s.done ? '✓' : i + 1 }}</span>
+                    <span class="ck-text">
+                      <b>{{ 'check.' + s.k | transloco }}</b>
+                      @if (!s.done) { <small>{{ 'check.' + s.k + 'Hint' | transloco }}</small> }
+                    </span>
+                  </button>
+                </li>
+              }
+            </ol>
+          </nav>
+        }
+        <form id="discord" class="card dc" [class.need]="!me.discord" (ngSubmit)="saveDiscord()">
           <div class="dc-text">
             <h2 class="h">Discord</h2>
             <p class="muted dc-hint">{{ 'me.discordHint' | transloco }}</p>
@@ -74,14 +102,14 @@ import { compressImage } from '../image';
           @if (dcMsg(); as m) { <p class="hint" [class.bad]="!m.ok" [class.ok]="m.ok">{{ m.text }}</p> }
         </form>
         <div class="cols eq">
-          <app-stage-signup class="card" [profileId]="me.id" [hasNumber]="!!me.start_number" [hasDiscord]="!!me.discord" [number]="me.start_number" [numberLocked]="numberLocked()" (changed)="loadLock(me.id)" />
+          <app-stage-signup id="signup" class="card" [profileId]="me.id" [hasNumber]="!!me.start_number" [hasDiscord]="!!me.discord" [number]="me.start_number" [numberLocked]="numberLocked()" (changed)="loadLock(me.id); loadReg(me.id)" />
           <app-my-team class="card" [profileId]="me.id" />
         </div>
 
         <!-- 3. Профиль пилота: номер, машина, о себе, ливрея -->
         <p class="eyebrow sec">{{ 'me.secProfile' | transloco }}</p>
         <form class="cols" (ngSubmit)="save()">
-          <div class="card stack numcard" [class.wide]="pickingNumber()" [class.view]="!pickingNumber()">
+          <div id="num" class="card stack numcard" [class.wide]="pickingNumber()" [class.view]="!pickingNumber()">
             <h2 class="h">{{ 'me.number' | transloco }}</h2>
             @if (pickingNumber()) {
               <p class="muted small">{{ 'me.numberHint' | transloco }}</p>
@@ -242,6 +270,40 @@ import { compressImage } from '../image';
     .cols > * { align-content: start; }
     @media (max-width: 860px) { .cols { grid-template-columns: 1fr; } }
     .wide { grid-column: 1 / -1; }
+    /* чек-лист «как попасть на этап» */
+    .ck { display: grid; gap: 14px; margin-bottom: 24px; }
+    .ck-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+    .ck-head .h { margin: 0; }
+    .ck-count { color: var(--primary); }
+    .ck-bar { height: 3px; border-radius: 2px; background: var(--surface-3); overflow: hidden; }
+    .ck-bar i { display: block; height: 100%; background: var(--primary); box-shadow: 0 0 10px var(--primary-glow); transition: width 600ms var(--ease-out); }
+    .ck-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+    .ck-steps button {
+      width: 100%; height: 100%; display: flex; gap: 10px; align-items: flex-start; text-align: left; padding: 12px;
+      border: 1px solid var(--hairline); border-radius: var(--r-md); background: var(--surface-2); color: var(--ink); font: inherit; cursor: pointer;
+      transition: border-color var(--fast), background-color var(--fast);
+      &:disabled { cursor: default; }
+      &:hover:not(:disabled) { border-color: var(--primary); }
+    }
+    .ck-dot {
+      flex: none; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%;
+      border: 1px solid var(--hairline-strong); font: 600 12px var(--mono); color: var(--ink-muted);
+    }
+    .ck-text { display: grid; gap: 2px; min-width: 0; }
+    .ck-text b { font-size: 14px; font-weight: 600; }
+    .ck-text small { font-size: 12px; color: var(--ink-subtle); line-height: 1.35; }
+    .ck-steps .done button { opacity: 0.7; }
+    .ck-steps .done .ck-dot, .ck-ready .ck-dot { border-color: var(--primary); background: var(--primary); color: var(--on-primary); }
+    .ck-steps .now button { border-color: var(--primary); background: rgba(var(--accent-rgb), 0.08); box-shadow: 0 0 20px -10px var(--primary-glow); }
+    .ck-steps .now .ck-dot { border-color: var(--primary); color: var(--primary); animation: ck-pulse 1.8s ease-in-out infinite; }
+    @keyframes ck-pulse { 50% { box-shadow: 0 0 0 5px rgba(var(--accent-rgb), 0.18); } }
+    .ck-ready { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; padding-top: 14px; padding-bottom: 14px; }
+    /* поле, к которому привёл чек-лист, коротко подсвечивается */
+    :host ::ng-deep .ck-flash { animation: ck-flash 1.4s ease-out; }
+    @keyframes ck-flash { 0%, 30% { box-shadow: 0 0 0 2px var(--primary), 0 0 30px -6px var(--primary-glow); } }
+    @media (max-width: 860px) { .ck-steps { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 480px) { .ck-steps { grid-template-columns: 1fr; } }
+    @media (prefers-reduced-motion: reduce) { .ck-steps .now .ck-dot { animation: none; } }
     /* Discord: подсвечен, пока ник не указан — без него не записаться на этап */
     .dc { display: grid; grid-template-columns: 1fr minmax(260px, 380px); gap: 12px 24px; align-items: center; margin-bottom: 24px; }
     .dc.need { border-color: var(--warning); box-shadow: 0 0 24px -12px var(--warning); }
@@ -372,6 +434,43 @@ export class Me {
   /** пилот уже записывался на этап активного сезона — номер меняет только админ (0011) */
   protected readonly numberLocked = signal(false);
 
+  /** запись на этап с открытой регистрацией: registered — записан, open — регистрация идёт, но не записан, closed — нет открытых этапов */
+  protected readonly regState = signal<'registered' | 'open' | 'closed' | null>(null);
+  async loadReg(id: string) {
+    const [open, mine] = await Promise.all([
+      supabase.from('stages').select('id', { count: 'exact', head: true }).eq('status', 'registration'),
+      supabase
+        .from('registrations')
+        .select('stage_id, stage:stages!inner(status)', { count: 'exact', head: true })
+        .eq('profile_id', id)
+        .eq('status', 'registered')
+        .eq('stage.status', 'registration'),
+    ]);
+    this.regState.set(mine.count ? 'registered' : open.count ? 'open' : 'closed');
+  }
+  /** шаги чек-листа: Steam → номер → Discord → запись */
+  protected readonly steps = computed(() => {
+    const p = this.auth.profile();
+    const reg = this.regState();
+    return [
+      { k: 'steam', done: /^\d{17}$/.test(p?.steam_id ?? ''), target: null },
+      { k: 'number', done: !!p?.start_number, target: 'num' },
+      { k: 'discord', done: !!p?.discord, target: 'discord' },
+      { k: reg === 'closed' ? 'stageClosed' : 'stage', done: reg === 'registered', target: reg === 'open' ? 'signup' : null },
+    ];
+  });
+  protected readonly checkDone = computed(() => this.steps().filter((s) => s.done).length);
+  protected readonly nextStep = computed(() => this.steps().find((s) => !s.done)?.k ?? null);
+  protected goTo(id: string | null) {
+    const el = id && document.getElementById(id);
+    if (!el) return;
+    el.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' });
+    el.classList.remove('ck-flash');
+    void el.offsetWidth; // перезапуск подсветки
+    el.classList.add('ck-flash');
+    el.querySelector<HTMLElement>('input, button')?.focus({ preventScroll: true });
+  }
+
   async loadLock(id: string) {
     const season = this.seasonId();
     if (!season) return this.numberLocked.set(false);
@@ -437,6 +536,7 @@ export class Me {
     const season = seasons.find((s) => s.status === 'active') ?? null;
     this.seasonId.set(season?.id ?? null);
     this.loadLock(id);
+    this.loadReg(id);
     const [runs, wins, member] = await Promise.all([
       loadSkillRuns(id),
       supabase.from('stage_results').select('stage_id', { count: 'exact', head: true }).eq('profile_id', id).eq('stage_place', 1),

@@ -410,5 +410,20 @@
     "mine": "Your pick is in",
     "closed": "Voting is already closed",
     "error": "Didn’t work — try again"
+  },
+  "check": {
+    "title": "How to enter a round",
+    "steam": "Sign in with Steam",
+    "steamHint": "Only Steam accounts can enter",
+    "number": "Pick a start number",
+    "numberHint": "It goes on your card and in the tables",
+    "discord": "Add your Discord username",
+    "discordHint": "So the organizers can reach you",
+    "stage": "Sign up for the round",
+    "stageHint": "Registration is open — hit “Sign up” on the ticket",
+    "stageClosed": "Sign up for the round",
+    "stageClosedHint": "Registration is closed for now — we’ll announce it on Discord",
+    "readyTitle": "All set — you’re in the round.",
+    "readyText": "See you on track!"
   }
 }
