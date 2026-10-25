@@ -21,6 +21,7 @@ import { Pilot, Pilots, Rank } from './pilots';
       <div class="card stack-sm">
         <div class="row">
           <h2 class="h-sm">Прогноз зрителей — плашка стрима</h2>
+          <button class="btn btn-secondary" (click)="replay.update((n) => n + 1)">↻ Повторить анимацию</button>
           @for (sk of skins; track sk.k) {
             <button class="btn" [class.btn-primary]="pollSkin() === sk.k" [class.btn-ghost]="pollSkin() !== sk.k" (click)="pollSkin.set(sk.k)">{{ sk.label }}</button>
           }
@@ -110,6 +111,7 @@ export class UiShowcase {
     { k: 'hud', label: 'HUD' },
   ];
   protected readonly pollSkin = signal('hud');
+  protected readonly replay = signal(0);
   /** ?poll=N — N% за лидера, none — без голосов, pollDone — показ итога (overlay, тестовые данные) */
   protected readonly pollFrames = computed(() =>
     [
@@ -123,7 +125,7 @@ export class UiShowcase {
       { label: 'итог: угадали 25% (победил чейзер)', q: 'poll=75&pollDone=chaser' },
     ].map((p) => ({
       label: p.label,
-      url: this.sanitizer.bypassSecurityTrustResourceUrl(`/overlay?preview=1&mock=1&show=poll,duel&skin=${this.pollSkin()}&${p.q}`),
+      url: this.sanitizer.bypassSecurityTrustResourceUrl(`/overlay?preview=1&mock=1&show=poll,duel&skin=${this.pollSkin()}&${p.q}&r=${this.replay()}`),
     })),
   );
   protected readonly num = signal<number | null>(77);

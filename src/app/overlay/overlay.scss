@@ -1354,7 +1354,7 @@
   .ps-v.hit { color: var(--primary); text-shadow: 0 0 14px var(--primary-glow); }
   .ps-v.dim { opacity: 0.35; }
   /* два луча навстречу друг другу: цвет и сила свечения — по проценту (как у оценок), на стыке — вспышка */
-  .ps-bar { position: relative; display: flex; height: 10px; border-radius: 5px; background: rgba(255, 255, 255, 0.06); }
+  .ps-bar { --x: var(--x0, 50%); position: relative; display: flex; height: 10px; border-radius: 5px; background: rgba(255, 255, 255, 0.06); }
   .ps-bar .l,
   .ps-bar .r {
     --hot: color-mix(in oklch longer hue, #0abab5, #ff5c5c var(--heat, 0%));
@@ -1388,6 +1388,12 @@
     animation: spark var(--t) cubic-bezier(0.2, 0.7, 0.4, 1) var(--d) infinite;
   }
   .ps-bar.empty .sparks { display: none; }
+  /* итог: держим расклад, потом столкновение разрастается и катится к проигравшему — луч победителя забирает полоску */
+  &.win-l .ps-bar { animation: take-l 3.4s cubic-bezier(0.55, 0, 0.3, 1) both; }
+  &.win-r .ps-bar { animation: take-r 3.4s cubic-bezier(0.55, 0, 0.3, 1) both; }
+  &.closed .clash { animation: clash-win 3.4s ease-in both; }
+  &.closed .sparks { animation: sparks-out 3.4s linear both; }
+  &.closed .ps-bar .dim { opacity: 1; } /* проигравший луч не гаснет — его выдавливает */
 }
 @keyframes clash {
   0% { scale: 1; opacity: 1; }
@@ -1406,6 +1412,18 @@
   box-shadow: 0 0 calc(4px + var(--p, 0) * 0.16px) color-mix(in oklab, var(--hot), transparent 40%) !important;
 }
 .screen .poll .pr.hit .fill { box-shadow: 0 0 18px var(--hot) !important; }
+/* позиция стыка анимируется — нужна регистрация свойства */
+@property --x { syntax: '<percentage>'; inherits: true; initial-value: 50%; }
+@keyframes take-l { 0%, 30% { --x: var(--x0, 50%); } 78%, 100% { --x: 100%; } }
+@keyframes take-r { 0%, 30% { --x: var(--x0, 50%); } 78%, 100% { --x: 0%; } }
+@keyframes clash-win {
+  0%, 30% { scale: 1; opacity: 1; }
+  70% { scale: 1.9; opacity: 1; }
+  84% { scale: 3.2; opacity: 1; }
+  100% { scale: 4.2; opacity: 0; }
+}
+@keyframes sparks-out { 0%, 80% { opacity: 1; } 100% { opacity: 0; } }
+
 /* искра вылетает из точки столкновения и гаснет */
 @keyframes spark {
   0% { translate: 0 0; opacity: 1; scale: 1 1; }

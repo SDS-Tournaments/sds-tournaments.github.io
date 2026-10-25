@@ -205,17 +205,18 @@ const FLASH_MS = 10_000;
       @if (show('poll') && pollView(); as v) {
         @if (v.options.length === 2) {
           <!-- парные: полоска выезжает из-за плашки дуэли и стоит над ней; слева — за лидера, справа — за чейзера -->
-          <div class="w poll-strip" [class.closed]="!!v.correct" [style.bottom.px]="stripBottom()" [style.width.px]="duelW() || null" animate.enter="strip-in" animate.leave="strip-out">
+          <div class="w poll-strip" [class.closed]="!!v.correct" [class.win-l]="v.correct === 'leader'" [class.win-r]="v.correct === 'chaser'" [style.bottom.px]="stripBottom()" [style.width.px]="duelW() || null" animate.enter="strip-in" animate.leave="strip-out">
             <span class="ps-label">
               @if (v.correct) { {{ t().pollGuessed }}: <b>{{ v.guessed }}%</b> } @else { {{ t().pollTitle }} · {{ t().pollHint }} }
             </span>
             <div class="ps-row">
               <span class="ps-v" [class.hit]="v.correct === 'leader'" [class.dim]="v.correct && v.correct !== 'leader'">{{ v.options[0].pct }}%</span>
               @let lp = v.total ? v.options[0].pct : 50;
-              <span class="ps-bar" [class.empty]="!v.total" [style.--x.%]="lp">
+              <span class="ps-bar" [class.empty]="!v.total" [style.--x0.%]="lp">
                 <span class="l" [class.hit]="v.correct === 'leader'" [class.dim]="v.correct && v.correct !== 'leader'" [style.--heat.%]="lp" [style.--p]="lp"></span>
                 <span class="r" [class.hit]="v.correct === 'chaser'" [class.dim]="v.correct && v.correct !== 'chaser'" [style.--heat.%]="100 - lp" [style.--p]="100 - lp"></span>
-                @if (!v.correct) {
+                <!-- нет голосов — нет и столкновения -->
+                @if (v.total) {
                   <i class="clash" aria-hidden="true"></i>
                   <!-- искры от столкновения: разлетаются веером и гаснут, по кругу с разной задержкой -->
                   <span class="sparks" aria-hidden="true">
@@ -490,6 +491,8 @@ export class Overlay implements OnInit {
   private readonly pollLive = computed<PollView | null>(() => {
     const t = this.pollTarget();
     if (!t) return null;
+    // парные: пока на плашке дуэли «Победа: ник», следующую пару не показываем — сначала доигрывает итог прошлой
+    if (t.battle && this.flash()) return null;
     const m = countsFor(this.predCounts(), t.run ? { profileId: t.run.profileId, attempt: t.run.attempt } : { battleId: t.battle!.id });
     const opts = t.run
       ? RUN_PICKS.map((k) => ({ k: k as string, label: RUN_PICK_LABEL[k] }))
@@ -711,7 +714,8 @@ export class Overlay implements OnInit {
           const guessed = prev.view.options.find((o) => o.k === correct)?.pct ?? 0;
           this.pollReveal.set({ ...prev.view, correct, guessed });
           clearTimeout(this.revealTimer);
-          this.revealTimer = setTimeout(() => this.pollReveal.set(null), 8000);
+          // парные: анимация «победитель забирает полоску» ~3.4 с, потом полоска уезжает; квала — 8 с с подсветкой
+          this.revealTimer = setTimeout(() => this.pollReveal.set(null), prev.key.startsWith('b') ? 4200 : 8000);
         }
       }
       this.pollPrev = t && live ? { key: t.key, view: live } : null;
