@@ -1,4 +1,4 @@
-import { Component, computed, DestroyRef, effect, inject, OnInit, signal, untracked } from '@angular/core';
+import { Component, computed, DestroyRef, effect, ElementRef, inject, OnInit, signal, untracked, viewChild } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '../auth';
@@ -173,7 +173,7 @@ const FLASH_MS = 10_000;
 
       <!-- Дуэль -->
       @if (show('duel') && (duel() || flash()); as _) {
-        <div class="w lower duel" animate.enter="in-up" animate.leave="out-down">
+        <div #duelEl class="w lower duel" animate.enter="in-up" animate.leave="out-down">
           @if (flash(); as f) {
             <div class="flash">
               <span class="label">{{ t().win }}</span>
@@ -203,7 +203,23 @@ const FLASH_MS = 10_000;
 
       <!-- Прогноз зрителей: живое распределение голосов; после оценки — 8 с «угадали N%» с правильным вариантом -->
       @if (show('poll') && pollView(); as v) {
-        <div class="w poll" [class.up]="stage()?.status === 'battles'" animate.enter="in-right" animate.leave="out-right">
+        @if (v.options.length === 2) {
+          <!-- парные: полоска выезжает из-за плашки дуэли и стоит над ней; слева — за лидера, справа — за чейзера -->
+          <div class="w poll-strip" [class.closed]="!!v.correct" [style.bottom.px]="stripBottom()" animate.enter="strip-in" animate.leave="strip-out">
+            <span class="ps-label">
+              @if (v.correct) { {{ t().pollGuessed }}: <b>{{ v.guessed }}%</b> } @else { {{ t().pollTitle }} · {{ t().pollVotes }}: {{ v.total }} }
+            </span>
+            <div class="ps-row">
+              <span class="ps-v" [class.hit]="v.correct === 'leader'" [class.dim]="v.correct && v.correct !== 'leader'">{{ v.options[0].pct }}%</span>
+              <span class="ps-bar" [class.empty]="!v.total">
+                <span class="l" [class.hit]="v.correct === 'leader'" [class.dim]="v.correct && v.correct !== 'leader'" [style.width.%]="v.total ? v.options[0].pct : 50"></span>
+                <span class="r" [class.hit]="v.correct === 'chaser'" [class.dim]="v.correct && v.correct !== 'chaser'"></span>
+              </span>
+              <span class="ps-v" [class.hit]="v.correct === 'chaser'" [class.dim]="v.correct && v.correct !== 'chaser'">{{ v.options[1].pct }}%</span>
+            </div>
+          </div>
+        } @else {
+        <div class="w poll" animate.enter="in-right" animate.leave="out-right">
           <div class="poll-head">
             <span class="label">{{ t().pollTitle }}</span>
             <span class="pv">{{ t().pollVotes }}: {{ v.total }}</span>
@@ -222,6 +238,7 @@ const FLASH_MS = 10_000;
             <p class="hint">{{ t().pollHint }}</p>
           }
         </div>
+        }
       }
 
       <!-- Карточки дуэли: сравнение сил -->
@@ -484,6 +501,18 @@ export class Overlay implements OnInit {
     };
   });
   protected readonly pollView = computed(() => this.pollReveal() ?? this.pollLive());
+  /** высота плашки дуэли (у стилей разная) — полоска прогноза встаёт ровно над ней, чуть заходя за край */
+  private readonly duelEl = viewChild<ElementRef<HTMLElement>>('duelEl');
+  private readonly duelH = signal(0);
+  protected readonly stripBottom = computed(() => (this.duelEl() && this.duelH() ? 72 + this.duelH() - 6 : 72));
+  private readonly duelWatch = effect((onCleanup) => {
+    const el = this.duelEl()?.nativeElement;
+    if (!el || typeof ResizeObserver === 'undefined') return this.duelH.set(0);
+    this.duelH.set(el.offsetHeight);
+    const ro = new ResizeObserver(() => this.duelH.set(el.offsetHeight));
+    ro.observe(el);
+    onCleanup(() => ro.disconnect());
+  });
 
   /** «Победа: ник» — 10 секунд после решения судей */
   protected readonly flash = computed(() => {

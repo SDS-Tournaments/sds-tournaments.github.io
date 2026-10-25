@@ -1335,5 +1335,94 @@
   .guess { margin: 4px 0 0; font-size: 16px; color: rgba(255, 255, 255, 0.75); b { color: var(--primary); font: 400 26px 'Russo One', var(--font); } }
   .hint { margin: 2px 0 0; font-size: 13px; letter-spacing: 1px; color: rgba(255, 255, 255, 0.5); }
 }
-/* в парных внизу по центру — плашка дуэли: прогноз поднимается над ней */
-.poll.up { bottom: 240px; }
+/* Прогноз в парных — полоска над плашкой дуэли (выезжает из-за неё) */
+.poll-strip {
+  @extend %glass;
+  z-index: 1; /* под плашкой дуэли: нижний край прячется за неё */
+  left: 50%;
+  translate: -50% 0;
+  width: 860px;
+  padding: 12px 28px 34px; /* снизу — место под капсулу раунда, она выступает над плашкой дуэли */
+  border-bottom: 0;
+  border-radius: 16px 16px 0 0;
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  .ps-label { font-size: 13px; letter-spacing: 3px; text-transform: uppercase; color: var(--primary); b { font: 400 18px 'Russo One', var(--font); letter-spacing: 1px; } }
+  .ps-row { width: 100%; display: grid; grid-template-columns: 72px 1fr 72px; align-items: center; gap: 16px; }
+  .ps-v { font: 400 26px 'Russo One', var(--font); text-align: center; transition: opacity 400ms, color 400ms; }
+  .ps-v.hit { color: var(--primary); text-shadow: 0 0 14px var(--primary-glow); }
+  .ps-v.dim { opacity: 0.35; }
+  .ps-bar { display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: rgba(255, 255, 255, 0.08); }
+  .ps-bar .l { background: linear-gradient(90deg, rgba(10, 186, 181, 0.6), var(--primary)); transition: width 700ms cubic-bezier(0.22, 1, 0.36, 1), opacity 400ms; }
+  .ps-bar .r { flex: 1; background: linear-gradient(90deg, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.45)); transition: opacity 400ms; }
+  .ps-bar.empty .l, .ps-bar.empty .r { opacity: 0.25; }
+  .ps-bar .dim { opacity: 0.2; }
+  .ps-bar .hit { box-shadow: 0 0 14px var(--primary-glow); }
+  .ps-bar .r.hit { background: var(--primary); }
+}
+.strip-in { animation: strip-in 600ms cubic-bezier(0.22, 1, 0.36, 1) 250ms both; }
+.strip-out { animation: strip-in 300ms var(--ease-in-out) reverse both; }
+@keyframes strip-in {
+  from { opacity: 0; transform: translateY(100%); }
+}
+
+/* ── прогноз в стилях плашек ── */
+.screen[data-skin='arena'] {
+  .poll,
+  .poll-strip {
+    background: rgba(5, 5, 5, 0.94);
+    border: 0;
+    backdrop-filter: none;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+  .poll { border-radius: 12px; }
+  .poll-strip { border-radius: 12px 12px 0 0; }
+  .poll .label, .poll-strip .ps-label { color: #9a9a9a; letter-spacing: 4px; }
+  .poll .v { font: 400 22px 'Russo One', var(--font); }
+  .poll .track, .poll-strip .ps-bar { background: #1c1c1c; }
+}
+.screen[data-skin='race'] {
+  .poll {
+    background: linear-gradient(100deg, rgba(8, 8, 8, 0.96) 70%, rgba(10, 60, 58, 0.96));
+    border: 0;
+    border-radius: 0;
+    backdrop-filter: none;
+    clip-path: polygon(22px 0, 100% 0, calc(100% - 22px) 100%, 0 100%);
+    box-shadow: inset 6px 0 0 var(--primary);
+    padding-left: 40px;
+    padding-right: 40px;
+  }
+  .poll-strip {
+    background: linear-gradient(100deg, rgba(8, 8, 8, 0.96) 70%, rgba(10, 60, 58, 0.96));
+    border: 0;
+    border-radius: 0;
+    backdrop-filter: none;
+    padding-bottom: 18px; /* капсула раунда в «Гонке» — внутри плашки дуэли */
+    /* тот же наклон, что у плашки дуэли — читается как одна графика */
+    clip-path: polygon(22px 0, 100% 0, calc(100% - 22px) 100%, 0 100%);
+  }
+  .poll .label, .poll-strip .ps-label { font-style: italic; font-weight: 700; }
+  .poll .q, .poll .v, .poll-strip .ps-v { font-style: italic; }
+  .poll .fill, .poll-strip .ps-bar .l { background: repeating-linear-gradient(-55deg, var(--primary) 0 10px, #7ff5ef 10px 20px); }
+  .poll .track, .poll-strip .ps-bar { border-radius: 0; }
+}
+.screen[data-skin='hud'] {
+  .poll,
+  .poll-strip {
+    border: 1px solid rgba(10, 186, 181, 0.3);
+    background:
+      linear-gradient(var(--primary), var(--primary)) left top / 18px 2px no-repeat,
+      linear-gradient(var(--primary), var(--primary)) left top / 2px 18px no-repeat,
+      linear-gradient(var(--primary), var(--primary)) right top / 18px 2px no-repeat,
+      linear-gradient(var(--primary), var(--primary)) right top / 2px 18px no-repeat,
+      rgba(4, 10, 10, 0.86);
+    backdrop-filter: blur(6px);
+    box-shadow: 0 0 40px -12px var(--primary-glow);
+  }
+  .poll { border-radius: 2px; }
+  .poll-strip { border-radius: 2px 2px 0 0; border-bottom: 0; }
+  .poll .v, .poll .q { font-family: 'Russo One', var(--font); font-weight: 400; }
+  .poll .track, .poll-strip .ps-bar { border-radius: 0; height: 8px; }
+  .poll .fill, .poll-strip .ps-bar .l { background: var(--primary); box-shadow: 0 0 10px var(--primary-glow); }
+}
