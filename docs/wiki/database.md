@@ -24,6 +24,7 @@
 | Таблица | Ключевые поля | Чтение / запись |
 |---|---|---|
 | `profiles` | id(=auth.uid), steam_id (17 цифр; тестовые `test-N`), nickname, avatar_url, role, start_number (unique 1–999), livery_url, car, engine, gearbox, power_hp, bio_ru/en, legacy jsonb | все / сам (триггер ограничивает поля) или admin |
+| `predictions` (0022) | stage_id, profile_id+attempt (квала: pick lt80/80/85/90/95/100) или battle_id (pick leader/chaser), voter (случайный id браузера), уникально на заезд/дуэль | все / все (insert; триггер закрывает после оценки), штаб — delete |
 | `pilot_contacts` (0019) | profile_id, discord (2–64), updated_at | **сам и штаб** / сам или admin. Ник Discord — приватный, поэтому не в profiles |
 | `seasons` | number, title, status, qual_points, battle_points (jsonb, RDS 2024), team_counted=3, champion_pilot_id/team_id | все (кроме draft) / admin |
 | `stages` | season_id, ord, **track_map_url**, **zones** [{name, line, angle, style}] (0021), title_ru/en, description_ru/en, track, **starts_at** (день 1, квала), **battles_at** (день 2, Top 32), status, weights {angle,style,line} (сумма 100), judges, bracket_size (auto/32/16/8), sponsor_id, twitch_channel | все (0006) / staff |
@@ -88,7 +89,8 @@
 | 0018 | `private_settings.discord_webhook_en` |
 | 0019 | `pilot_contacts` + новая `prepare_registration` (Steam + Discord, и на update) |
 | 0020 | Регламент 2.1: мод NeXT (партнёр) разрешён — п. 10.5–10.6, RU+EN (`replace` по тексту) |
+| 0022 | Прогнозы зрителей: `predictions` (анонимно, voter = id браузера), `guard_prediction` (открыто, пока нет оценки/победителя), `prediction_counts(stage)`, Realtime |
 | 0021 | Трасса этапа: `stages.track_map_url`, `stages.zones` (jsonb), бакет `tracks` (пишет штаб) |
 
-Статус: 0021 на проде выполнена (2026-10-25); 0020 — ждёт запуска владельцем. 0001–0019 на **проде** выполнены (0019 — таблица точно есть; триггер — если владелец запускал SQL целиком).
+Статус: 0021 на проде выполнена (2026-10-25); 0020, 0022 — ждут запуска владельцем. 0001–0019 на **проде** выполнены (0019 — таблица точно есть; триггер — если владелец запускал SQL целиком).
 На **staging** 0017–0019 — не подтверждено, проверить перед прогоном.

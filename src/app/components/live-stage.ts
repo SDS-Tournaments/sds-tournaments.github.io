@@ -5,6 +5,8 @@ import { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '../auth';
 import { qualStandings } from '../scoring/scoring';
 import { Loader } from './loader';
+import { PredictionPoll } from './prediction-poll';
+import { loadPredictionCounts, PredictionCount, runTarget } from '../predict';
 
 interface Pilot {
   nickname: string;
@@ -12,6 +14,7 @@ interface Pilot {
   avatar_url?: string | null;
 }
 interface Battle {
+  id: number;
   round: string;
   slot: number;
   leader_id: string | null;
@@ -25,7 +28,7 @@ const ORDER = ['r32', 'r16', 'qf', 'sf', 'third', 'final'];
 // Прямой эфир этапа на главной: Twitch + живые данные (топ квалификации или текущая дуэль)
 @Component({
   selector: 'app-live-stage',
-  imports: [TranslocoPipe, Loader],
+  imports: [TranslocoPipe, Loader, PredictionPoll],
   template: `
     <div class="wrap">
       <div class="player">
@@ -63,6 +66,9 @@ const ORDER = ['r32', 'r16', 'qf', 'sf', 'third', 'final'];
           } @else {
             <p class="subtle">{{ 'live.waiting' | transloco }}</p>
           }
+          @if (current(); as b) {
+            <app-prediction-poll [stageId]="stageId()" [battleId]="b.id" [leaderName]="p(b.leader_id).nickname" [chaserName]="p(b.chaser_id).nickname" [counts]="predCounts()" (voted)="loadCounts()" />
+          }
           @if (upNext().length) {
             <div class="block">
               <p class="lbl">{{ 'live.next' | transloco }}</p>
@@ -78,6 +84,11 @@ const ORDER = ['r32', 'r16', 'qf', 'sf', 'third', 'final'];
             </div>
           }
         } @else {
+          @if (runT(); as t) {
+            <div class="poll-top">
+              <app-prediction-poll [stageId]="stageId()" [pilotId]="t.profileId" [attempt]="t.attempt" [pilotName]="p(t.profileId).nickname" [counts]="predCounts()" (voted)="loadCounts()" />
+            </div>
+          }
           <p class="eyebrow">{{ 'live.qual' | transloco }}</p>
           <ol class="top">
             @for (r of top(); track r.id) {
@@ -161,6 +172,9 @@ const ORDER = ['r32', 'r16', 'qf', 'sf', 'third', 'final'];
     /* строки-«скелеты» на весь блок (Топ-8), полоски укорачиваются сверху вниз */
     .ghost .bar { height: 8px; border-radius: 4px; background: color-mix(in oklab, var(--ink), transparent 85%); animation: ghost 1.6s ease-in-out infinite; }
     @keyframes ghost { 50% { opacity: 0.35; } }
+    /* в квалификации прогноз — над таблицей: черта снизу, а не сверху */
+    .poll-top { margin-bottom: 20px; }
+    .poll-top ::ng-deep .poll { margin-top: 0; padding: 0 0 16px; border-top: 0; border-bottom: 1px solid var(--hairline); }
     @media (prefers-reduced-motion: reduce) { .pulse::after, .ghost .bar { animation: none; } }
   `,
 })
@@ -174,6 +188,11 @@ export class LiveStage implements OnInit {
   private readonly regs = signal<{ profile_id: string; queue_order: number | null }[]>([]);
   private readonly runs = signal<{ profile_id: string; attempt: number; total: number }[]>([]);
   private readonly battles = signal<Battle[]>([]);
+  /** итоги прогнозов зрителей этапа */
+  protected readonly predCounts = signal<PredictionCount[]>([]);
+  /** за кого голосуем в квалификации: пилот на трассе и его зачётная попытка */
+  protected readonly runT = computed(() => (this.status() === 'qualifying' ? runTarget(this.regs(), this.runs()) : null));
+  private countsTimer?: ReturnType<typeof setTimeout>;
   private readonly sanitizer = inject(DomSanitizer);
   private sub?: RealtimeChannel;
 
@@ -204,7 +223,10 @@ export class LiveStage implements OnInit {
   });
 
   constructor() {
-    inject(DestroyRef).onDestroy(() => this.sub && supabase.removeChannel(this.sub));
+    inject(DestroyRef).onDestroy(() => {
+      if (this.sub) supabase.removeChannel(this.sub);
+      clearTimeout(this.countsTimer);
+    });
   }
 
   async ngOnInit() {
@@ -214,6 +236,11 @@ export class LiveStage implements OnInit {
       .channel(`live-${this.stageId()}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'qual_runs', filter: f }, () => this.load())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'battles', filter: f }, () => this.load())
+      // голоса идут пачками — пересчитываем не чаще раза в 0.7 с
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'predictions', filter: f }, () => {
+        clearTimeout(this.countsTimer);
+        this.countsTimer = setTimeout(() => this.loadCounts(), 700);
+      })
       .subscribe();
   }
 
@@ -222,14 +249,20 @@ export class LiveStage implements OnInit {
     const [regs, runs, battles] = await Promise.all([
       supabase.from('registrations').select('profile_id, queue_order, profile:profiles(nickname, start_number, avatar_url)').eq('stage_id', id).eq('status', 'registered'),
       supabase.from('qual_runs').select('profile_id, attempt, total').eq('stage_id', id),
-      supabase.from('battles').select('round, slot, leader_id, chaser_id, winner_id, status, omt_count').eq('stage_id', id),
+      supabase.from('battles').select('id, round, slot, leader_id, chaser_id, winner_id, status, omt_count').eq('stage_id', id),
     ]);
     const r = (regs.data ?? []) as unknown as { profile_id: string; queue_order: number | null; profile: Pilot | null }[];
     this.pilots.set(new Map(r.map((x) => [x.profile_id, x.profile ?? { nickname: '?', start_number: null }])));
     this.regs.set(r);
     this.runs.set(runs.data ?? []);
     this.battles.set(battles.data ?? []);
+    await this.loadCounts();
     this.loaded.set(true);
+  }
+
+  async loadCounts() {
+    if (this.status() !== 'qualifying' && this.status() !== 'battles') return;
+    this.predCounts.set(await loadPredictionCounts(this.stageId()));
   }
 
   protected p(id: string | null): Pilot {

@@ -1,6 +1,6 @@
 // Состояние плашек трансляции — хранится в overlay_state.state (одна строка, Realtime)
 
-export const WIDGETS = ['stage', 'onTrack', 'score', 'qualTable', 'duel', 'matchup', 'bracket', 'podium', 'sponsors', 'protest'] as const;
+export const WIDGETS = ['stage', 'onTrack', 'score', 'qualTable', 'duel', 'matchup', 'bracket', 'podium', 'sponsors', 'protest', 'poll'] as const;
 export type Widget = (typeof WIDGETS)[number];
 
 export interface OverlayState {
@@ -37,6 +37,7 @@ export const WIDGET_LABEL: Record<Widget, string> = {
   podium: 'Подиум (весь экран)',
   sponsors: 'Спонсоры',
   protest: 'Протест на рассмотрении',
+  poll: 'Прогноз зрителей',
 };
 
 /** Тексты на самих плашках — язык выбирается в пульте, независимо от сайта */
@@ -66,6 +67,11 @@ export const OVERLAY_TEXT = {
     noScoresHint: 'Таблица оживёт после первого заезда',
     protest: 'Протест на рассмотрении',
     protestSub: 'Организатор изучает видео',
+    pollTitle: 'Прогноз зрителей',
+    pollBattle: 'Кто победит?',
+    pollVotes: 'Голосов',
+    pollGuessed: 'Угадали',
+    pollHint: 'Голосуйте на сайте',
     podium: 'Подиум этапа',
     partners: 'Партнёры',
     pair: 'Пара',
@@ -102,6 +108,11 @@ export const OVERLAY_TEXT = {
     noScoresHint: 'The table comes alive after the first run',
     protest: 'Protest under review',
     protestSub: 'The organizer is reviewing the footage',
+    pollTitle: 'Viewers predict',
+    pollBattle: 'Who wins?',
+    pollVotes: 'Votes',
+    pollGuessed: 'Guessed',
+    pollHint: 'Vote on the website',
     podium: 'Round podium',
     partners: 'Partners',
     pair: 'Pair',

@@ -13,6 +13,7 @@ const ACH_TEXT = { ru: ruText.ach, en: enText.ach } as Record<'ru' | 'en', Recor
 import { compareRow } from './compare';
 import { forceNoir } from '../theme';
 import { mockStage } from './mock';
+import { countsFor, loadPredictionCounts, pickOfScore, PredictionCount, RUN_PICK_LABEL, RUN_PICKS, runTarget } from '../predict';
 import { DEFAULT_STATE, LANG_SWAP_FULL_MS, LANG_SWAP_MS, OVERLAY_TEXT, OverlayState, Widget } from './state';
 
 interface Pilot extends TreePilot {
@@ -38,6 +39,14 @@ interface Run {
 }
 interface Battle extends TreeBattle {
   decided_at: string | null;
+}
+interface PollView {
+  question: string;
+  total: number;
+  options: { k: string; label: string; pct: number }[];
+  /** правильный вариант (только в показе итога после закрытия) */
+  correct: string | null;
+  guessed: number;
 }
 interface Stage {
   id: number;
@@ -192,6 +201,29 @@ const FLASH_MS = 10_000;
         </div>
       }
 
+      <!-- Прогноз зрителей: живое распределение голосов; после оценки — 8 с «угадали N%» с правильным вариантом -->
+      @if (show('poll') && pollView(); as v) {
+        <div class="w poll" [class.up]="stage()?.status === 'battles'" animate.enter="in-right" animate.leave="out-right">
+          <div class="poll-head">
+            <span class="label">{{ t().pollTitle }}</span>
+            <span class="pv">{{ t().pollVotes }}: {{ v.total }}</span>
+          </div>
+          <b class="q">{{ v.question }}</b>
+          @for (o of v.options; track o.k) {
+            <div class="pr" [class.hit]="v.correct === o.k" [class.dim]="v.correct && v.correct !== o.k" [class.two]="v.options.length === 2">
+              <span class="k">{{ o.label }}</span>
+              <span class="track"><span class="fill" [style.width.%]="o.pct"></span></span>
+              <span class="v">{{ o.pct }}%</span>
+            </div>
+          }
+          @if (v.correct) {
+            <p class="guess">{{ t().pollGuessed }}: <b>{{ v.guessed }}%</b></p>
+          } @else {
+            <p class="hint">{{ t().pollHint }}</p>
+          }
+        </div>
+      }
+
       <!-- Карточки дуэли: сравнение сил -->
       @if (show('matchup') && matchup(); as m) {
         <div class="w full matchup" animate.enter="in-fade" animate.leave="out-fade">
@@ -286,6 +318,13 @@ export class Overlay implements OnInit {
   private readonly regs = signal<Reg[]>([]);
   private readonly runs = signal<Run[]>([]);
   protected readonly battles = signal<Battle[]>([]);
+  /** итоги прогнозов зрителей этапа */
+  private readonly predCounts = signal<PredictionCount[]>([]);
+  /** закрытое голосование — показываем 8 с с правильным вариантом */
+  private readonly pollReveal = signal<PollView | null>(null);
+  private pollPrev: { key: string; view: PollView } | null = null;
+  private countsTimer?: ReturnType<typeof setTimeout>;
+  private revealTimer?: ReturnType<typeof setTimeout>;
   private readonly voteRows = signal<{ battle_id: number; try: number; judge: string; vote: string }[]>([]);
   protected readonly pilots = signal(new Map<string, Pilot>());
   private readonly results = signal<{ profile_id: string; stage_place: number }[]>([]);
@@ -414,6 +453,38 @@ export class Overlay implements OnInit {
       ? (this.battles().find((b) => b.id === this.forcePair) ?? null)
       : (this.sorted().find((b) => b.status !== 'done' && b.leader_id && b.chaser_id) ?? null),
   );
+  /** За что голосуют сейчас: пилот на трассе (квала) или текущая дуэль (парные) */
+  private readonly pollTarget = computed(() => {
+    const s = this.stage();
+    if (s?.status === 'qualifying') {
+      const t = runTarget(this.regs(), this.runs());
+      return t ? { key: `r${t.profileId}-${t.attempt}`, run: t, battle: null } : null;
+    }
+    const d = s?.status === 'battles' ? this.duel() : null;
+    return d ? { key: `b${d.id}`, run: null, battle: d } : null;
+  });
+  private readonly pollLive = computed<PollView | null>(() => {
+    const t = this.pollTarget();
+    if (!t) return null;
+    const m = countsFor(this.predCounts(), t.run ? { profileId: t.run.profileId, attempt: t.run.attempt } : { battleId: t.battle!.id });
+    const opts = t.run
+      ? RUN_PICKS.map((k) => ({ k: k as string, label: RUN_PICK_LABEL[k] }))
+      : [
+          { k: 'leader', label: this.p(t.battle!.leader_id).nickname },
+          { k: 'chaser', label: this.p(t.battle!.chaser_id).nickname },
+        ];
+    const total = [...m.values()].reduce((s, n) => s + n, 0);
+    const pct = (k: string) => (total ? Math.round(((m.get(k) ?? 0) / total) * 100) : 0);
+    return {
+      question: t.run ? `${this.p(t.run.profileId).nickname} · ${this.t().run} ${t.run.attempt}` : this.t().pollBattle,
+      total,
+      options: opts.map((o) => ({ ...o, pct: pct(o.k) })),
+      correct: null,
+      guessed: 0,
+    };
+  });
+  protected readonly pollView = computed(() => this.pollReveal() ?? this.pollLive());
+
   /** «Победа: ник» — 10 секунд после решения судей */
   protected readonly flash = computed(() => {
     const last = this.battles()
@@ -549,6 +620,45 @@ export class Overlay implements OnInit {
     const d = this.duel()!;
     this.mu.set({ ids: `${d.leader_id}|${d.chaser_id}`, cards: m.cards });
     this.pc.set({ ids: this.podium().map((x) => x.id).join('|'), cards: m.cards, counted: true });
+    // тест: прогноз зрителей на текущую дуэль
+    this.predCounts.set([
+      { profile_id: null, attempt: null, battle_id: d.id, pick: 'leader', n: 62 },
+      { profile_id: null, attempt: null, battle_id: d.id, pick: 'chaser', n: 41 },
+    ]);
+  }
+
+  /** правильный вариант закрытого голосования: оценка заезда или победитель дуэли */
+  private pollAnswer(key: string): string | null {
+    if (key.startsWith('b')) {
+      const b = this.battles().find((x) => `b${x.id}` === key);
+      return b?.winner_id ? (b.winner_id === b.leader_id ? 'leader' : 'chaser') : null;
+    }
+    const r = this.runs().find((x) => `r${x.profile_id}-${x.attempt}` === key);
+    return r ? pickOfScore(r.total, r.spin) : null;
+  }
+
+  private readonly pollWatch = effect(() => {
+    const t = this.pollTarget();
+    const live = this.pollLive();
+    untracked(() => {
+      const prev = this.pollPrev;
+      if (prev && prev.key !== t?.key && prev.view.total > 0) {
+        const correct = this.pollAnswer(prev.key);
+        if (correct) {
+          const guessed = prev.view.options.find((o) => o.k === correct)?.pct ?? 0;
+          this.pollReveal.set({ ...prev.view, correct, guessed });
+          clearTimeout(this.revealTimer);
+          this.revealTimer = setTimeout(() => this.pollReveal.set(null), 8000);
+        }
+      }
+      this.pollPrev = t && live ? { key: t.key, view: live } : null;
+    });
+  });
+
+  private async loadCounts() {
+    const s = this.stage();
+    if (this.state().mock || !s || (s.status !== 'qualifying' && s.status !== 'battles')) return;
+    this.predCounts.set(await loadPredictionCounts(s.id));
   }
 
   async ngOnInit() {
@@ -567,6 +677,11 @@ export class Overlay implements OnInit {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'battles' }, () => this.loadStage())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'battle_votes' }, () => this.loadVotes())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'registrations' }, () => this.loadStage())
+      // голоса зрителей идут пачками — пересчитываем не чаще раза в 0.7 с
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'predictions' }, () => {
+        clearTimeout(this.countsTimer);
+        this.countsTimer = setTimeout(() => this.loadCounts(), 700);
+      })
       .subscribe();
   }
 
@@ -607,7 +722,7 @@ export class Overlay implements OnInit {
     this.runs.set(runs.data ?? []);
     this.battles.set((battles.data ?? []) as Battle[]);
     this.results.set(results.data ?? []);
-    await Promise.all([this.loadVotes(), this.loadMatchup(), this.loadPodium()]);
+    await Promise.all([this.loadVotes(), this.loadMatchup(), this.loadPodium(), this.loadCounts()]);
   }
 
   /** Данные для карточек текущей пары — перезагружаются только когда пара сменилась */

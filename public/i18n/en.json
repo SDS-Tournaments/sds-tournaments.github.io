@@ -399,5 +399,14 @@
   "nag": {
     "discord": "Add your Discord username — you need it to sign up for a round",
     "fill": "Add"
+  },
+  "poll": {
+    "title": "Viewers’ prediction",
+    "run": "Run {{n}}: how much will {{name}} score?",
+    "battle": "Who wins the battle?",
+    "votes": "votes: {{n}}",
+    "mine": "Your pick is in",
+    "closed": "Voting is already closed",
+    "error": "Didn’t work — try again"
   }
 }

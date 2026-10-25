@@ -1308,3 +1308,32 @@
 @keyframes v-in {
   from { opacity: 0; transform: translateX(-8px); }
 }
+
+/* Прогноз зрителей — правый нижний угол */
+.poll {
+  @extend %glass;
+  right: 56px;
+  bottom: 72px;
+  width: 440px;
+  padding: 20px 24px;
+  border-radius: 14px;
+  display: grid;
+  gap: 10px;
+  .poll-head { display: flex; justify-content: space-between; align-items: baseline; }
+  .pv { font: 500 14px var(--mono); color: rgba(255, 255, 255, 0.6); }
+  .q { font-size: 22px; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pr { display: grid; grid-template-columns: 64px 1fr 56px; align-items: center; gap: 12px; transition: opacity 400ms; }
+  .pr.two { grid-template-columns: 150px 1fr 56px; }
+  .k { font: 600 18px var(--mono); color: rgba(255, 255, 255, 0.85); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pr.two .k { font-family: var(--font); }
+  .track { height: 12px; border-radius: 6px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
+  .fill { display: block; height: 100%; border-radius: 6px; background: linear-gradient(90deg, rgba(10, 186, 181, 0.55), var(--primary)); transition: width 700ms cubic-bezier(0.22, 1, 0.36, 1); }
+  .v { font: 600 18px var(--mono); text-align: right; }
+  .pr.dim { opacity: 0.35; }
+  .pr.hit .k, .pr.hit .v { color: var(--primary); }
+  .pr.hit .fill { background: var(--primary); box-shadow: 0 0 16px var(--primary-glow); }
+  .guess { margin: 4px 0 0; font-size: 16px; color: rgba(255, 255, 255, 0.75); b { color: var(--primary); font: 400 26px 'Russo One', var(--font); } }
+  .hint { margin: 2px 0 0; font-size: 13px; letter-spacing: 1px; color: rgba(255, 255, 255, 0.5); }
+}
+/* в парных внизу по центру — плашка дуэли: прогноз поднимается над ней */
+.poll.up { bottom: 240px; }
