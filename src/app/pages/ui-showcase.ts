@@ -1,6 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
 import { NextStage } from '../components/next-stage';
+import { LiveStage } from '../components/live-stage';
 import { NumberPicker } from '../components/number-picker';
 import { RoadStage, SeasonRoad } from '../components/season-road';
 import { CardData, PilotCard, tierOf } from '../components/pilot-card';
@@ -9,7 +10,7 @@ import { Pilot, Pilots, Rank } from './pilots';
 // Витрина базовых стилей для проверки дизайна (/dev/ui), не в меню
 @Component({
   selector: 'app-ui-showcase',
-  imports: [NumberPicker, SeasonRoad, PilotCard, Pilots, NextStage],
+  imports: [LiveStage, NumberPicker, SeasonRoad, PilotCard, Pilots, NextStage],
   template: `
     <section class="section container stack">
       <h1 class="display-lg">UI kit</h1>
@@ -26,7 +27,14 @@ import { Pilot, Pilots, Rank } from './pilots';
             <button class="btn" [class.btn-primary]="pollSkin() === sk.k" [class.btn-ghost]="pollSkin() !== sk.k" (click)="pollSkin.set(sk.k)">{{ sk.label }}</button>
           }
         </div>
-        <h3 class="h-xs">Парные заезды</h3>
+        <h3 class="h-xs">На сайте — блок эфира (главная и страница этапа), тестовые данные</h3>
+        <div class="lives">
+          <figure class="pf"><app-live-stage [stageId]="-1" status="qualifying" [demo]="{}" /><figcaption class="mono">квалификация — до голоса (можно нажимать, в базу не пишется)</figcaption></figure>
+          <figure class="pf"><app-live-stage [stageId]="-1" status="qualifying" [demo]="{ pick: '90' }" /><figcaption class="mono">квалификация — после голоса (выбрано 90+)</figcaption></figure>
+          <figure class="pf"><app-live-stage [stageId]="-1" status="battles" [demo]="{}" /><figcaption class="mono">парные — до голоса</figcaption></figure>
+          <figure class="pf"><app-live-stage [stageId]="-1" status="battles" [demo]="{ pick: 'leader' }" /><figcaption class="mono">парные — после голоса (за лидера)</figcaption></figure>
+        </div>
+        <h3 class="h-xs">Стрим — парные заезды</h3>
         <div class="polls">
           @for (p of pollFrames(); track p.label) {
             <figure class="pf">
@@ -35,7 +43,7 @@ import { Pilot, Pilots, Rank } from './pilots';
             </figure>
           }
         </div>
-        <h3 class="h-xs">Квалификация</h3>
+        <h3 class="h-xs">Стрим — квалификация</h3>
         <div class="polls qual">
           @for (p of qualFrames(); track p.label) {
             <figure class="pf">
@@ -100,6 +108,7 @@ import { Pilot, Pilots, Rank } from './pilots';
     .h-sm { font-size: 18px; margin: 0 12px 0 0; }
     .polls { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 504px), 1fr)); }
     .pf { margin: 0; display: grid; gap: 6px; }
+    .lives { display: grid; gap: 32px; }
     .h-xs { font-size: 14px; margin: 8px 0 0; color: var(--ink-muted); font-weight: 500; }
     .polls.qual { grid-template-columns: repeat(auto-fill, minmax(min(100%, 270px), 1fr)); }
     /* квалификация: правый нижний угол кадра (x 1340–1920, нижние 560 px), масштаб 0.45 */

@@ -80,6 +80,10 @@ export class PredictionPoll {
   readonly chaserName = input('');
   /** итоги голосования этапа (грузит и обновляет родитель) */
   readonly counts = input.required<PredictionCount[]>();
+  /** витрина (UI kit): голос не пишется в базу */
+  readonly demo = input(false);
+  /** витрина: показать состояние «уже проголосовал» с этим вариантом */
+  readonly forcePick = input<string | null>(null);
   readonly voted = output<void>();
 
   protected readonly busy = signal(false);
@@ -88,7 +92,7 @@ export class PredictionPoll {
   private readonly picked = signal<Record<string, string>>({});
 
   private readonly key = computed(() => (this.battleId() ? `b${this.battleId()}` : `r${this.stageId()}-${this.pilotId()}-${this.attempt()}`));
-  protected readonly mine = computed(() => this.picked()[this.key()] ?? myPick(this.key()));
+  protected readonly mine = computed(() => this.forcePick() ?? this.picked()[this.key()] ?? (this.demo() ? null : myPick(this.key())));
   protected readonly options = computed(() =>
     this.battleId()
       ? [
@@ -110,6 +114,7 @@ export class PredictionPoll {
 
   async vote(pick: string) {
     if (this.busy()) return;
+    if (this.demo()) return this.picked.update((m) => ({ ...m, [this.key()]: pick }));
     this.busy.set(true);
     this.error.set(null);
     const b = this.battleId();

@@ -6,7 +6,8 @@ import { supabase } from '../auth';
 import { qualStandings } from '../scoring/scoring';
 import { Loader } from './loader';
 import { PredictionPoll } from './prediction-poll';
-import { loadPredictionCounts, PredictionCount, runTarget } from '../predict';
+import { loadPredictionCounts, PredictionCount, RUN_PICKS, runTarget } from '../predict';
+import { mockStage } from '../overlay/mock';
 
 interface Pilot {
   nickname: string;
@@ -67,7 +68,7 @@ const ORDER = ['r32', 'r16', 'qf', 'sf', 'third', 'final'];
             <p class="subtle">{{ 'live.waiting' | transloco }}</p>
           }
           @if (current(); as b) {
-            <app-prediction-poll [stageId]="stageId()" [battleId]="b.id" [leaderName]="p(b.leader_id).nickname" [chaserName]="p(b.chaser_id).nickname" [counts]="predCounts()" (voted)="loadCounts()" />
+            <app-prediction-poll [stageId]="stageId()" [battleId]="b.id" [leaderName]="p(b.leader_id).nickname" [chaserName]="p(b.chaser_id).nickname" [counts]="predCounts()" [demo]="!!demo()" [forcePick]="demo()?.pick ?? null" (voted)="loadCounts()" />
           }
           @if (upNext().length) {
             <div class="block">
@@ -86,7 +87,7 @@ const ORDER = ['r32', 'r16', 'qf', 'sf', 'third', 'final'];
         } @else {
           @if (runT(); as t) {
             <div class="poll-top">
-              <app-prediction-poll [stageId]="stageId()" [pilotId]="t.profileId" [attempt]="t.attempt" [pilotName]="p(t.profileId).nickname" [counts]="predCounts()" (voted)="loadCounts()" />
+              <app-prediction-poll [stageId]="stageId()" [pilotId]="t.profileId" [attempt]="t.attempt" [pilotName]="p(t.profileId).nickname" [counts]="predCounts()" [demo]="!!demo()" [forcePick]="demo()?.pick ?? null" (voted)="loadCounts()" />
             </div>
           }
           <p class="eyebrow">{{ 'live.qual' | transloco }}</p>
@@ -182,6 +183,8 @@ export class LiveStage implements OnInit {
   readonly stageId = input.required<number>();
   readonly status = input.required<string>();
   readonly channel = input<string | null>(null);
+  /** витрина (UI kit): вымышленный этап без базы; pick — показать «уже проголосовал» */
+  readonly demo = input<{ pick?: string } | null>(null);
 
   private readonly pilots = signal(new Map<string, Pilot>());
   protected readonly loaded = signal(false);
@@ -230,6 +233,7 @@ export class LiveStage implements OnInit {
   }
 
   async ngOnInit() {
+    if (this.demo()) return this.showDemo();
     await this.load();
     const f = `stage_id=eq.${this.stageId()}`;
     this.sub = supabase
@@ -260,7 +264,31 @@ export class LiveStage implements OnInit {
     this.loaded.set(true);
   }
 
+  /** витрина: вымышленный этап (как в тестовых данных плашек); в квале последний в очереди ещё на трассе */
+  private showDemo() {
+    const m = mockStage();
+    const last = m.regs[m.regs.length - 1].profile_id;
+    this.pilots.set(new Map([...m.pilots].map(([id, p]) => [id, { nickname: p.nickname, start_number: p.start_number, avatar_url: null }])));
+    this.regs.set(m.regs);
+    const runs = this.status() === 'qualifying' ? m.runs.filter((r) => r.profile_id !== last || r.attempt === 0) : m.runs;
+    this.runs.set(runs);
+    this.battles.set(m.battles as unknown as Battle[]);
+    const d = this.current();
+    this.predCounts.set(
+      this.status() === 'qualifying'
+        ? [3, 5, 10, 60, 15, 7].map((n, i) => ({ profile_id: last, attempt: 1, battle_id: null, pick: RUN_PICKS[i], n }))
+        : d
+          ? [
+              { profile_id: null, attempt: null, battle_id: d.id, pick: 'leader', n: 62 },
+              { profile_id: null, attempt: null, battle_id: d.id, pick: 'chaser', n: 41 },
+            ]
+          : [],
+    );
+    this.loaded.set(true);
+  }
+
   async loadCounts() {
+    if (this.demo()) return;
     if (this.status() !== 'qualifying' && this.status() !== 'battles') return;
     this.predCounts.set(await loadPredictionCounts(this.stageId()));
   }
