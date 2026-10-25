@@ -671,11 +671,23 @@ export class Overlay implements OnInit {
     const d = this.duel()!;
     this.mu.set({ ids: `${d.leader_id}|${d.chaser_id}`, cards: m.cards });
     this.pc.set({ ids: this.podium().map((x) => x.id).join('|'), cards: m.cards, counted: true });
-    // тест: прогноз зрителей на текущую дуэль
-    this.predCounts.set([
-      { profile_id: null, attempt: null, battle_id: d.id, pick: 'leader', n: 62 },
-      { profile_id: null, attempt: null, battle_id: d.id, pick: 'chaser', n: 41 },
-    ]);
+    // тест: прогноз зрителей на текущую дуэль; ?poll=75 — 75% за лидера (UI kit), ?poll=none — без голосов, ?pollDone=leader — показ итога
+    const q = this.route.snapshot.queryParamMap;
+    const split = q.get('poll');
+    const lead = split === null ? 62 : Number(split);
+    this.predCounts.set(
+      split === 'none'
+        ? []
+        : [
+            { profile_id: null, attempt: null, battle_id: d.id, pick: 'leader', n: split === null ? 62 : lead },
+            { profile_id: null, attempt: null, battle_id: d.id, pick: 'chaser', n: split === null ? 41 : 100 - lead },
+          ],
+    );
+    const done = q.get('pollDone');
+    if (done === 'leader' || done === 'chaser') {
+      const v = this.pollLive();
+      if (v) this.pollReveal.set({ ...v, correct: done, guessed: v.options.find((o) => o.k === done)?.pct ?? 0 });
+    }
   }
 
   /** правильный вариант закрытого голосования: оценка заезда или победитель дуэли */

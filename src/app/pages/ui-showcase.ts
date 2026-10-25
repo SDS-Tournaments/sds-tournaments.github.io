@@ -1,4 +1,5 @@
-import { Component, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
+import { DomSanitizer } from '@angular/platform-browser';
 import { NextStage } from '../components/next-stage';
 import { NumberPicker } from '../components/number-picker';
 import { RoadStage, SeasonRoad } from '../components/season-road';
@@ -15,6 +16,24 @@ import { Pilot, Pilots, Rank } from './pilots';
 
       <div class="card"><app-number-picker [(value)]="num" [taken]="taken" nickname="Sadlerk" /></div>
       <app-season-road [stages]="road" />
+
+      <!-- плашка стрима «Прогноз зрителей» в парных: разные расклады голосов, все 4 стиля -->
+      <div class="card stack-sm">
+        <div class="row">
+          <h2 class="h-sm">Прогноз зрителей — плашка стрима</h2>
+          @for (sk of skins; track sk.k) {
+            <button class="btn" [class.btn-primary]="pollSkin() === sk.k" [class.btn-ghost]="pollSkin() !== sk.k" (click)="pollSkin.set(sk.k)">{{ sk.label }}</button>
+          }
+        </div>
+        <div class="polls">
+          @for (p of pollFrames(); track p.label) {
+            <figure class="pf">
+              <div class="pf-view"><iframe [src]="p.url" title="Прогноз зрителей" loading="lazy"></iframe></div>
+              <figcaption class="mono">{{ p.label }}</figcaption>
+            </figure>
+          }
+        </div>
+      </div>
       <!-- «хайп» карточки ближайшего этапа на разном числе записавшихся -->
       <div class="hype-demo">
         @for (n of hypeCounts; track n) { <app-next-stage [stage]="'Этап 1 · ' + n + ' пил.'" [startsAt]="soon" [registered]="n" status="registration" /> }
@@ -66,6 +85,14 @@ import { Pilot, Pilots, Rank } from './pilots';
   `,
   styles: `
     .stack { display: grid; gap: 40px; }
+    .stack-sm { display: grid; gap: 16px; }
+    .h-sm { font-size: 18px; margin: 0 12px 0 0; }
+    .polls { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 504px), 1fr)); }
+    .pf { margin: 0; display: grid; gap: 6px; }
+    .pf figcaption { font-size: 13px; color: var(--ink-muted); }
+    /* из кадра 1920×1080 — только область дуэли и прогноза (x 400–1520, нижние 340 px), масштаб 0.45 */
+    .pf-view { position: relative; width: 504px; height: 153px; overflow: hidden; border-radius: var(--r-md); }
+    .pf-view iframe { position: absolute; left: -180px; bottom: 0; width: 1920px; height: 1080px; border: 0; transform: scale(0.45); transform-origin: 0 100%; pointer-events: none; }
     .tiers { display: flex; flex-wrap: wrap; gap: 24px; justify-content: center; }
     .demo { display: block; }
     .hype-demo { display: flex; flex-wrap: wrap; gap: 32px; justify-content: center; text-align: left; }
@@ -75,6 +102,30 @@ import { Pilot, Pilots, Rank } from './pilots';
   `,
 })
 export class UiShowcase {
+  private readonly sanitizer = inject(DomSanitizer);
+  protected readonly skins = [
+    { k: 'classic', label: 'Классика' },
+    { k: 'arena', label: 'Арена' },
+    { k: 'race', label: 'Гонка' },
+    { k: 'hud', label: 'HUD' },
+  ];
+  protected readonly pollSkin = signal('hud');
+  /** ?poll=N — N% за лидера, none — без голосов, pollDone — показ итога (overlay, тестовые данные) */
+  protected readonly pollFrames = computed(() =>
+    [
+      { label: '50 / 50', q: 'poll=50' },
+      { label: '60 / 40', q: 'poll=60' },
+      { label: '75 / 25', q: 'poll=75' },
+      { label: '90 / 10', q: 'poll=90' },
+      { label: '100 / 0', q: 'poll=100' },
+      { label: 'нет голосов', q: 'poll=none' },
+      { label: 'итог: угадали 75% (победил лидер)', q: 'poll=75&pollDone=leader' },
+      { label: 'итог: угадали 25% (победил чейзер)', q: 'poll=75&pollDone=chaser' },
+    ].map((p) => ({
+      label: p.label,
+      url: this.sanitizer.bypassSecurityTrustResourceUrl(`/overlay?preview=1&mock=1&show=poll,duel&skin=${this.pollSkin()}&${p.q}`),
+    })),
+  );
   protected readonly num = signal<number | null>(77);
   // по одной карточке каждого уровня
   protected readonly cards: CardData[] = [68, 79, 86, 92, 97].map((overall, i) => ({
