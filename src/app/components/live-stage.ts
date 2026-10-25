@@ -1,4 +1,4 @@
-import { Component, computed, DestroyRef, inject, input, OnInit, signal } from '@angular/core';
+import { Component, computed, DestroyRef, effect, inject, input, OnInit, signal } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { RealtimeChannel } from '@supabase/supabase-js';
@@ -30,9 +30,14 @@ const ORDER = ['r32', 'r16', 'qf', 'sf', 'third', 'final'];
 @Component({
   selector: 'app-live-stage',
   imports: [TranslocoPipe, Loader, PredictionPoll],
+  host: { '(document:keydown.escape)': 'wide.set(false)' },
   template: `
-    <div class="wrap">
+    <!-- широкий экран: трансляция поверх сайта на всё окно, панель с голосованием остаётся справа -->
+    <div class="wrap" [class.wide]="wide()">
       <div class="player">
+        <button type="button" class="wide-btn" (click)="wide.set(!wide())" [attr.aria-pressed]="wide()">
+          {{ (wide() ? 'live.exitWide' : 'live.wide') | transloco }}
+        </button>
         @if (playerUrl(); as url) {
           <iframe [src]="url" allowfullscreen title="Twitch"></iframe>
         } @else {
@@ -117,12 +122,36 @@ const ORDER = ['r32', 'r16', 'qf', 'sf', 'third', 'final'];
   `,
   styles: `
     .wrap { display: grid; gap: 16px; grid-template-columns: 1fr 340px; align-items: stretch; }
-    @media (max-width: 900px) { .wrap { grid-template-columns: 1fr; } }
-    /* видео всегда 16:9 по ширине колонки: если панель справа выше, плеер не растягивается под неё (раньше заезжал под панель) */
-    .player { align-self: start; width: 100%; min-width: 0; aspect-ratio: 16 / 9; border-radius: var(--r-lg); overflow: hidden; border: 1px solid var(--hairline-strong); background: var(--surface-1); }
+    /* видео всегда 16:9 по ширине колонки; высоту ряда задаёт оно, панель справа — ровно такой же высоты */
+    .player { position: relative; align-self: start; width: 100%; min-width: 0; aspect-ratio: 16 / 9; border-radius: var(--r-lg); overflow: hidden; border: 1px solid var(--hairline-strong); background: var(--surface-1); }
+    /* панель не растит ряд (height: 0), а тянется до высоты видео; не влезло — прокрутка внутри */
+    .side { height: 0; min-height: 100%; box-sizing: border-box; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--hairline-strong) transparent; }
+    @media (max-width: 900px) {
+      .wrap { grid-template-columns: 1fr; }
+      .side { height: auto; min-height: 0; overflow: visible; }
+    }
+    /* кнопка широкого экрана — в углу видео, не мешает плееру Twitch (его кнопки снизу) */
+    .wide-btn {
+      position: absolute; top: 10px; left: 10px; z-index: 2; padding: 6px 12px;
+      border: 1px solid rgba(255, 255, 255, 0.18); border-radius: var(--r-pill); background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(6px);
+      color: #fff; font: 500 12px var(--font); cursor: pointer; opacity: 0.75; transition: opacity var(--fast), border-color var(--fast);
+      &:hover, &:focus-visible { opacity: 1; border-color: var(--primary); }
+    }
+    /* широкий экран: всё окно, видео максимально по высоте, панель справа той же высоты */
+    .wrap.wide {
+      position: fixed; inset: 0; z-index: 200; padding: 16px; gap: 16px;
+      grid-template-columns: minmax(0, 1fr) 360px; align-items: center;
+      background: var(--canvas);
+    }
+    .wrap.wide .player { align-self: center; justify-self: center; width: min(100%, calc((100vh - 32px) * 16 / 9)); }
+    @media (max-width: 900px) {
+      .wrap.wide { grid-template-columns: 1fr; align-items: start; align-content: start; overflow-y: auto; }
+      .wrap.wide .player { width: 100%; }
+    }
     iframe { width: 100%; height: 100%; border: 0; display: block; }
     .noplayer { height: 100%; display: grid; place-items: center; }
     .side { display: flex; flex-direction: column; gap: 16px; padding: 20px; }
+    .side > * { flex-shrink: 0; }
     .eyebrow { margin: 0; margin-right: auto; }
     .head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
     .pill { padding: 3px 10px; border-radius: var(--r-pill); border: 1px solid rgba(var(--accent-rgb), 0.4); color: var(--primary); font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
@@ -189,6 +218,10 @@ export class LiveStage implements OnInit {
 
   private readonly pilots = signal(new Map<string, Pilot>());
   protected readonly loaded = signal(false);
+  /** широкий экран (Esc — свернуть) */
+  protected readonly wide = signal(false);
+  // анимации появления страниц (transform) иначе «запирают» position: fixed внутри себя; прокрутку под окном — блокируем
+  private readonly wideRoot = effect(() => document.documentElement.classList.toggle('live-wide', this.wide()));
   private readonly regs = signal<{ profile_id: string; queue_order: number | null }[]>([]);
   private readonly runs = signal<{ profile_id: string; attempt: number; total: number }[]>([]);
   private readonly battles = signal<Battle[]>([]);
@@ -229,6 +262,7 @@ export class LiveStage implements OnInit {
   constructor() {
     inject(DestroyRef).onDestroy(() => {
       if (this.sub) supabase.removeChannel(this.sub);
+      document.documentElement.classList.remove('live-wide');
       clearTimeout(this.countsTimer);
     });
   }

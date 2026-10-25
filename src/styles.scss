@@ -616,3 +616,8 @@ h3 {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* широкий экран трансляции (live-stage): у предков не должно быть transform, страница под окном не прокручивается */
+html.live-wide { overflow: hidden; }
+html.live-wide .page-in,
+html.live-wide [reveal] { animation: none !important; transform: none !important; }

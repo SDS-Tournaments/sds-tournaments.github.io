@@ -293,6 +293,8 @@
     "soon": "Date TBA"
   },
   "live": {
+    "wide": "⤢ Wide screen",
+    "exitWide": "✕ Exit wide screen",
     "noStream": "The stream is about to start",
     "battle": "On track now",
     "waiting": "Next pair coming up…",
