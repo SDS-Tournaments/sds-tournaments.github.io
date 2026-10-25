@@ -1389,8 +1389,8 @@
   }
   .ps-bar.empty .sparks { display: none; }
   /* итог: держим расклад, потом столкновение разрастается и катится к проигравшему — луч победителя забирает полоску */
-  &.win-l .ps-bar { animation: take-l 3.4s cubic-bezier(0.55, 0, 0.3, 1) both; }
-  &.win-r .ps-bar { animation: take-r 3.4s cubic-bezier(0.55, 0, 0.3, 1) both; }
+  /* перекат стыка ведёт код (revealX) — вместе с ним считаются проценты */
+  &.closed .clash, &.closed .sparks, &.closed .ps-bar .l { transition: none; }
   &.closed .clash { animation: clash-win 3.4s ease-in both; }
   &.closed .sparks { animation: sparks-out 3.4s linear both; }
   &.closed .ps-bar .dim { opacity: 1; } /* проигравший луч не гаснет — его выдавливает */
@@ -1412,10 +1412,6 @@
   box-shadow: 0 0 calc(4px + var(--p, 0) * 0.16px) color-mix(in oklab, var(--hot), transparent 40%) !important;
 }
 .screen .poll .pr.hit .fill { box-shadow: 0 0 18px var(--hot) !important; }
-/* позиция стыка анимируется — нужна регистрация свойства */
-@property --x { syntax: '<percentage>'; inherits: true; initial-value: 50%; }
-@keyframes take-l { 0%, 30% { --x: var(--x0, 50%); } 78%, 100% { --x: 100%; } }
-@keyframes take-r { 0%, 30% { --x: var(--x0, 50%); } 78%, 100% { --x: 0%; } }
 @keyframes clash-win {
   0%, 30% { scale: 1; opacity: 1; }
   70% { scale: 1.9; opacity: 1; }

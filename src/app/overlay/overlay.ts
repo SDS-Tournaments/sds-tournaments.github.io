@@ -210,8 +210,8 @@ const FLASH_MS = 10_000;
               @if (v.correct) { {{ t().pollGuessed }}: <b>{{ v.guessed }}%</b> } @else { {{ t().pollTitle }} · {{ t().pollHint }} }
             </span>
             <div class="ps-row">
-              <span class="ps-v" [class.hit]="v.correct === 'leader'" [class.dim]="v.correct && v.correct !== 'leader'">{{ v.options[0].pct }}%</span>
-              @let lp = v.total ? v.options[0].pct : 50;
+              @let lp = revealX() ?? (v.total ? v.options[0].pct : 50);
+              <span class="ps-v" [class.hit]="v.correct === 'leader'" [class.dim]="v.correct && v.correct !== 'leader'">{{ revealX() !== null ? round(lp) : v.options[0].pct }}%</span>
               <span class="ps-bar" [class.empty]="!v.total" [style.--x0.%]="lp">
                 <span class="l" [class.hit]="v.correct === 'leader'" [class.dim]="v.correct && v.correct !== 'leader'" [style.--heat.%]="lp" [style.--p]="lp"></span>
                 <span class="r" [class.hit]="v.correct === 'chaser'" [class.dim]="v.correct && v.correct !== 'chaser'" [style.--heat.%]="100 - lp" [style.--p]="100 - lp"></span>
@@ -224,7 +224,7 @@ const FLASH_MS = 10_000;
                   </span>
                 }
               </span>
-              <span class="ps-v" [class.hit]="v.correct === 'chaser'" [class.dim]="v.correct && v.correct !== 'chaser'">{{ v.options[1].pct }}%</span>
+              <span class="ps-v" [class.hit]="v.correct === 'chaser'" [class.dim]="v.correct && v.correct !== 'chaser'">{{ revealX() !== null ? 100 - round(lp) : v.options[1].pct }}%</span>
             </div>
           </div>
         } @else {
@@ -689,7 +689,7 @@ export class Overlay implements OnInit {
     const done = q.get('pollDone');
     if (done === 'leader' || done === 'chaser') {
       const v = this.pollLive();
-      if (v) this.pollReveal.set({ ...v, correct: done, guessed: v.options.find((o) => o.k === done)?.pct ?? 0 });
+      if (v) this.showReveal({ ...v, correct: done, guessed: v.options.find((o) => o.k === done)?.pct ?? 0 });
     }
   }
 
@@ -712,15 +712,45 @@ export class Overlay implements OnInit {
         const correct = this.pollAnswer(prev.key);
         if (correct) {
           const guessed = prev.view.options.find((o) => o.k === correct)?.pct ?? 0;
-          this.pollReveal.set({ ...prev.view, correct, guessed });
+          this.showReveal({ ...prev.view, correct, guessed });
           clearTimeout(this.revealTimer);
           // парные: анимация «победитель забирает полоску» ~3.4 с, потом полоска уезжает; квала — 8 с с подсветкой
-          this.revealTimer = setTimeout(() => this.pollReveal.set(null), prev.key.startsWith('b') ? 4200 : 8000);
+          this.revealTimer = setTimeout(() => {
+            this.pollReveal.set(null);
+            this.revealX.set(null);
+          }, prev.key.startsWith('b') ? 4200 : 8000);
         }
       }
       this.pollPrev = t && live ? { key: t.key, view: live } : null;
     });
   });
+
+  /** позиция стыка во время итога дуэли (% за лидера); null — обычный режим */
+  protected readonly revealX = signal<number | null>(null);
+  private revealFrame = 0;
+  protected readonly round = Math.round;
+
+  /**
+   * Итог голосования. Для дуэли — стык катится к проигравшему, проценты считаются вместе с ним:
+   * 0–30% времени держим расклад, 30–78% — перекат (плавный разгон и торможение), дальше — 100% у победителя.
+   */
+  private showReveal(view: PollView) {
+    this.pollReveal.set(view);
+    cancelAnimationFrame(this.revealFrame);
+    if (view.options.length !== 2) return this.revealX.set(null);
+    const from = view.total ? view.options[0].pct : 50;
+    const to = view.correct === 'leader' ? 100 : 0;
+    const total = 3400;
+    const t0 = performance.now();
+    const ease = (p: number) => (p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2);
+    const step = (now: number) => {
+      const p = Math.min(1, Math.max(0, ((now - t0) / total - 0.3) / 0.48));
+      this.revealX.set(from + (to - from) * ease(p));
+      if (now - t0 < total) this.revealFrame = requestAnimationFrame(step);
+    };
+    this.revealX.set(from);
+    this.revealFrame = requestAnimationFrame(step);
+  }
 
   private async loadCounts() {
     const s = this.stage();
