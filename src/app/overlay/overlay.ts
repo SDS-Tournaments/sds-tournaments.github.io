@@ -215,7 +215,13 @@ const FLASH_MS = 10_000;
               <span class="ps-bar" [class.empty]="!v.total" [style.--x.%]="lp">
                 <span class="l" [class.hit]="v.correct === 'leader'" [class.dim]="v.correct && v.correct !== 'leader'" [style.--heat.%]="lp" [style.--p]="lp"></span>
                 <span class="r" [class.hit]="v.correct === 'chaser'" [class.dim]="v.correct && v.correct !== 'chaser'" [style.--heat.%]="100 - lp" [style.--p]="100 - lp"></span>
-                @if (!v.correct) { <i class="clash" aria-hidden="true"></i> }
+                @if (!v.correct) {
+                  <i class="clash" aria-hidden="true"></i>
+                  <!-- искры от столкновения: разлетаются веером и гаснут, по кругу с разной задержкой -->
+                  <span class="sparks" aria-hidden="true">
+                    @for (k of sparks; track $index) { <i [style.--a.deg]="k.a" [style.--l.px]="k.l" [style.--d.ms]="k.d" [style.--t.ms]="k.t"></i> }
+                  </span>
+                }
               </span>
               <span class="ps-v" [class.hit]="v.correct === 'chaser'" [class.dim]="v.correct && v.correct !== 'chaser'">{{ v.options[1].pct }}%</span>
             </div>
@@ -501,6 +507,13 @@ export class Overlay implements OnInit {
       guessed: 0,
     };
   });
+  /** искры вспышки прогноза: угол разлёта, дальность, задержка и длительность (детерминированно, без рандома) */
+  protected readonly sparks = Array.from({ length: 14 }, (_, i) => ({
+    a: -180 + ((i * 137) % 360),
+    l: 34 + ((i * 29) % 46),
+    d: (i * 97) % 700,
+    t: 420 + ((i * 53) % 260),
+  }));
   protected readonly pollView = computed(() => this.pollReveal() ?? this.pollLive());
   /** высота плашки дуэли (у стилей разная) — полоска прогноза встаёт ровно над ней, чуть заходя за край */
   private readonly duelEl = viewChild<ElementRef<HTMLElement>>('duelEl');
