@@ -686,10 +686,22 @@ export class Overlay implements OnInit {
             { profile_id: null, attempt: null, battle_id: d.id, pick: 'chaser', n: split === null ? 41 : 100 - lead },
           ],
     );
+    // ?qual=1 — квалификация: последний в очереди ещё не проехал зачётные; ?dist=3,5,10,60,15,7 — голоса за <80…100
+    if (q.has('qual')) {
+      const last = [...m.regs].sort((a, b) => (b.queue_order ?? 0) - (a.queue_order ?? 0))[0];
+      this.stage.set({ ...m.stage, status: 'qualifying' });
+      this.runs.set(m.runs.filter((r) => r.profile_id !== last.profile_id || r.attempt === 0));
+      const dist = q.get('dist');
+      this.predCounts.set(
+        !dist || dist === 'none'
+          ? []
+          : dist.split(',').map((n, i) => ({ profile_id: last.profile_id, attempt: 1, battle_id: null, pick: RUN_PICKS[i], n: Number(n) || 0 })),
+      );
+    }
     const done = q.get('pollDone');
-    if (done === 'leader' || done === 'chaser') {
+    if (done) {
       const v = this.pollLive();
-      if (v) this.showReveal({ ...v, correct: done, guessed: v.options.find((o) => o.k === done)?.pct ?? 0 });
+      if (v && v.options.some((o) => o.k === done)) this.showReveal({ ...v, correct: done, guessed: v.options.find((o) => o.k === done)?.pct ?? 0 });
     }
   }
 

@@ -26,10 +26,20 @@ import { Pilot, Pilots, Rank } from './pilots';
             <button class="btn" [class.btn-primary]="pollSkin() === sk.k" [class.btn-ghost]="pollSkin() !== sk.k" (click)="pollSkin.set(sk.k)">{{ sk.label }}</button>
           }
         </div>
+        <h3 class="h-xs">Парные заезды</h3>
         <div class="polls">
           @for (p of pollFrames(); track p.label) {
             <figure class="pf">
               <div class="pf-view"><iframe [src]="p.url" title="Прогноз зрителей" loading="lazy"></iframe></div>
+              <figcaption class="mono">{{ p.label }}</figcaption>
+            </figure>
+          }
+        </div>
+        <h3 class="h-xs">Квалификация</h3>
+        <div class="polls qual">
+          @for (p of qualFrames(); track p.label) {
+            <figure class="pf">
+              <div class="pf-view q"><iframe [src]="p.url" title="Прогноз зрителей" loading="lazy"></iframe></div>
               <figcaption class="mono">{{ p.label }}</figcaption>
             </figure>
           }
@@ -90,6 +100,11 @@ import { Pilot, Pilots, Rank } from './pilots';
     .h-sm { font-size: 18px; margin: 0 12px 0 0; }
     .polls { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 504px), 1fr)); }
     .pf { margin: 0; display: grid; gap: 6px; }
+    .h-xs { font-size: 14px; margin: 8px 0 0; color: var(--ink-muted); font-weight: 500; }
+    .polls.qual { grid-template-columns: repeat(auto-fill, minmax(min(100%, 270px), 1fr)); }
+    /* квалификация: правый нижний угол кадра (x 1340–1920, нижние 560 px), масштаб 0.45 */
+    .pf-view.q { width: 261px; height: 252px; }
+    .pf-view.q iframe { left: -603px; }
     .pf figcaption { font-size: 13px; color: var(--ink-muted); }
     /* из кадра 1920×1080 — только область дуэли и прогноза (x 400–1520, нижние 340 px), масштаб 0.45 */
     .pf-view { position: relative; width: 504px; height: 153px; overflow: hidden; border-radius: var(--r-md); }
@@ -112,6 +127,20 @@ export class UiShowcase {
   ];
   protected readonly pollSkin = signal('hud');
   protected readonly replay = signal(0);
+  /** квалификация: ?qual=1&dist=… — голоса за <80 / 80+ / 85+ / 90+ / 95+ / 100, pollDone — итог */
+  protected readonly qualFrames = computed(() =>
+    [
+      { label: 'ровно', q: 'dist=10,12,20,25,20,13' },
+      { label: 'фаворит 90+', q: 'dist=3,5,10,60,15,7' },
+      { label: 'все верят в 100', q: 'dist=0,0,2,5,13,80' },
+      { label: 'нет голосов', q: 'dist=none' },
+      { label: 'итог: 90+ (угадали 60%)', q: 'dist=3,5,10,60,15,7&pollDone=90' },
+      { label: 'итог: <80, спин (угадали 3%)', q: 'dist=3,5,10,60,15,7&pollDone=lt80' },
+    ].map((p) => ({
+      label: p.label,
+      url: this.sanitizer.bypassSecurityTrustResourceUrl(`/overlay?preview=1&mock=1&qual=1&show=poll&skin=${this.pollSkin()}&${p.q}&r=${this.replay()}`),
+    })),
+  );
   /** ?poll=N — N% за лидера, none — без голосов, pollDone — показ итога (overlay, тестовые данные) */
   protected readonly pollFrames = computed(() =>
     [
