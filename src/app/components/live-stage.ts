@@ -125,7 +125,7 @@ const ORDER = ['r32', 'r16', 'qf', 'sf', 'third', 'final'];
     /* видео всегда 16:9 по ширине колонки; высоту ряда задаёт оно, панель справа — ровно такой же высоты */
     .player { position: relative; align-self: start; width: 100%; min-width: 0; aspect-ratio: 16 / 9; border-radius: var(--r-lg); overflow: hidden; border: 1px solid var(--hairline-strong); background: var(--surface-1); }
     /* панель не растит ряд (height: 0), а тянется до высоты видео; не влезло — прокрутка внутри */
-    .side { height: 0; min-height: 100%; box-sizing: border-box; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--hairline-strong) transparent; }
+    .side { height: 0; min-height: 100%; box-sizing: border-box; overflow: hidden; }
     @media (max-width: 900px) {
       .wrap { grid-template-columns: 1fr; }
       .side { height: auto; min-height: 0; overflow: visible; }
@@ -152,6 +152,26 @@ const ORDER = ['r32', 'r16', 'qf', 'sf', 'third', 'final'];
     .noplayer { height: 100%; display: grid; place-items: center; }
     .side { display: flex; flex-direction: column; gap: 16px; padding: 20px; }
     .side > * { flex-shrink: 0; }
+    /* таблица квалификации — забирает остаток высоты и прокручивается сама; края тают, чтобы было видно продолжение */
+    .side > .top:not(:has(.ghost)) {
+      flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; align-content: start;
+      padding-right: 10px; margin-right: -10px;
+      -webkit-mask: linear-gradient(transparent, #000 14px, #000 calc(100% - 22px), transparent);
+      mask: linear-gradient(transparent, #000 14px, #000 calc(100% - 22px), transparent);
+      padding-top: 2px; padding-bottom: 18px;
+    }
+    /* Firefox не знает ::-webkit-scrollbar — там тонкая бирюзовая стандартная (в Chrome она отключила бы свою) */
+    @supports not selector(::-webkit-scrollbar) { .top { scrollbar-width: thin; scrollbar-color: var(--primary) transparent; } }
+    /* своя полоса прокрутки в стиле сайта: тонкая бирюзовая со свечением, дорожка — пунктир */
+    .top::-webkit-scrollbar { width: 4px; }
+    .top::-webkit-scrollbar-track { background: repeating-linear-gradient(transparent 0 6px, var(--hairline-strong) 6px 8px); border-radius: 2px; }
+    .top::-webkit-scrollbar-thumb { border-radius: 2px; background: linear-gradient(var(--primary), rgba(var(--accent-rgb), 0.55)); box-shadow: 0 0 8px var(--primary-glow); }
+    .top::-webkit-scrollbar-thumb:hover { background: var(--primary); }
+    /* парные: если не влезает, сжимается «Далее» (без прокрутки) */
+    .side > .block { min-height: 0; overflow: hidden; }
+    @media (max-width: 900px) {
+      .side > .top:not(:has(.ghost)) { max-height: 420px; }
+    }
     .eyebrow { margin: 0; margin-right: auto; }
     .head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
     .pill { padding: 3px 10px; border-radius: var(--r-pill); border: 1px solid rgba(var(--accent-rgb), 0.4); color: var(--primary); font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
@@ -244,7 +264,7 @@ export class LiveStage implements OnInit {
   protected readonly top = computed(() =>
     qualStandings(
       this.regs().map((r) => ({ id: r.profile_id, queueOrder: r.queue_order ?? 1e9, runs: this.runs().filter((x) => x.profile_id === r.profile_id) })),
-    ).slice(0, 8),
+    ),
   );
   private readonly sorted = computed(() => [...this.battles()].sort((a, b) => ORDER.indexOf(a.round) - ORDER.indexOf(b.round) || a.slot - b.slot));
   protected readonly current = computed(() => this.sorted().find((b) => b.status !== 'done' && b.leader_id && b.chaser_id) ?? null);
