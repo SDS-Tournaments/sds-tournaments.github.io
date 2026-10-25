@@ -1353,14 +1353,51 @@
   .ps-v { font: 400 26px 'Russo One', var(--font); text-align: center; transition: opacity 400ms, color 400ms; }
   .ps-v.hit { color: var(--primary); text-shadow: 0 0 14px var(--primary-glow); }
   .ps-v.dim { opacity: 0.35; }
-  .ps-bar { display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: rgba(255, 255, 255, 0.08); }
-  .ps-bar .l { background: linear-gradient(90deg, rgba(10, 186, 181, 0.6), var(--primary)); transition: width 700ms cubic-bezier(0.22, 1, 0.36, 1), opacity 400ms; }
-  .ps-bar .r { flex: 1; background: linear-gradient(90deg, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.45)); transition: opacity 400ms; }
-  .ps-bar.empty .l, .ps-bar.empty .r { opacity: 0.25; }
-  .ps-bar .dim { opacity: 0.2; }
-  .ps-bar .hit { box-shadow: 0 0 14px var(--primary-glow); }
-  .ps-bar .r.hit { background: var(--primary); }
+  /* два луча навстречу друг другу: цвет и сила свечения — по проценту (как у оценок), на стыке — вспышка */
+  .ps-bar { position: relative; display: flex; height: 10px; border-radius: 5px; background: rgba(255, 255, 255, 0.06); }
+  .ps-bar .l,
+  .ps-bar .r {
+    --hot: color-mix(in oklch longer hue, #0abab5, #ff5c5c var(--heat, 0%));
+    box-shadow: 0 0 calc(4px + var(--p, 0) * 0.22px) color-mix(in oklab, var(--hot), transparent 35%);
+    transition: width 700ms cubic-bezier(0.22, 1, 0.36, 1), opacity 400ms;
+  }
+  /* к стыку луч ярче: от прозрачного у края к белой сердцевине у точки столкновения */
+  .ps-bar .l { width: var(--x); border-radius: 5px 0 0 5px; background: linear-gradient(90deg, color-mix(in oklab, var(--hot), transparent 70%), var(--hot) 70%, color-mix(in oklab, var(--hot), #fff 55%)); }
+  .ps-bar .r { flex: 1; border-radius: 0 5px 5px 0; background: linear-gradient(270deg, color-mix(in oklab, var(--hot), transparent 70%), var(--hot) 70%, color-mix(in oklab, var(--hot), #fff 55%)); }
+  .ps-bar.empty .l, .ps-bar.empty .r { opacity: 0.3; }
+  .ps-bar .dim { opacity: 0.18; }
+  .ps-bar .hit { box-shadow: 0 0 22px color-mix(in oklab, var(--hot), transparent 20%); }
+  /* вспышка в точке столкновения: белое ядро, ореол и блики-«лучи», мерцает */
+  .clash {
+    position: absolute; left: var(--x); top: 50%; width: 34px; height: 34px; translate: -50% -50%; border-radius: 50%; pointer-events: none;
+    background: radial-gradient(circle, #fff 0 16%, rgba(255, 255, 255, 0.85) 24%, rgba(170, 255, 250, 0.45) 42%, transparent 70%);
+    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.9)) drop-shadow(0 0 22px rgba(10, 186, 181, 0.8));
+    animation: clash 0.9s steps(1) infinite;
+    transition: left 700ms cubic-bezier(0.22, 1, 0.36, 1);
+    &::before, &::after { content: ''; position: absolute; left: 50%; top: 50%; translate: -50% -50%; border-radius: 50%; background: radial-gradient(closest-side, #fff, transparent); }
+    &::before { width: 4px; height: 58px; } /* вертикальный блик */
+    &::after { width: 90px; height: 3px; opacity: 0.8; } /* горизонтальный разлёт */
+  }
+  .ps-bar.empty .clash { opacity: 0.4; }
 }
+@keyframes clash {
+  0% { scale: 1; opacity: 1; }
+  12% { scale: 1.25; opacity: 0.85; }
+  25% { scale: 0.9; opacity: 1; }
+  41% { scale: 1.15; opacity: 0.9; }
+  58% { scale: 1; opacity: 1; }
+  74% { scale: 1.3; opacity: 0.8; }
+  87% { scale: 0.95; opacity: 1; }
+}
+/* стили плашек красят полоски по-своему — у прогноза цвет «силы» важнее (как у оценки) */
+.screen .poll-strip .ps-bar .l { background: linear-gradient(90deg, color-mix(in oklab, var(--hot), transparent 70%), var(--hot) 70%, color-mix(in oklab, var(--hot), #fff 55%)) !important; }
+.screen .poll .fill {
+  --hot: color-mix(in oklch longer hue, #0abab5, #ff5c5c var(--heat, 0%));
+  background: linear-gradient(90deg, color-mix(in oklab, var(--hot), transparent 55%), var(--hot)) !important;
+  box-shadow: 0 0 calc(4px + var(--p, 0) * 0.16px) color-mix(in oklab, var(--hot), transparent 40%) !important;
+}
+.screen .poll .pr.hit .fill { box-shadow: 0 0 18px var(--hot) !important; }
+@media (prefers-reduced-motion: reduce) { .clash { animation: none; } }
 .strip-in { animation: strip-in 600ms cubic-bezier(0.22, 1, 0.36, 1) 250ms both; }
 .strip-out { animation: strip-in 300ms var(--ease-in-out) reverse both; }
 @keyframes strip-in {

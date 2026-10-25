@@ -205,15 +205,17 @@ const FLASH_MS = 10_000;
       @if (show('poll') && pollView(); as v) {
         @if (v.options.length === 2) {
           <!-- парные: полоска выезжает из-за плашки дуэли и стоит над ней; слева — за лидера, справа — за чейзера -->
-          <div class="w poll-strip" [class.closed]="!!v.correct" [style.bottom.px]="stripBottom()" animate.enter="strip-in" animate.leave="strip-out">
+          <div class="w poll-strip" [class.closed]="!!v.correct" [style.bottom.px]="stripBottom()" [style.width.px]="duelW() || null" animate.enter="strip-in" animate.leave="strip-out">
             <span class="ps-label">
-              @if (v.correct) { {{ t().pollGuessed }}: <b>{{ v.guessed }}%</b> } @else { {{ t().pollTitle }} · {{ t().pollVotes }}: {{ v.total }} }
+              @if (v.correct) { {{ t().pollGuessed }}: <b>{{ v.guessed }}%</b> } @else { {{ t().pollTitle }} · {{ t().pollHint }} }
             </span>
             <div class="ps-row">
               <span class="ps-v" [class.hit]="v.correct === 'leader'" [class.dim]="v.correct && v.correct !== 'leader'">{{ v.options[0].pct }}%</span>
-              <span class="ps-bar" [class.empty]="!v.total">
-                <span class="l" [class.hit]="v.correct === 'leader'" [class.dim]="v.correct && v.correct !== 'leader'" [style.width.%]="v.total ? v.options[0].pct : 50"></span>
-                <span class="r" [class.hit]="v.correct === 'chaser'" [class.dim]="v.correct && v.correct !== 'chaser'"></span>
+              @let lp = v.total ? v.options[0].pct : 50;
+              <span class="ps-bar" [class.empty]="!v.total" [style.--x.%]="lp">
+                <span class="l" [class.hit]="v.correct === 'leader'" [class.dim]="v.correct && v.correct !== 'leader'" [style.--heat.%]="lp" [style.--p]="lp"></span>
+                <span class="r" [class.hit]="v.correct === 'chaser'" [class.dim]="v.correct && v.correct !== 'chaser'" [style.--heat.%]="100 - lp" [style.--p]="100 - lp"></span>
+                @if (!v.correct) { <i class="clash" aria-hidden="true"></i> }
               </span>
               <span class="ps-v" [class.hit]="v.correct === 'chaser'" [class.dim]="v.correct && v.correct !== 'chaser'">{{ v.options[1].pct }}%</span>
             </div>
@@ -222,13 +224,12 @@ const FLASH_MS = 10_000;
         <div class="w poll" animate.enter="in-right" animate.leave="out-right">
           <div class="poll-head">
             <span class="label">{{ t().pollTitle }}</span>
-            <span class="pv">{{ t().pollVotes }}: {{ v.total }}</span>
           </div>
           <b class="q">{{ v.question }}</b>
           @for (o of v.options; track o.k) {
             <div class="pr" [class.hit]="v.correct === o.k" [class.dim]="v.correct && v.correct !== o.k" [class.two]="v.options.length === 2">
               <span class="k">{{ o.label }}</span>
-              <span class="track"><span class="fill" [style.width.%]="o.pct"></span></span>
+              <span class="track"><span class="fill" [style.width.%]="o.pct" [style.--heat.%]="o.pct" [style.--p]="o.pct"></span></span>
               <span class="v">{{ o.pct }}%</span>
             </div>
           }
@@ -504,12 +505,20 @@ export class Overlay implements OnInit {
   /** высота плашки дуэли (у стилей разная) — полоска прогноза встаёт ровно над ней, чуть заходя за край */
   private readonly duelEl = viewChild<ElementRef<HTMLElement>>('duelEl');
   private readonly duelH = signal(0);
+  protected readonly duelW = signal(0);
   protected readonly stripBottom = computed(() => (this.duelEl() && this.duelH() ? 72 + this.duelH() - 6 : 72));
   private readonly duelWatch = effect((onCleanup) => {
     const el = this.duelEl()?.nativeElement;
-    if (!el || typeof ResizeObserver === 'undefined') return this.duelH.set(0);
-    this.duelH.set(el.offsetHeight);
-    const ro = new ResizeObserver(() => this.duelH.set(el.offsetHeight));
+    if (!el || typeof ResizeObserver === 'undefined') {
+      this.duelW.set(0);
+      return this.duelH.set(0);
+    }
+    const measure = () => {
+      this.duelH.set(el.offsetHeight);
+      this.duelW.set(el.offsetWidth);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
     ro.observe(el);
     onCleanup(() => ro.disconnect());
   });

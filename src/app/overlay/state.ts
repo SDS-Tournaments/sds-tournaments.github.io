@@ -71,7 +71,7 @@ export const OVERLAY_TEXT = {
     pollBattle: 'Кто победит?',
     pollVotes: 'Голосов',
     pollGuessed: 'Угадали',
-    pollHint: 'Голосуйте на сайте',
+    pollHint: 'Голосуй на сайте',
     podium: 'Подиум этапа',
     partners: 'Партнёры',
     pair: 'Пара',
