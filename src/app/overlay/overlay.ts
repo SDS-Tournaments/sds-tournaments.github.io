@@ -503,7 +503,8 @@ export class Overlay implements OnInit {
     const total = [...m.values()].reduce((s, n) => s + n, 0);
     const pct = (k: string) => (total ? Math.round(((m.get(k) ?? 0) / total) * 100) : 0);
     return {
-      question: t.run ? `${this.p(t.run.profileId).nickname} · ${this.t().run} ${t.run.attempt}` : this.t().pollBattle,
+      // ник пилота уже на плашке «На трассе» — здесь только вопрос и попытка
+      question: t.run ? `${this.t().pollRun} · ${this.t().run} ${t.run.attempt}` : this.t().pollBattle,
       total,
       options: opts.map((o) => ({ ...o, pct: pct(o.k) })),
       correct: null,
