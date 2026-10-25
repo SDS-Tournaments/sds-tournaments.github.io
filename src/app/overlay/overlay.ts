@@ -718,7 +718,7 @@ export class Overlay implements OnInit {
           this.revealTimer = setTimeout(() => {
             this.pollReveal.set(null);
             this.revealX.set(null);
-          }, prev.key.startsWith('b') ? 4200 : 8000);
+          }, prev.key.startsWith('b') ? 5400 : 8000);
         }
       }
       this.pollPrev = t && live ? { key: t.key, view: live } : null;
@@ -732,7 +732,8 @@ export class Overlay implements OnInit {
 
   /**
    * Итог голосования. Для дуэли — стык катится к проигравшему, проценты считаются вместе с ним:
-   * 0–30% времени держим расклад, 30–78% — перекат (плавный разгон и торможение), дальше — 100% у победителя.
+   * 0–33% времени — явно показываем победивший вариант (число подпрыгивает, кольца, луч вспыхивает),
+   * 33–76% — перекат (плавный разгон и торможение), дальше — 100% у победителя, вспышка, полоска уезжает.
    */
   private showReveal(view: PollView) {
     this.pollReveal.set(view);
@@ -740,11 +741,12 @@ export class Overlay implements OnInit {
     if (view.options.length !== 2) return this.revealX.set(null);
     const from = view.total ? view.options[0].pct : 50;
     const to = view.correct === 'leader' ? 100 : 0;
-    const total = 3400;
+    const total = 4600;
     const t0 = performance.now();
     const ease = (p: number) => (p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2);
     const step = (now: number) => {
-      const p = Math.min(1, Math.max(0, ((now - t0) / total - 0.3) / 0.48));
+      // 0–33% — показываем, какой вариант победил (CSS: win-pop), 33–76% — перекат
+      const p = Math.min(1, Math.max(0, ((now - t0) / total - 0.33) / 0.43));
       this.revealX.set(from + (to - from) * ease(p));
       if (now - t0 < total) this.revealFrame = requestAnimationFrame(step);
     };

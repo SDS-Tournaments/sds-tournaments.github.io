@@ -1391,9 +1391,20 @@
   /* итог: держим расклад, потом столкновение разрастается и катится к проигравшему — луч победителя забирает полоску */
   /* перекат стыка ведёт код (revealX) — вместе с ним считаются проценты */
   &.closed .clash, &.closed .sparks, &.closed .ps-bar .l { transition: none; }
-  &.closed .clash { animation: clash-win 3.4s ease-in both; }
-  &.closed .sparks { animation: sparks-out 3.4s linear both; }
-  &.closed .ps-bar .dim { opacity: 1; } /* проигравший луч не гаснет — его выдавливает */
+  &.closed .clash { animation: clash-win 4.6s ease-in both; }
+  &.closed .sparks { animation: sparks-out 4.6s linear both; }
+  &.closed .ps-bar .dim { opacity: 0.45; } /* проигравший луч тускнеет, но виден — его выдавливают */
+  /* сначала явно: какой вариант победил — число подпрыгивает и крупнеет, от него расходятся кольца, луч вспыхивает */
+  &.closed .ps-v.hit { position: relative; animation: win-pop 1.5s cubic-bezier(0.3, 1.6, 0.5, 1) both; }
+  &.closed .ps-v.hit::before,
+  &.closed .ps-v.hit::after {
+    content: ''; position: absolute; left: 50%; top: 50%; width: 64px; height: 64px; translate: -50% -50%; border-radius: 50%;
+    border: 2px solid var(--primary); box-shadow: 0 0 16px var(--primary-glow); opacity: 0; pointer-events: none;
+    animation: win-ring 0.9s ease-out both;
+  }
+  &.closed .ps-v.hit::after { animation-delay: 0.45s; }
+  &.closed .ps-bar .hit { animation: beam-flash 0.45s ease-in-out 3; }
+  &.closed .ps-v.dim { opacity: 0.3; transition: opacity 400ms; }
 }
 @keyframes clash {
   0% { scale: 1; opacity: 1; }
@@ -1413,11 +1424,20 @@
 }
 .screen .poll .pr.hit .fill { box-shadow: 0 0 18px var(--hot) !important; }
 @keyframes clash-win {
-  0%, 30% { scale: 1; opacity: 1; }
-  70% { scale: 1.9; opacity: 1; }
-  84% { scale: 3.2; opacity: 1; }
+  0%, 33% { scale: 1; opacity: 1; }
+  72% { scale: 1.9; opacity: 1; }
+  86% { scale: 3.2; opacity: 1; }
   100% { scale: 4.2; opacity: 0; }
 }
+@keyframes win-pop {
+  0% { scale: 1; }
+  20% { scale: 1.7; text-shadow: 0 0 26px var(--primary), 0 0 50px var(--primary-glow); }
+  40% { scale: 1.25; }
+  60% { scale: 1.55; text-shadow: 0 0 22px var(--primary), 0 0 40px var(--primary-glow); }
+  100% { scale: 1.3; }
+}
+@keyframes win-ring { 0% { opacity: 0.9; scale: 0.5; } 100% { opacity: 0; scale: 1.8; } }
+@keyframes beam-flash { 50% { filter: brightness(2.2) saturate(1.3); } }
 @keyframes sparks-out { 0%, 80% { opacity: 1; } 100% { opacity: 0; } }
 
 /* искра вылетает из точки столкновения и гаснет */
