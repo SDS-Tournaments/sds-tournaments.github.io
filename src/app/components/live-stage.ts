@@ -118,7 +118,8 @@ const ORDER = ['r32', 'r16', 'qf', 'sf', 'third', 'final'];
   styles: `
     .wrap { display: grid; gap: 16px; grid-template-columns: 1fr 340px; align-items: stretch; }
     @media (max-width: 900px) { .wrap { grid-template-columns: 1fr; } }
-    .player { aspect-ratio: 16 / 9; border-radius: var(--r-lg); overflow: hidden; border: 1px solid var(--hairline-strong); background: var(--surface-1); }
+    /* видео всегда 16:9 по ширине колонки: если панель справа выше, плеер не растягивается под неё (раньше заезжал под панель) */
+    .player { align-self: start; width: 100%; min-width: 0; aspect-ratio: 16 / 9; border-radius: var(--r-lg); overflow: hidden; border: 1px solid var(--hairline-strong); background: var(--surface-1); }
     iframe { width: 100%; height: 100%; border: 0; display: block; }
     .noplayer { height: 100%; display: grid; place-items: center; }
     .side { display: flex; flex-direction: column; gap: 16px; padding: 20px; }
