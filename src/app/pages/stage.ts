@@ -23,6 +23,8 @@ interface Stage {
   status: string;
   twitch_channel: string | null;
   season: { title: string } | null;
+  track_map_url?: string | null;
+  zones?: { name: string; line: number; angle: number; style: number }[];
 }
 interface Run {
   profile_id: string;
@@ -58,6 +60,40 @@ type Tab = 'results' | 'bracket' | 'qual';
           @if (s.battles_at) { <span class="mono">{{ 'stage.battlesShort' | transloco }} {{ s.battles_at | date: 'dd.MM.yyyy · HH:mm' }}</span> }
         </p>
         @if (description(); as d) { <p class="desc muted">{{ d }}</p> }
+
+        <!-- трасса: карта от дизайнера + сколько баллов каждого критерия разыгрывается в зонах -->
+        @if (s.track_map_url || s.zones?.length) {
+          <section class="track">
+            <h2 class="h2">{{ 'stage.track' | transloco }}</h2>
+            @if (s.track_map_url) {
+              <a class="map" [href]="s.track_map_url" target="_blank" rel="noopener">
+                <img [src]="s.track_map_url" [alt]="'stage.trackMap' | transloco" loading="lazy" decoding="async" />
+              </a>
+            }
+            @if (s.zones?.length) {
+              <div class="zones-wrap card flush">
+                <table class="zones">
+                  <thead>
+                    <tr>
+                      <th></th>
+                      @for (z of s.zones; track $index) { <th class="mono">{{ z.name }}</th> }
+                      <th class="tot">{{ 'stage.zonesTotal' | transloco }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (c of crits; track c) {
+                      <tr>
+                        <th class="crit">{{ 'pilot.crit.' + c | transloco }}</th>
+                        @for (z of s.zones; track $index) { <td class="mono">{{ z[c] }}</td> }
+                        <td class="mono tot">{{ zoneTotal(s, c) }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          </section>
+        }
 
         @if (live()) {
           <div class="live-wrap"><app-live-stage [stageId]="s.id" [status]="s.status" [channel]="s.twitch_channel || twitch()" /></div>
@@ -136,6 +172,23 @@ type Tab = 'results' | 'bracket' | 'qual';
     .st-draft, .st-finished { background: var(--surface-3); color: var(--ink-muted); }
     .st-qualifying, .st-battles { background: rgba(255, 92, 92, 0.15); color: var(--error); }
     .live-wrap { margin-top: 40px; }
+    /* трасса и зоны: таблица в духе макета — строки критериев, колонки зон, итог подсвечен */
+    .track { margin-top: 40px; display: grid; gap: 16px; }
+    .h2 { font-size: 22px; margin: 0; }
+    .map { display: block; border-radius: var(--r-lg); overflow: hidden; border: 1px solid var(--hairline); background: var(--surface-1); }
+    .map, .map:hover { background-size: 0 0; }
+    .map img { display: block; width: 100%; height: auto; }
+    .zones-wrap { overflow-x: auto; }
+    .zones { width: 100%; border-collapse: separate; border-spacing: 0; text-align: center; }
+    .zones th, .zones td { padding: 14px 12px; border-bottom: 1px solid var(--hairline); white-space: nowrap; }
+    .zones tr:last-child td, .zones tr:last-child th { border-bottom: 0; }
+    .zones thead th { font-size: 13px; font-weight: 600; color: var(--ink-muted); }
+    .zones td { font-size: 16px; }
+    .zones .crit { text-align: left; font-size: 14px; font-weight: 500; color: var(--ink); box-shadow: inset 2px 0 0 var(--primary); }
+    /* на телефоне таблица листается вбок — названия критериев остаются на месте */
+    .zones .crit, .zones thead th:first-child { position: sticky; left: 0; z-index: 1; background: var(--surface-1); }
+    .zones .tot { background: rgba(var(--accent-rgb), 0.16); color: var(--primary); font-weight: 700; }
+    .zones thead .tot { color: var(--ink); }
     .tabs { display: inline-flex; padding: 3px; margin: 40px 0 20px; border: 1px solid var(--hairline-strong); border-radius: var(--r-pill); background: var(--surface-1); }
     .tabs button {
       padding: 8px 18px; border: 0; border-radius: var(--r-pill); background: none; color: var(--ink-muted); font: 500 14px var(--font); cursor: pointer;
@@ -163,6 +216,11 @@ export class StagePage implements OnInit {
   protected readonly battles = signal<TreeBattle[]>([]);
   protected readonly results = signal<Result[]>([]);
   protected readonly tab = signal<Tab>('qual');
+  // порядок как у судей: траектория, угол, стиль
+  protected readonly crits = ['line', 'angle', 'style'] as const;
+  protected zoneTotal(s: Stage, c: 'line' | 'angle' | 'style') {
+    return (s.zones ?? []).reduce((sum, z) => sum + (Number(z[c]) || 0), 0);
+  }
   private readonly t = inject(TranslocoService);
   protected readonly lang = signal(this.t.getActiveLang());
   private sub?: RealtimeChannel;
@@ -194,7 +252,7 @@ export class StagePage implements OnInit {
   async ngOnInit() {
     const id = Number(this.id());
     const [{ data: s }, settings] = await Promise.all([
-      supabase.from('stages').select('id, ord, title_ru, title_en, description_ru, description_en, track, starts_at, battles_at, status, twitch_channel, season:seasons(title)').eq('id', id).maybeSingle(),
+      supabase.from('stages').select('id, ord, title_ru, title_en, description_ru, description_en, track, starts_at, battles_at, status, twitch_channel, track_map_url, zones, season:seasons(title)').eq('id', id).maybeSingle(),
       supabase.from('app_settings').select('twitch_channel').single(),
     ]);
     if (!s) return this.missing.set(true);

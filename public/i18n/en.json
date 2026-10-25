@@ -257,6 +257,9 @@
     "regOpen": "Registration open"
   },
   "stage": {
+    "track": "Track",
+    "trackMap": "Track map",
+    "zonesTotal": "Total",
     "status": {
       "draft": "Planned",
       "registration": "Registration",

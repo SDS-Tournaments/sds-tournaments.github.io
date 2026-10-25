@@ -4,6 +4,7 @@ import { Router, RouterLink } from '@angular/router';
 import { supabase } from '../auth';
 import { fromLocalInput, plusDay, STAGE_FLOW, STAGE_STATUS, toLocalInput } from './labels';
 import { notify } from '../notify';
+import { compressImage } from '../image';
 import { AdminParticipants } from './participants';
 import { AdminStageResults } from './stage-results';
 
@@ -24,6 +25,16 @@ interface Stage {
   judges: Record<Crit, string>;
   bracket_size: string;
   twitch_channel: string | null;
+  /** карта трассы от дизайнера (Storage: tracks/<id>/map.webp) */
+  track_map_url: string | null;
+  /** зоны трассы по порядку прохождения: сколько баллов каждого критерия в зоне (сумма = вес) */
+  zones: Zone[];
+}
+interface Zone {
+  name: string;
+  line: number;
+  angle: number;
+  style: number;
 }
 
 const CRITS: { key: Crit; label: string }[] = [
@@ -99,6 +110,59 @@ const CRITS: { key: Crit; label: string }[] = [
           </label>
         </section>
 
+        <section class="card stack">
+          <h2 class="h">Трасса и зоны</h2>
+          <p class="muted small">Картинка трассы от дизайнера и баллы по зонам — показываются на странице этапа. Зоны — по порядку прохождения; сумма по критерию должна совпасть с его весом.</p>
+          <div class="map">
+            @if (st.track_map_url) {
+              <a [href]="st.track_map_url" target="_blank" rel="noopener"><img [src]="st.track_map_url" alt="Карта трассы" /></a>
+            } @else {
+              <div class="map-empty subtle">Картинки пока нет</div>
+            }
+            <div class="row">
+              <label class="btn btn-secondary file">
+                {{ uploading() ? 'Загружаю…' : st.track_map_url ? 'Заменить картинку' : 'Загрузить картинку' }}
+                <input type="file" accept="image/png,image/jpeg,image/webp" (change)="uploadMap($event)" [disabled]="uploading()" />
+              </label>
+              @if (st.track_map_url) { <button type="button" class="btn btn-ghost danger" (click)="removeMap()" [disabled]="uploading()">Убрать картинку</button> }
+            </div>
+          </div>
+
+          <div class="zones-wrap">
+            <table class="zones">
+              <thead>
+                <tr><th>Зона</th>@for (c of crits; track c.key) { <th class="num">{{ c.label }}</th> }<th></th></tr>
+              </thead>
+              <tbody>
+                @for (z of st.zones; track $index; let i = $index) {
+                  <tr>
+                    <td><input class="input mono" [name]="'zn' + i" placeholder="TGZ1" maxlength="12" [(ngModel)]="z.name" /></td>
+                    @for (c of crits; track c.key) {
+                      <td><input class="input mono" type="number" min="0" max="100" step="0.5" [name]="'z' + c.key + i" [(ngModel)]="z[c.key]" (ngModelChange)="tick()" /></td>
+                    }
+                    <td><button type="button" class="x" title="Удалить зону" (click)="removeZone(i)">✕</button></td>
+                  </tr>
+                }
+              </tbody>
+              @if (st.zones.length) {
+                <tfoot>
+                  <tr>
+                    <td>Итого</td>
+                    @for (c of crits; track c.key) {
+                      <td class="num mono" [class.bad]="zoneSum()[c.key] !== +st.weights[c.key]">{{ zoneSum()[c.key] }} / {{ st.weights[c.key] }}</td>
+                    }
+                    <td></td>
+                  </tr>
+                </tfoot>
+              }
+            </table>
+          </div>
+          <div class="row">
+            <button type="button" class="btn btn-secondary" (click)="addZone()">+ Зона</button>
+            @if (zonesOff()) { <span class="bad small-note">Сумма по зонам не совпадает с весом — проверьте перед сохранением.</span> }
+          </div>
+        </section>
+
         <div class="row">
           <button class="btn btn-primary" type="submit" [disabled]="busy() || weightSum() !== 100">Сохранить</button>
           @if (msg()) { <span [class]="msgOk() ? 'ok' : 'bad'">{{ msg() }}</span> }
@@ -133,6 +197,22 @@ const CRITS: { key: Crit; label: string }[] = [
     .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
     .danger { margin-left: auto; color: var(--error); }
     .participants { display: block; margin-top: 24px; }
+    /* трасса и зоны */
+    .map { display: grid; gap: 12px; }
+    .map img { display: block; width: 100%; max-height: 420px; object-fit: contain; border-radius: var(--r-md); background: var(--surface-2); }
+    .map-empty { display: grid; place-items: center; height: 140px; border: 1px dashed var(--hairline-strong); border-radius: var(--r-md); }
+    .file { position: relative; input { position: absolute; inset: 0; opacity: 0; cursor: pointer; } }
+    .zones-wrap { overflow-x: auto; }
+    .zones { border-collapse: collapse; min-width: 480px; }
+    .zones th { font: 500 13px var(--font); color: var(--ink-muted); text-align: left; padding: 0 8px 8px 0; }
+    .zones td { padding: 0 8px 8px 0; }
+    .zones tfoot td { white-space: nowrap; }
+    .zones td .input { width: 110px; }
+    .zones td:first-child .input { width: 120px; }
+    .zones tfoot td { padding-top: 8px; border-top: 1px solid var(--hairline); color: var(--primary); }
+    .zones tfoot td.bad { color: var(--error); }
+    .x { border: 0; background: none; color: var(--ink-subtle); cursor: pointer; font-size: 14px; padding: 6px; &:hover { color: var(--error); } }
+    .small-note { font-size: 13px; }
     .ok { color: var(--primary); }
     .bad { color: var(--error); }
 
@@ -189,17 +269,28 @@ export class AdminStage implements OnInit {
     const w = this.st()?.weights;
     return w ? CRITS.reduce((s, c) => s + (Number(w[c.key]) || 0), 0) : 0;
   });
+  /** суммы баллов зон по критериям — сверяем с весами */
+  protected readonly zoneSum = computed(() => {
+    this.version();
+    const zs = this.st()?.zones ?? [];
+    return Object.fromEntries(CRITS.map((c) => [c.key, zs.reduce((s, z) => s + (Number(z[c.key]) || 0), 0)])) as Record<Crit, number>;
+  });
+  protected readonly zonesOff = computed(() => {
+    const st = this.st();
+    return !!st?.zones.length && CRITS.some((c) => this.zoneSum()[c.key] !== Number(st.weights[c.key]));
+  });
+  protected readonly uploading = signal(false);
   protected readonly flowIndex = computed(() => STAGE_FLOW.indexOf(this.st()?.status ?? 'draft'));
   private readonly router = inject(Router);
 
   async ngOnInit() {
     const { data, error } = await supabase
       .from('stages')
-      .select('id, season_id, ord, title_ru, title_en, description_ru, description_en, track, starts_at, battles_at, status, weights, judges, bracket_size, twitch_channel')
+      .select('id, season_id, ord, title_ru, title_en, description_ru, description_en, track, starts_at, battles_at, status, weights, judges, bracket_size, twitch_channel, track_map_url, zones')
       .eq('id', this.id())
       .single();
     if (error) return this.note(error.message, false);
-    this.st.set(data);
+    this.st.set({ ...data, zones: data.zones ?? [] });
     this.startLocal = toLocalInput(data.starts_at);
     this.lastStart = this.startLocal;
     this.battlesLocal = toLocalInput(data.battles_at) || plusDay(this.startLocal);
@@ -229,12 +320,59 @@ export class AdminStage implements OnInit {
         judges: st.judges,
         bracket_size: st.bracket_size,
         twitch_channel: nul(st.twitch_channel),
+        zones: st.zones
+          .filter((z) => z.name?.trim())
+          .map((z) => ({ name: z.name.trim(), line: +z.line || 0, angle: +z.angle || 0, style: +z.style || 0 })),
       })
       .eq('id', st.id);
     this.busy.set(false);
     if (error) return this.note(error.code === '23505' ? 'Этап с таким номером в сезоне уже есть.' : error.message, false);
     this.st.set({ ...st });
     this.note('Сохранено', true);
+  }
+
+  protected addZone() {
+    this.st.update((st) => st && { ...st, zones: [...st.zones, { name: '', line: 0, angle: 0, style: 0 }] });
+  }
+
+  protected removeZone(i: number) {
+    this.st.update((st) => st && { ...st, zones: st.zones.filter((_, j) => j !== i) });
+  }
+
+  /** картинка трассы сохраняется сразу (без кнопки «Сохранить») — как логотипы спонсоров */
+  async uploadMap(e: Event) {
+    const input = e.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    const st = this.st();
+    if (!file || !st) return;
+    this.uploading.set(true);
+    try {
+      const blob = await compressImage(file, 2400, 900_000);
+      const path = `${st.id}/map.webp`;
+      const up = await supabase.storage.from('tracks').upload(path, blob, { upsert: true, contentType: 'image/webp' });
+      if (up.error) throw up.error;
+      const url = `${supabase.storage.from('tracks').getPublicUrl(path).data.publicUrl}?v=${Date.now()}`;
+      await this.setMap(url);
+    } catch (err) {
+      this.note((err as Error).message, false);
+    } finally {
+      this.uploading.set(false);
+    }
+  }
+
+  async removeMap() {
+    if (!confirm('Убрать картинку трассы со страницы этапа?')) return;
+    await this.setMap(null);
+  }
+
+  private async setMap(url: string | null) {
+    const st = this.st();
+    if (!st) return;
+    const { error } = await supabase.from('stages').update({ track_map_url: url }).eq('id', st.id);
+    if (error) return this.note(error.message, false);
+    this.st.set({ ...st, track_map_url: url });
+    this.note(url ? 'Картинка трассы загружена' : 'Картинка убрана', true);
   }
 
   async setStatus(status: Stage['status']) {

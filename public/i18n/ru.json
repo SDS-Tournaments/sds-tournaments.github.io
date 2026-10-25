@@ -257,6 +257,9 @@
     "regOpen": "Регистрация открыта"
   },
   "stage": {
+    "track": "Трасса",
+    "trackMap": "Карта трассы",
+    "zonesTotal": "Итого",
     "status": {
       "draft": "Запланирован",
       "registration": "Регистрация",

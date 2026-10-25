@@ -26,7 +26,7 @@
 | `profiles` | id(=auth.uid), steam_id (17 цифр; тестовые `test-N`), nickname, avatar_url, role, start_number (unique 1–999), livery_url, car, engine, gearbox, power_hp, bio_ru/en, legacy jsonb | все / сам (триггер ограничивает поля) или admin |
 | `pilot_contacts` (0019) | profile_id, discord (2–64), updated_at | **сам и штаб** / сам или admin. Ник Discord — приватный, поэтому не в profiles |
 | `seasons` | number, title, status, qual_points, battle_points (jsonb, RDS 2024), team_counted=3, champion_pilot_id/team_id | все (кроме draft) / admin |
-| `stages` | season_id, ord, title_ru/en, description_ru/en, track, **starts_at** (день 1, квала), **battles_at** (день 2, Top 32), status, weights {angle,style,line} (сумма 100), judges, bracket_size (auto/32/16/8), sponsor_id, twitch_channel | все (0006) / staff |
+| `stages` | season_id, ord, **track_map_url**, **zones** [{name, line, angle, style}] (0021), title_ru/en, description_ru/en, track, **starts_at** (день 1, квала), **battles_at** (день 2, Top 32), status, weights {angle,style,line} (сумма 100), judges, bracket_size (auto/32/16/8), sponsor_id, twitch_channel | все (0006) / staff |
 | `registrations` | (stage_id, profile_id), team_id (снимок), group_no, queue_order, status | все / пилот сам (insert, отмена) или staff |
 | `qual_runs` | stage_id, profile_id, attempt 0–2 (0 — прогрев), angle/style/line (шаг 0.5), spin, **fail** (spin/crash/straight/offtrack, 0014), total (generated: spin → 0) | все / staff |
 | `battles` | stage_id, round, slot, leader_id, chaser_id, winner_id, omt_count 0–2, status, result, decided_at | все / staff |
@@ -60,6 +60,7 @@
 | `liveries` | 1 МБ, jpeg/png/webp | пилот — только в папку `<uid>/`, admin |
 | `team-logos` | 512 КБ | капитан своей команды (политика исправлена в 0012), admin |
 | `sponsors` | 512 КБ, + svg | admin |
+| `tracks` (0021) | 2 МБ, jpeg/png/webp | штаб; путь `<stage_id>/map.webp` |
 
 ## Realtime
 Публикация `supabase_realtime`: stages, registrations, qual_runs, battles, battle_votes, overlay_state, protests.
@@ -87,6 +88,7 @@
 | 0018 | `private_settings.discord_webhook_en` |
 | 0019 | `pilot_contacts` + новая `prepare_registration` (Steam + Discord, и на update) |
 | 0020 | Регламент 2.1: мод NeXT (партнёр) разрешён — п. 10.5–10.6, RU+EN (`replace` по тексту) |
+| 0021 | Трасса этапа: `stages.track_map_url`, `stages.zones` (jsonb), бакет `tracks` (пишет штаб) |
 
-Статус: 0020 — ждёт запуска владельцем. 0001–0019 на **проде** выполнены (0019 — таблица точно есть; триггер — если владелец запускал SQL целиком).
+Статус: 0020, 0021 — ждут запуска владельцем. 0001–0019 на **проде** выполнены (0019 — таблица точно есть; триггер — если владелец запускал SQL целиком).
 На **staging** 0017–0019 — не подтверждено, проверить перед прогоном.
