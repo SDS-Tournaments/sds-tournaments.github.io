@@ -9,7 +9,7 @@
 1. `Auth.login()` → `…/functions/v1/steam-auth?redirect=<site>/auth/callback` → Steam.
 2. Steam возвращает на сайт `/auth/steam` (`SteamReturn`), тот пересылает параметры функции; функция проверяет
    (`check_authentication`), берёт SteamID64, ник и аватар (`GetPlayerSummaries`).
-3. Создаёт/находит пользователя `<steamid>@steam.sds`, обновляет `profiles` (ник/аватар — каждый вход).
+3. Создаёт/находит пользователя `<steamid>@steam.sds`, обновляет `profiles` (ник/аватар — каждый вход, кроме заданных организатором: `custom_nickname` / `custom_avatar`, 0023).
 4. Генерирует magic-link и отправляет на `/auth/callback#token_hash=…`; фронт — `verifyOtp` (`Auth.finishLogin`).
 
 ## discord-notify
