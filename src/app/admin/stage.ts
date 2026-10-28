@@ -7,6 +7,7 @@ import { notify } from '../notify';
 import { compressImage } from '../image';
 import { AdminParticipants } from './participants';
 import { AdminStageResults } from './stage-results';
+import { AdminStageRuns } from './stage-runs';
 
 type Crit = 'angle' | 'style' | 'line';
 interface Stage {
@@ -24,6 +25,8 @@ interface Stage {
   weights: Record<Crit, number>;
   judges: Record<Crit, string>;
   bracket_size: string;
+  /** прогревочный заезд перед зачётными попытками */
+  warmup: boolean;
   twitch_channel: string | null;
   /** карта трассы от дизайнера (Storage: tracks/<id>/map.webp) */
   track_map_url: string | null;
@@ -46,7 +49,7 @@ const CRITS: { key: Crit; label: string }[] = [
 
 @Component({
   selector: 'app-admin-stage',
-  imports: [FormsModule, RouterLink, AdminParticipants, AdminStageResults],
+  imports: [FormsModule, RouterLink, AdminParticipants, AdminStageResults, AdminStageRuns],
   template: `
     @if (st(); as st) {
       <a [routerLink]="['/admin/seasons', st.season_id]" class="back">← К сезону</a>
@@ -107,6 +110,10 @@ const CRITS: { key: Crit; label: string }[] = [
               <option value="16">Top 16</option>
               <option value="8">Top 8</option>
             </select>
+          </label>
+          <label class="chk">
+            <input type="checkbox" name="warmup" [(ngModel)]="st.warmup" />
+            <span>Прогревочный заезд в квалификации <span class="muted small">— выключите, чтобы сэкономить время: у пилота сразу 2 зачётные попытки</span></span>
           </label>
         </section>
 
@@ -175,6 +182,9 @@ const CRITS: { key: Crit; label: string }[] = [
       @if (st.status === 'battles' || st.status === 'finished') {
         <app-admin-stage-results class="participants" [stageId]="st.id" />
       }
+      @if (flowIndex() >= 2) {
+        <app-admin-stage-runs class="participants" [stageId]="st.id" />
+      }
       @if (st.status !== 'draft') {
         <app-admin-participants class="participants" [stageId]="st.id" />
       }
@@ -189,6 +199,7 @@ const CRITS: { key: Crit; label: string }[] = [
     .h { font-size: 20px; }
     .cols { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); }
     .field { display: grid; gap: 6px; }
+    .chk { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; input { margin-top: 3px; accent-color: var(--primary); } }
     .narrow { max-width: 280px; }
     .lbl { font-size: 13px; color: var(--ink-muted); }
     .small { font-size: 14px; margin: -8px 0 0; }
@@ -286,7 +297,7 @@ export class AdminStage implements OnInit {
   async ngOnInit() {
     const { data, error } = await supabase
       .from('stages')
-      .select('id, season_id, ord, title_ru, title_en, description_ru, description_en, track, starts_at, battles_at, status, weights, judges, bracket_size, twitch_channel, track_map_url, zones')
+      .select('id, season_id, ord, title_ru, title_en, description_ru, description_en, track, starts_at, battles_at, status, weights, judges, bracket_size, warmup, twitch_channel, track_map_url, zones')
       .eq('id', this.id())
       .single();
     if (error) return this.note(error.message, false);
@@ -319,6 +330,7 @@ export class AdminStage implements OnInit {
         weights: { angle: +st.weights.angle, style: +st.weights.style, line: +st.weights.line },
         judges: st.judges,
         bracket_size: st.bracket_size,
+        warmup: st.warmup,
         twitch_channel: nul(st.twitch_channel),
         zones: st.zones
           .filter((z) => z.name?.trim())

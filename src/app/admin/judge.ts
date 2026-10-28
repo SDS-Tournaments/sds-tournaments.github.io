@@ -15,6 +15,7 @@ interface Stage {
   weights: Record<Crit, number>;
   judges: Record<Crit, string>;
   bracket_size: 'auto' | '32' | '16' | '8';
+  warmup: boolean;
 }
 interface Reg {
   profile_id: string;
@@ -95,7 +96,7 @@ const ATTEMPTS = [
                   <span class="num mono">{{ r.profile?.start_number ?? '—' }}</span>
                   <span class="nick">{{ r.profile?.nickname }}</span>
                   <span class="dots">
-                    @for (a of attempts; track a.n) {
+                    @for (a of attempts(); track a.n) {
                       <i [class.on]="hasRun(r.profile_id, a.n)" [class.spin]="runOf(r.profile_id, a.n)?.spin" [title]="a.label"></i>
                     }
                   </span>
@@ -121,7 +122,7 @@ const ATTEMPTS = [
             </div>
 
             <div class="tabs" role="tablist">
-              @for (a of attempts; track a.n) {
+              @for (a of attempts(); track a.n) {
                 <button role="tab" class="tab" [class.on]="attempt() === a.n" [class.has]="hasRun(c.profile_id, a.n)" [attr.aria-selected]="attempt() === a.n" (click)="pickAttempt(a.n)">
                   {{ a.label }}
                   @if (runOf(c.profile_id, a.n); as r) { <span class="mono">{{ a.n ? (r.spin ? failLabel(r) : r.total) : '✓' }}</span> }
@@ -287,7 +288,8 @@ export class AdminJudge implements OnInit, OnDestroy {
   protected readonly msg = signal<string | null>(null);
   protected readonly ok = signal(true);
   protected readonly crits = CRITS;
-  protected readonly attempts = ATTEMPTS;
+  /** без прогрева — только зачётные попытки */
+  protected readonly attempts = computed(() => (this.stage()?.warmup === false ? ATTEMPTS.slice(1) : ATTEMPTS));
   protected readonly statusLabel = STAGE_STATUS;
   protected form: Record<Crit, number | null> = { angle: null, style: null, line: null };
   private readonly formVersion = signal(0);
@@ -311,7 +313,7 @@ export class AdminJudge implements OnInit, OnDestroy {
   protected readonly attempt = computed(() => {
     const c = this.current();
     if (!c) return 1;
-    return this.selectedAttempt() ?? [0, 1, 2].find((a) => !this.hasRun(c.profile_id, a)) ?? 2;
+    return this.selectedAttempt() ?? this.attempts().find((a) => !this.hasRun(c.profile_id, a.n))?.n ?? 2;
   });
   protected readonly doneCount = computed(() => this.queue().filter((r) => this.isDone(r.profile_id)).length);
   protected readonly standings = computed(() =>
@@ -353,7 +355,7 @@ export class AdminJudge implements OnInit, OnDestroy {
 
   async ngOnInit() {
     const id = Number(this.id());
-    const { data } = await supabase.from('stages').select('id, title_ru, status, weights, judges, bracket_size').eq('id', id).single();
+    const { data } = await supabase.from('stages').select('id, title_ru, status, weights, judges, bracket_size, warmup').eq('id', id).single();
     this.stage.set(data);
     if (data?.status === 'battles' || data?.status === 'finished') this.mode.set('battles');
     await this.load();
@@ -392,8 +394,9 @@ export class AdminJudge implements OnInit, OnDestroy {
   protected hasRun(pid: string, attempt: number) {
     return !!this.runOf(pid, attempt);
   }
+  /** проехал обе зачётные (прогрев на это не влияет — его могли выключить) */
   protected isDone(pid: string) {
-    return [0, 1, 2].every((a) => this.hasRun(pid, a));
+    return this.hasRun(pid, 1) && this.hasRun(pid, 2);
   }
   protected nick(pid: string) {
     return this.regs().find((r) => r.profile_id === pid)?.profile?.nickname ?? '?';

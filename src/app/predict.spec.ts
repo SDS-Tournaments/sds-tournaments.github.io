@@ -28,6 +28,10 @@ describe('runTarget', () => {
     expect(runTarget(regs, r)).toEqual({ profileId: 'a', attempt: 2 });
     expect(runTarget(regs, [...r, { profile_id: 'a', attempt: 2 }])).toEqual({ profileId: 'b', attempt: 1 });
   });
+  it('без прогрева — после двух зачётных следующий пилот', () => {
+    const r = [1, 2].map((attempt) => ({ profile_id: 'a', attempt }));
+    expect(runTarget(regs, r)).toEqual({ profileId: 'b', attempt: 1 });
+  });
   it('все проехали — голосования нет', () => {
     const all = ['a', 'b'].flatMap((p) => [0, 1, 2].map((attempt) => ({ profile_id: p, attempt })));
     expect(runTarget(regs, all)).toBeNull();

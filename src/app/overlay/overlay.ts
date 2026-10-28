@@ -56,6 +56,7 @@ interface Stage {
   status: string;
   season_id: number;
   weights: { angle: number; style: number; line: number };
+  warmup?: boolean;
 }
 
 const ORDER: Round[] = ['r32', 'r16', 'qf', 'sf', 'third', 'final'];
@@ -380,13 +381,13 @@ export class Overlay implements OnInit {
 
   private readonly queue = computed(() => [...this.regs()].sort((a, b) => (a.queue_order ?? 1e9) - (b.queue_order ?? 1e9)));
   private readonly runsOf = (pid: string) => this.runs().filter((r) => r.profile_id === pid);
-  /** На трассе — первый в очереди, у кого не все 3 заезда (как в пульте судьи) */
-  protected readonly current = computed(() => this.queue().find((r) => this.runsOf(r.profile_id).length < 3) ?? null);
+  /** На трассе — первый в очереди, кто не проехал обе зачётные (как в пульте судьи) */
+  protected readonly current = computed(() => this.queue().find((r) => this.runsOf(r.profile_id).filter((x) => x.attempt > 0).length < 2) ?? null);
   protected readonly attemptLabel = computed(() => {
     const c = this.current();
     if (!c) return '';
     const done = new Set(this.runsOf(c.profile_id).map((r) => r.attempt));
-    const next = [0, 1, 2].find((a) => !done.has(a)) ?? 2;
+    const next = (this.stage()?.warmup === false ? [1, 2] : [0, 1, 2]).find((a) => !done.has(a)) ?? 2;
     return next === 0 ? this.t().warmup : `${this.t().run} ${next}`;
   });
   protected readonly lastRun = computed(() =>
@@ -817,7 +818,7 @@ export class Overlay implements OnInit {
     if (this.state().mock) return this.showMock();
     const id = this.state().stageId;
     if (!id) return this.stage.set(null);
-    const { data: stage } = await supabase.from('stages').select('id, ord, title_ru, title_en, status, season_id, weights').eq('id', id).single();
+    const { data: stage } = await supabase.from('stages').select('id, ord, title_ru, title_en, status, season_id, weights, warmup').eq('id', id).single();
     if (!stage) return;
     const [regs, runs, battles, results, teams] = await Promise.all([
       supabase.from('registrations').select('profile_id, group_no, queue_order, profile:profiles(nickname, start_number, avatar_url, car)').eq('stage_id', id).eq('status', 'registered'),

@@ -13,7 +13,7 @@ export function pickOfScore(total: number, spin = false): RunPick {
   return total >= 100 ? '100' : total >= 95 ? '95' : total >= 90 ? '90' : total >= 85 ? '85' : '80';
 }
 
-/** Цель голосования в квалификации: пилот на трассе (первый в очереди без 3 заездов) и его ближайшая зачётная попытка */
+/** Цель голосования в квалификации: пилот на трассе (первый в очереди без обеих зачётных) и его ближайшая зачётная попытка */
 export function runTarget(
   regs: { profile_id: string; queue_order: number | null }[],
   runs: { profile_id: string; attempt: number }[],
@@ -21,8 +21,8 @@ export function runTarget(
   const queue = [...regs].sort((a, b) => (a.queue_order ?? 1e9) - (b.queue_order ?? 1e9));
   for (const r of queue) {
     const done = new Set(runs.filter((x) => x.profile_id === r.profile_id).map((x) => x.attempt));
-    if (done.size >= 3) continue;
-    // во время прогрева голосуем уже за 1-ю зачётную
+    if (done.has(1) && done.has(2)) continue;
+    // во время прогрева (если он есть) голосуем уже за 1-ю зачётную
     return { profileId: r.profile_id, attempt: !done.has(1) ? 1 : 2 };
   }
   return null;

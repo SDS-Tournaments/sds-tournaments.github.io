@@ -3,7 +3,10 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { Auth, supabase } from '../auth';
+import { STAGE_STATUS } from './labels';
 import { Legacy } from '../scoring/scoring';
+import { CARS } from '../catalog';
+import { compressImage } from '../image';
 
 interface Pilot {
   id: string;
@@ -16,6 +19,10 @@ interface Pilot {
   livery_url: string | null;
   bio_ru: string | null;
   bio_en: string | null;
+  car: string | null;
+  /** ник / аватар заданы организатором — вход через Steam их не перезаписывает (0023) */
+  custom_nickname: boolean;
+  custom_avatar: boolean;
 }
 interface Sanction {
   id: number;
@@ -59,9 +66,54 @@ const TYPE: Record<Sanction['type'], string> = { warning: 'Предупрежд�
               <option value="admin">Организатор</option>
             </select>
             <button class="btn btn-ghost" (click)="open.set(open() === p.id ? null : p.id)">{{ open() === p.id ? 'Скрыть' : 'Санкции' }}</button>
+            @if (isAdmin()) { <button class="btn btn-ghost" (click)="editPilot(p)">{{ editFor() === p.id ? 'Скрыть' : 'Изменить' }}</button> }
             @if (isAdmin()) { <button class="btn btn-ghost" (click)="editLegacy(p)">{{ legacyFor() === p.id ? 'Скрыть' : 'До сайта' }}</button> }
             @if (isAdmin() && p.role === 'pilot') { <button class="btn btn-ghost danger" (click)="remove(p)" [disabled]="busy()" title="Удалить пилота">Удалить</button> }
           </div>
+
+          @if (editFor() === p.id) {
+            <div class="edit">
+              <form class="ef" (ngSubmit)="saveNick(p)">
+                <label>Ник@if (p.custom_nickname) { <span class="subtle"> · задан вручную</span> }
+                  <input class="input" name="nick" maxlength="32" required [(ngModel)]="ed.nickname" /></label>
+                <button class="btn btn-secondary" type="submit" [disabled]="busy() || !ed.nickname.trim() || ed.nickname.trim() === p.nickname">Сохранить ник</button>
+                @if (p.custom_nickname) { <button class="btn btn-ghost" type="button" (click)="steamNick(p)" [disabled]="busy()">Брать ник из Steam</button> }
+              </form>
+              <form class="ef" (ngSubmit)="saveDiscord(p)">
+                <label>Discord<input class="input" name="dc" maxlength="64" [(ngModel)]="ed.discord" /></label>
+                <button class="btn btn-secondary" type="submit" [disabled]="busy() || ed.discord.trim().length < 2">Сохранить Discord</button>
+              </form>
+              <form class="ef" (ngSubmit)="saveCar(p)">
+                <label>Машина
+                  <select class="input" name="car" [(ngModel)]="ed.car">
+                    <option value="">— не указана —</option>
+                    @for (c of cars; track c) { <option [value]="c">{{ c }}</option> }
+                  </select></label>
+                <button class="btn btn-secondary" type="submit" [disabled]="busy() || ed.car === (p.car ?? '')">Сохранить машину</button>
+              </form>
+              <div class="ef">
+                <label class="btn btn-secondary file">{{ p.custom_avatar ? 'Заменить аватар' : 'Загрузить аватар' }}
+                  <input type="file" accept="image/png,image/jpeg,image/webp" (change)="uploadAvatar(p, $event)" [disabled]="busy()" /></label>
+                @if (p.custom_avatar) { <button class="btn btn-ghost" type="button" (click)="steamAvatar(p)" [disabled]="busy()">Аватар из Steam</button> }
+              </div>
+              <div class="regs">
+                <p class="lbl">Запись на этапы</p>
+                @for (s of openStages(); track s.id) {
+                  @let st = regOf(s.id);
+                  <div class="reg">
+                    <span>{{ s.title_ru }} <span class="subtle">· {{ stageStatus[s.status] }}</span></span>
+                    @if (st === 'registered') {
+                      <span class="badge">записан</span>
+                      <button class="btn btn-ghost danger" (click)="unregister(p, s)" [disabled]="busy()">Снять</button>
+                    } @else {
+                      @if (st === 'dq') { <span class="badge ban">DQ</span> }
+                      <button class="btn btn-ghost" (click)="register(p, s)" [disabled]="busy()">Записать</button>
+                    }
+                  </div>
+                } @empty { <p class="subtle">Нет этапов с открытой регистрацией или идущих.</p> }
+              </div>
+            </div>
+          }
 
           @if (legacyFor() === p.id) {
             <form class="legacy" (ngSubmit)="saveLegacy(p)">
@@ -163,6 +215,13 @@ const TYPE: Record<Sanction['type'], string> = { warning: 'Предупрежд�
     .add { display: flex; flex-wrap: wrap; gap: 8px; select { width: auto; } }
     .reason { flex: 1; min-width: 200px; }
     .warn { margin: 0; font-size: 13px; color: var(--warning); }
+    .edit { display: grid; gap: 12px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--hairline); }
+    .ef { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
+    .ef label:not(.file) { display: grid; gap: 4px; font-size: 12px; color: var(--ink-subtle); min-width: 220px; }
+    .file { position: relative; overflow: hidden; input { position: absolute; inset: 0; opacity: 0; cursor: pointer; } }
+    .regs { display: grid; gap: 6px; }
+    .regs .lbl { margin: 0; font-size: 12px; letter-spacing: 1px; text-transform: uppercase; color: var(--ink-subtle); }
+    .reg { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
     .legacy { display: grid; gap: 12px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--hairline); }
     .lh { margin: 0; font-size: 13px; }
     .lg { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
@@ -179,7 +238,11 @@ export class AdminPilots implements OnInit {
   protected readonly sanctions = signal<Sanction[]>([]);
   /** ник Discord пилота (pilot_contacts) */
   protected readonly discord = signal(new Map<string, string>());
-  protected readonly stages = signal<{ id: number; title_ru: string }[]>([]);
+  protected readonly stages = signal<{ id: number; title_ru: string; status: string }[]>([]);
+  /** записать вручную можно на этап с регистрацией или уже идущий (до парных) */
+  protected readonly openStages = computed(() => this.stages().filter((s) => ['registration', 'qualifying', 'qual_done'].includes(s.status)));
+  protected readonly stageStatus = STAGE_STATUS;
+  protected readonly cars = CARS;
   protected readonly open = signal<string | null>(null);
   protected readonly busy = signal(false);
   protected readonly msg = signal<string | null>(null);
@@ -201,7 +264,7 @@ export class AdminPilots implements OnInit {
     const [p, s, st, dc] = await Promise.all([
       supabase.from('profiles').select('*').order('nickname'),
       supabase.from('sanctions').select('id, profile_id, type, reason, created_at, stage:stages(title_ru)').order('created_at', { ascending: false }),
-      supabase.from('stages').select('id, title_ru').order('id', { ascending: false }),
+      supabase.from('stages').select('id, title_ru, status').order('id', { ascending: false }),
       supabase.from('pilot_contacts').select('profile_id, discord'),
     ]);
     this.discord.set(new Map((dc.data ?? []).map((c) => [c.profile_id, c.discord])));
@@ -269,6 +332,84 @@ export class AdminPilots implements OnInit {
     const typed = prompt(`Удалить ВСЕХ пилотов (${n})? Штаб и организаторы останутся.\nПропадут профили, номера, заявки, оценки, результаты и санкции. Отменить нельзя.\n\nЧтобы подтвердить, введите УДАЛИТЬ`);
     if (typed?.trim().toUpperCase() !== 'УДАЛИТЬ') return;
     return this.invoke({ action: 'remove-all' }, (d) => `Удалено пилотов: ${d.deleted}`);
+  }
+
+  // ── правка пилота: ник, Discord, машина, аватар, запись на этап ──
+  protected readonly editFor = signal<string | null>(null);
+  protected ed = { nickname: '', discord: '', car: '' };
+  /** статус записи пилота по этапам (stage_id → registered / withdrawn / dq) */
+  private readonly pilotRegs = signal(new Map<number, string>());
+  protected regOf(stageId: number) {
+    return this.pilotRegs().get(stageId);
+  }
+
+  async editPilot(p: Pilot) {
+    if (this.editFor() === p.id) return this.editFor.set(null);
+    this.ed = { nickname: p.nickname, discord: this.discord().get(p.id) ?? '', car: p.car ?? '' };
+    this.editFor.set(p.id);
+    await this.loadPilotRegs(p.id);
+  }
+  private async loadPilotRegs(id: string) {
+    const { data } = await supabase.from('registrations').select('stage_id, status').eq('profile_id', id);
+    this.pilotRegs.set(new Map((data ?? []).map((r) => [r.stage_id, r.status])));
+  }
+
+  saveNick(p: Pilot) {
+    const nickname = this.ed.nickname.trim();
+    return this.run(supabase.from('profiles').update({ nickname, custom_nickname: true }).eq('id', p.id), `${p.nickname} → ${nickname}`);
+  }
+  steamNick(p: Pilot) {
+    return this.run(supabase.from('profiles').update({ custom_nickname: false }).eq('id', p.id), `${p.nickname}: ник обновится из Steam при следующем входе пилота`);
+  }
+  saveDiscord(p: Pilot) {
+    const discord = this.ed.discord.trim();
+    return this.run(supabase.from('pilot_contacts').upsert({ profile_id: p.id, discord, updated_at: new Date().toISOString() }), `${p.nickname}: Discord ${discord}`);
+  }
+  saveCar(p: Pilot) {
+    return this.run(supabase.from('profiles').update({ car: this.ed.car || null }).eq('id', p.id), `${p.nickname}: машина ${this.ed.car || 'не указана'}`);
+  }
+
+  async uploadAvatar(p: Pilot, e: Event) {
+    const input = e.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    this.busy.set(true);
+    try {
+      const blob = await compressImage(file, 256, 100_000);
+      const path = `${p.id}/avatar.webp`;
+      const { error } = await supabase.storage.from('avatars').upload(path, blob, { upsert: true, contentType: 'image/webp' });
+      if (error) throw error;
+      const url = `${supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl}?v=${Date.now()}`;
+      await this.run(supabase.from('profiles').update({ avatar_url: url, custom_avatar: true }).eq('id', p.id), `${p.nickname}: аватар заменён`);
+    } catch (err) {
+      this.busy.set(false);
+      this.msg.set((err as Error).message ?? 'Не удалось загрузить картинку');
+      this.ok.set(false);
+    }
+  }
+  async steamAvatar(p: Pilot) {
+    if (!confirm(`${p.nickname}: вернуть аватар из Steam? Он обновится при следующем входе пилота.`)) return;
+    await supabase.storage.from('avatars').remove([`${p.id}/avatar.webp`]);
+    await this.run(supabase.from('profiles').update({ custom_avatar: false }).eq('id', p.id), `${p.nickname}: аватар обновится из Steam при следующем входе`);
+  }
+
+  /** штаб записывает без проверок Steam / номера / Discord (prepare_registration) */
+  async register(p: Pilot, s: { id: number; title_ru: string }) {
+    if (!p.start_number && !confirm(`У ${p.nickname} нет стартового номера. Всё равно записать?`)) return;
+    await this.run(
+      supabase.from('registrations').upsert({ stage_id: s.id, profile_id: p.id, status: 'registered' }, { onConflict: 'stage_id,profile_id' }),
+      `${p.nickname} записан на «${s.title_ru}». Если группы уже разбиты — добавьте его в группу на странице этапа.`,
+    );
+    await this.loadPilotRegs(p.id);
+  }
+  async unregister(p: Pilot, s: { id: number; title_ru: string }) {
+    if (!confirm(`Снять ${p.nickname} с этапа «${s.title_ru}»?`)) return;
+    await this.run(
+      supabase.from('registrations').update({ status: 'withdrawn', group_no: null, queue_order: null }).match({ stage_id: s.id, profile_id: p.id }),
+      `${p.nickname} снят с «${s.title_ru}»`,
+    );
+    await this.loadPilotRegs(p.id);
   }
 
   protected readonly legacyFor = signal<string | null>(null);

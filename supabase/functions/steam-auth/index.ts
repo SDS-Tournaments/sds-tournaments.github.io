@@ -64,9 +64,14 @@ Deno.serve(async (req) => {
     return fail('session');
   }
 
-  const { error: profErr } = await db
-    .from('profiles')
-    .upsert({ id: link.user.id, steam_id: steamId, nickname: player.personaname, avatar_url: player.avatarfull });
+  // ник / аватар, заданные организатором вручную (0023), из Steam не перезаписываем
+  const { data: prev } = await db.from('profiles').select('custom_nickname, custom_avatar').eq('id', link.user.id).maybeSingle();
+  const { error: profErr } = await db.from('profiles').upsert({
+    id: link.user.id,
+    steam_id: steamId,
+    ...(prev?.custom_nickname ? {} : { nickname: player.personaname }),
+    ...(prev?.custom_avatar ? {} : { avatar_url: player.avatarfull }),
+  });
   if (profErr) {
     console.error('profile', profErr);
     return fail('profile');
