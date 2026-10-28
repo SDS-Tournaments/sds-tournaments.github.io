@@ -1,4 +1,4 @@
-import { Component, computed, effect, input, OnDestroy, OnInit, signal, untracked } from '@angular/core';
+import { Component, computed, effect, inject, input, OnDestroy, OnInit, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { RealtimeChannel } from '@supabase/supabase-js';
@@ -6,6 +6,7 @@ import { supabase } from '../auth';
 import { Fail, qualStandings } from '../scoring/scoring';
 import { AdminBattles } from './battles';
 import { STAGE_STATUS } from './labels';
+import { JudgeLive, Seat } from './judge-live';
 
 type Crit = 'angle' | 'style' | 'line';
 interface Stage {
@@ -47,10 +48,14 @@ const ATTEMPTS = [
   { n: 2, label: 'Попытка 2' },
 ];
 
-// Пульт судьи — квалификация (spec §5.1). Только RU.
+const SEATS: { key: Seat; label: string }[] = [...CRITS, { key: 'none', label: 'Без оценки' }];
+const SEAT_LABEL = Object.fromEntries(SEATS.map((s) => [s.key, s.label])) as Record<Seat, string>;
+
+// Пульт судьи — квалификация (spec §5.1). Общий для нескольких судей (0024): каждый ставит свой критерий, главный сохраняет. Только RU.
 @Component({
   selector: 'app-admin-judge',
   imports: [FormsModule, RouterLink, AdminBattles],
+  providers: [JudgeLive],
   template: `
     @if (stage(); as st) {
       <header class="bar">
@@ -63,6 +68,25 @@ const ATTEMPTS = [
         <span class="badge" [class.off]="st.status !== 'qualifying' && st.status !== 'battles'">{{ statusLabel[st.status] }}</span>
         <span class="live"><i></i>онлайн</span>
       </header>
+
+      <!-- кто за пультом: место (критерий) и «главный»; список подключённых судей -->
+      <div class="crew card">
+        <span class="lbl">Я оцениваю</span>
+        <div class="seats" role="radiogroup" aria-label="Мой критерий">
+          @for (s of seats; track s.key) {
+            <button type="button" role="radio" [class.on]="live.seat() === s.key" [attr.aria-checked]="live.seat() === s.key" (click)="live.setSeat(s.key)">{{ s.label }}</button>
+          }
+        </div>
+        <label class="chief"><input type="checkbox" [checked]="live.chief()" (change)="live.setChief($any($event.target).checked)" /> Главный судья <span class="subtle">— сохраняет оценки и решения</span></label>
+        <div class="peers">
+          @for (p of live.peers(); track $index) {
+            <span class="peer" [class.boss]="p.chief">{{ p.chief ? '★ ' : '' }}{{ p.nick }} <span class="subtle">· {{ seatLabel[p.seat] }}</span></span>
+          }
+        </div>
+        @if (live.seatClash()) { <p class="bad small">Два судьи выбрали один критерий — проверьте места</p> }
+        @if (!anyChief()) { <p class="warn small">Никто не отметил «Главный судья» — сохранять оценки некому</p> }
+        @if (live.error()) { <p class="bad small">{{ live.error() }}</p> }
+      </div>
 
       @if (mode() === 'battles') {
         <app-admin-battles
@@ -133,15 +157,19 @@ const ATTEMPTS = [
             @if (attempt() === 0) {
               <div class="warmup">
                 <p class="muted">Прогревочный заезд не оценивается — отметьте, что пилот его проехал (или пропустите).</p>
-                <button class="btn btn-primary big" (click)="saveWarmup()" [disabled]="busy()">Прогрев проехал → к попытке 1</button>
+                @if (live.chief()) {
+                  <button class="btn btn-primary big" (click)="saveWarmup()" [disabled]="busy()">Прогрев проехал → к попытке 1</button>
+                } @else { <p class="muted small">Отмечает главный судья.</p> }
               </div>
             } @else {
               <form class="scores" (ngSubmit)="save(null)">
                 @for (c of crits; track c.key) {
-                  <label class="score">
-                    <span class="lbl">{{ c.label }} <span class="subtle">· {{ st.judges[c.key] || 'судья' }}</span></span>
+                  <label class="score" [class.mine]="live.seat() === c.key">
+                    <span class="lbl">{{ c.label }} <span class="subtle">· {{ st.judges[c.key] || 'судья' }}</span>
+                      @if (marks()[c.key]) { <span class="tick" title="Балл поставлен">✓</span> } @else { <span class="wait" title="Ждём балл">…</span> }
+                    </span>
                     <input class="input mono" type="number" step="0.5" min="0" [max]="st.weights[c.key]" [name]="c.key"
-                      [(ngModel)]="form[c.key]" (ngModelChange)="touch()" />
+                      [(ngModel)]="form[c.key]" [attr.data-crit]="c.key" (ngModelChange)="typed(c.key)" [readonly]="!live.canEdit(c.key)" />
                     <span class="max mono subtle">из {{ st.weights[c.key] }}</span>
                   </label>
                 }
@@ -151,18 +179,24 @@ const ATTEMPTS = [
                   @if (offGrid()) { <span class="bad small">Шаг оценки — 0,5</span> }
                 </div>
                 <div class="actions">
-                  <button class="btn btn-primary big" type="submit" [disabled]="busy() || overMax() || offGrid() || !filled()">Сохранить ⏎</button>
-                  @for (f of fails; track f.key) {
-                    <button class="btn btn-secondary" type="button" (click)="save(f.key)" [disabled]="busy()" [title]="f.hint">{{ f.label }} (0)</button>
+                  @if (live.chief()) {
+                    <button class="btn btn-primary big" type="submit" [disabled]="busy() || overMax() || offGrid() || !filled()">Сохранить ⏎</button>
+                    @for (f of fails; track f.key) {
+                      <button class="btn btn-secondary" type="button" (click)="save(f.key)" [disabled]="busy()" [title]="f.hint">{{ f.label }} (0)</button>
+                    }
+                  } @else {
+                    <p class="muted small">Ваш балл сразу виден всем судьям. Сохраняет оценку главный судья.</p>
                   }
                 </div>
               </form>
             }
 
-            <div class="incidents">
-              <button class="btn btn-ghost" (click)="disconnect(c)" [disabled]="busy()">Дисконнект → в конец группы</button>
-              <button class="btn btn-ghost danger" (click)="techLoss(c)" [disabled]="busy()">Техпоражение</button>
-            </div>
+            @if (live.chief()) {
+              <div class="incidents">
+                <button class="btn btn-ghost" (click)="disconnect(c)" [disabled]="busy()">Дисконнект → в конец группы</button>
+                <button class="btn btn-ghost danger" (click)="techLoss(c)" [disabled]="busy()">Техпоражение</button>
+              </div>
+            }
             @if (msg()) { <p [class]="ok() ? 'ok' : 'bad'">{{ msg() }}</p> }
           } @else {
             <div class="finished">
@@ -210,6 +244,20 @@ const ATTEMPTS = [
     .live i { width: 8px; height: 8px; border-radius: 50%; background: var(--primary); animation: pulse 2s ease-out infinite; }
     @keyframes pulse { from { box-shadow: 0 0 0 0 var(--primary-glow); } to { box-shadow: 0 0 0 8px transparent; } }
     .warn { color: var(--warning); font-size: 14px; margin: 0 0 12px; }
+    .crew { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; padding: 12px 16px; margin-bottom: 16px; }
+    .crew .lbl { font-size: 13px; color: var(--ink-muted); }
+    .crew p { margin: 0; flex-basis: 100%; }
+    .seats { display: flex; padding: 3px; border: 1px solid var(--hairline-strong); border-radius: var(--r-pill); background: var(--surface-1); }
+    .seats button {
+      padding: 6px 14px; border: 0; border-radius: var(--r-pill); background: none; color: var(--ink-muted);
+      font: 500 13px var(--font); cursor: pointer; transition: background-color var(--base), color var(--fast);
+      &.on { background: var(--primary); color: var(--on-primary); }
+    }
+    .chief { display: flex; gap: 6px; align-items: center; font-size: 14px; cursor: pointer; input { accent-color: var(--primary); } }
+    .peers { display: flex; flex-wrap: wrap; gap: 6px; margin-left: auto; }
+    .peer { padding: 4px 10px; border-radius: var(--r-pill); background: var(--surface-2); font-size: 12px; }
+    .peer.boss { box-shadow: inset 0 0 0 1px var(--primary); }
+    .small { font-size: 13px; }
 
     .panel { display: grid; grid-template-columns: 260px 1fr 280px; gap: 16px; align-items: start; }
     @media (max-width: 1200px) { .panel { grid-template-columns: 240px 1fr; } .table-side { grid-column: 1 / -1; } }
@@ -259,6 +307,11 @@ const ATTEMPTS = [
     .score .input { font-size: 28px; height: 64px; padding-right: 56px; }
     .max { position: absolute; right: 12px; bottom: 22px; font-size: 12px; }
     .lbl { font-size: 13px; color: var(--ink-muted); }
+    .score.mine .lbl { color: var(--primary); }
+    .score.mine .input { border-color: var(--primary); box-shadow: 0 0 16px -8px var(--primary-glow); }
+    .score .input[readonly] { opacity: 0.75; }
+    .tick { color: var(--primary); margin-left: 4px; }
+    .wait { color: var(--ink-subtle); margin-left: 4px; }
     .total { display: grid; gap: 6px; justify-items: end; }
     .big-total { font-size: 48px; line-height: 64px; color: var(--primary); text-shadow: 0 0 24px var(--primary-glow); }
     .big-total.bad { color: var(--error); text-shadow: none; }
@@ -282,8 +335,23 @@ export class AdminJudge implements OnInit, OnDestroy {
   protected readonly runs = signal<Run[]>([]);
   protected readonly mode = signal<'qual' | 'battles'>('qual');
   protected readonly pilotInfo = computed(() => new Map(this.regs().map((r) => [r.profile_id, { nickname: r.profile?.nickname ?? '?', start_number: r.profile?.start_number ?? null }])));
-  protected readonly selected = signal<string | null>(null);
-  protected readonly selectedAttempt = signal<number | null>(null);
+  protected readonly live = inject(JudgeLive);
+  protected readonly seats = SEATS;
+  protected readonly seatLabel = SEAT_LABEL;
+  protected readonly anyChief = computed(() => this.live.peers().some((p) => p.chief));
+  /** общий выбор (judge_live): 'q:<pilot>:<attempt>'; attempt пустой — следующая непроеханная */
+  private readonly cursor = computed(() => {
+    const t = this.live.target();
+    if (!t?.startsWith('q:')) return null;
+    const [, pid, a] = t.split(':');
+    return { pid, attempt: a ? Number(a) : null };
+  });
+  /** черновик текущего заезда */
+  private readonly runKey = computed(() => {
+    const c = this.current();
+    return c ? `q:${c.profile_id}:${this.attempt()}` : '';
+  });
+  protected readonly marks = computed(() => this.live.marksFor(this.runKey()));
   protected readonly busy = signal(false);
   protected readonly msg = signal<string | null>(null);
   protected readonly ok = signal(true);
@@ -307,13 +375,13 @@ export class AdminJudge implements OnInit, OnDestroy {
     return m;
   });
   protected readonly current = computed(() => {
-    const sel = this.selected();
+    const sel = this.cursor()?.pid;
     return this.queue().find((r) => (sel ? r.profile_id === sel : !this.isDone(r.profile_id))) ?? null;
   });
   protected readonly attempt = computed(() => {
     const c = this.current();
     if (!c) return 1;
-    return this.selectedAttempt() ?? this.attempts().find((a) => !this.hasRun(c.profile_id, a.n))?.n ?? 2;
+    return this.cursor()?.attempt ?? this.attempts().find((a) => !this.hasRun(c.profile_id, a.n))?.n ?? 2;
   });
   protected readonly doneCount = computed(() => this.queue().filter((r) => this.isDone(r.profile_id)).length);
   protected readonly standings = computed(() =>
@@ -339,24 +407,51 @@ export class AdminJudge implements OnInit, OnDestroy {
   });
 
   constructor() {
-    // При смене пилота/попытки — подставить сохранённые оценки (правка) или очистить.
-    // Оценки читаем untracked: обновление с другого пульта не должно стирать то, что судья сейчас вводит.
+    // Поля = черновик судей, иначе сохранённая оценка (правка). Баллы с других пультов подставляются сразу,
+    // кроме поля, в котором сейчас курсор, — чтобы не стирать то, что судья вводит.
+    let lastKey = '';
     effect(() => {
-      const pid = this.current()?.profile_id;
-      const attempt = this.attempt();
+      const key = this.runKey();
+      const marks = this.marks();
       untracked(() => {
-        const r = pid ? this.runOf(pid, attempt) : undefined;
-        this.form = { angle: r?.angle ?? null, style: r?.style ?? null, line: r?.line ?? null };
+        const c = this.current();
+        const r = c ? this.runOf(c.profile_id, this.attempt()) : undefined;
+        const changed = key !== lastKey;
+        lastKey = key;
+        const focused = (document.activeElement as HTMLElement | null)?.dataset?.['crit'];
+        for (const { key: k } of CRITS) {
+          if (!changed && focused === k) continue;
+          this.form[k] = marks[k] ? marks[k]!.score : (r?.[k] ?? null);
+        }
         this.touch();
-        setTimeout(() => document.querySelector<HTMLInputElement>('.scores input')?.focus());
+        if (changed) {
+          const seat = this.live.seat();
+          setTimeout(() => document.querySelector<HTMLInputElement>(`.scores input[data-crit="${seat}"]`)?.focus());
+        }
       });
     });
+  }
+
+  /** ввод балла: через 300 мс уходит остальным судьям */
+  private readonly timers: Partial<Record<Crit, ReturnType<typeof setTimeout>>> = {};
+  protected typed(k: Crit) {
+    this.touch();
+    if (!this.live.canEdit(k)) return;
+    clearTimeout(this.timers[k]);
+    const key = this.runKey();
+    this.timers[k] = setTimeout(() => this.pushMark(key, k), 300);
+  }
+  private pushMark(key: string, k: Crit) {
+    const v = this.form[k];
+    const n = v === null || (v as unknown) === '' ? null : Number(v);
+    if (key && (n === null || Number.isFinite(n))) this.live.setMark(key, k, { score: n });
   }
 
   async ngOnInit() {
     const id = Number(this.id());
     const { data } = await supabase.from('stages').select('id, title_ru, status, weights, judges, bracket_size, warmup').eq('id', id).single();
     this.stage.set(data);
+    await this.live.start(id);
     if (data?.status === 'battles' || data?.status === 'finished') this.mode.set('battles');
     await this.load();
     // Несколько пультов одновременно: любое изменение → перезагрузка
@@ -405,19 +500,17 @@ export class AdminJudge implements OnInit, OnDestroy {
     this.formVersion.update((v) => v + 1);
   }
 
+  /** выбор пилота / попытки — у всех судей сразу */
   pick(pid: string) {
-    this.selected.set(pid);
-    this.selectedAttempt.set(null);
+    this.live.setTarget(`q:${pid}:`);
   }
   pickAttempt(n: number) {
-    this.selected.set(this.current()?.profile_id ?? null);
-    this.selectedAttempt.set(n);
+    this.live.setTarget(`q:${this.current()?.profile_id ?? ''}:${n}`);
   }
 
   /** После сохранения — снова «авто»: следующая попытка или следующий пилот */
   private advance() {
-    this.selected.set(null);
-    this.selectedAttempt.set(null);
+    this.live.setTarget(null);
   }
 
   private async upsertRun(row: Partial<Run>) {
@@ -455,11 +548,21 @@ export class AdminJudge implements OnInit, OnDestroy {
   }
 
   async save(fail: Fail | null) {
+    if (!this.live.chief()) {
+      const k = this.live.seat();
+      if (k !== 'none') {
+        clearTimeout(this.timers[k]);
+        this.pushMark(this.runKey(), k);
+      }
+      return;
+    }
     const spin = !!fail;
     if (!spin && (this.overMax() || this.offGrid())) return;
     const c = this.current();
     const scores = spin ? { angle: null, style: null, line: null } : { angle: Number(this.form.angle), style: Number(this.form.style), line: Number(this.form.line) };
+    const key = this.runKey();
     if (await this.upsertRun({ ...scores, spin, fail })) {
+      this.live.clear(key);
       const label = this.fails.find((f) => f.key === fail)?.label.toLowerCase();
       this.note(`${c?.profile?.nickname}: попытка ${this.attempt()} — ${spin ? label + ', 0' : this.formTotal()}`, true);
       this.advance();

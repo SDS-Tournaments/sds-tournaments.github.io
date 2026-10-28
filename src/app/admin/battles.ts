@@ -1,4 +1,4 @@
-import { Component, computed, input, isDevMode, OnDestroy, OnInit, output, signal } from '@angular/core';
+import { Component, computed, inject, input, isDevMode, OnDestroy, OnInit, output, signal } from '@angular/core';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '../auth';
 import { battleOutcome, bracketSize, buildBracket, QualRow, Round, Vote } from '../scoring/scoring';
@@ -7,6 +7,7 @@ import { finishStage } from './finish';
 import { notify } from '../notify';
 import { BracketTree } from '../components/bracket-tree';
 import { RouterLink } from '@angular/router';
+import { JudgeLive } from './judge-live';
 
 interface Battle {
   id: number;
@@ -79,7 +80,7 @@ const RESULT_LABEL: Record<string, string> = { normal: '', tech_loss: 'техп�
                 <p>Победитель: <b class="win">{{ info(b.winner_id).nickname }}</b>
                   @if (b.result && resultLabel[b.result]) { <span class="subtle">({{ resultLabel[b.result] }})</span> }
                 </p>
-                <button class="btn btn-ghost" (click)="undo(b)" [disabled]="busy() || !canUndo(b)">Отменить решение</button>
+                @if (live.chief()) { <button class="btn btn-ghost" (click)="undo(b)" [disabled]="busy() || !canUndo(b)">Отменить решение</button> }
                 @if (!canUndo(b)) { <span class="subtle small">Нельзя: следующая дуэль уже решена</span> }
                 <button class="btn btn-secondary" (click)="selected.set(null)">К текущей дуэли →</button>
               </div>
@@ -90,13 +91,15 @@ const RESULT_LABEL: Record<string, string> = { normal: '', tech_loss: 'техп�
               <p class="muted small">Два заезда со сменой ролей. После обоих — голос каждого судьи. При дисконнекте — перезаезд, затем голосование.</p>
               <div class="votes">
                 @for (c of crits; track c.key) {
-                  <div class="vrow">
-                    <span class="judge">{{ c.label }} <span class="subtle">· {{ judges()[c.key] || 'судья' }}</span></span>
+                  <div class="vrow" [class.mine]="live.seat() === c.key" [class.locked]="!live.canEdit(c.key)">
+                    <span class="judge">{{ c.label }} <span class="subtle">· {{ judges()[c.key] || 'судья' }}</span>
+                      @if (votes()[c.key]) { <span class="tick">✓</span> } @else { <span class="subtle">…</span> }
+                    </span>
                     <!-- Пилоты в том же порядке, что и карточки выше; OMT посередине -->
                     <div class="seg" role="radiogroup">
                       @for (v of voteKinds; track v) {
                         @let pid = v === 'leader' ? b.leader_id : v === 'chaser' ? b.chaser_id : null;
-                        <button type="button" role="radio" [class.omt-btn]="v === 'omt'" [class.on]="votes()[c.key] === v" [attr.aria-checked]="votes()[c.key] === v" (click)="setVote(c.key, v)">
+                        <button type="button" role="radio" [class.omt-btn]="v === 'omt'" [class.on]="votes()[c.key] === v" [attr.aria-checked]="votes()[c.key] === v" [disabled]="!live.canEdit(c.key)" (click)="setVote(c.key, v)">
                           @if (pid) {
                             <span class="mono vn">{{ info(pid).start_number ?? '—' }}</span> {{ info(pid).nickname }}
                           } @else { OMT }
@@ -108,14 +111,18 @@ const RESULT_LABEL: Record<string, string> = { normal: '', tech_loss: 'техп�
               </div>
               <div class="commit">
                 <span class="preview">{{ preview(b) }}</span>
-                <button class="btn btn-primary big" (click)="submit(b)" [disabled]="busy() || !allVoted() || blocked().has(b.id)">Зафиксировать решение</button>
+                @if (live.chief()) {
+                  <button class="btn btn-primary big" (click)="submit(b)" [disabled]="busy() || !allVoted() || blocked().has(b.id)">Зафиксировать решение</button>
+                } @else { <span class="muted small">Фиксирует главный судья</span> }
               </div>
+              @if (live.chief()) {
               <div class="incidents">
                 <button class="btn btn-ghost danger" (click)="techLoss(b, 'leader')" [disabled]="busy()">Техпоражение: {{ info(b.leader_id).nickname }}</button>
                 <button class="btn btn-ghost danger" (click)="techLoss(b, 'chaser')" [disabled]="busy()">Техпоражение: {{ info(b.chaser_id).nickname }}</button>
                 <button class="btn btn-ghost danger" (click)="contact(b, 'leader')" [disabled]="busy()" title="Врезался в соперника — поражение">💥 Врезался: {{ info(b.leader_id).nickname }}</button>
                 <button class="btn btn-ghost danger" (click)="contact(b, 'chaser')" [disabled]="busy()" title="Врезался в соперника — поражение">💥 Врезался: {{ info(b.chaser_id).nickname }}</button>
               </div>
+              }
             }
             @if (msg()) { <p [class]="ok() ? 'ok' : 'bad'">{{ msg() }}</p> }
           } @else {
@@ -184,6 +191,10 @@ const RESULT_LABEL: Record<string, string> = { normal: '', tech_loss: 'техп�
     .votes { display: grid; gap: 10px; }
     .vrow { display: grid; gap: 6px; }
     .judge { font-size: 14px; }
+    .tick { color: var(--primary); margin-left: 4px; }
+    .vrow.mine .judge { color: var(--primary); }
+    .vrow.mine .seg { border-color: var(--primary); box-shadow: 0 0 16px -8px var(--primary-glow); }
+    .vrow.locked .seg button { cursor: default; &:hover:not(.on) { color: var(--ink-muted); background: var(--surface-1); } }
     .seg { display: grid; grid-template-columns: 1fr 72px 1fr; border: 1px solid var(--hairline-strong); border-radius: var(--r-md); overflow: hidden; }
     .seg button {
       min-height: 48px; padding: 6px 10px; border: 0; border-right: 1px solid var(--hairline-strong); background: var(--surface-1);
@@ -228,7 +239,16 @@ export class AdminBattles implements OnInit, OnDestroy {
   protected readonly protested = signal<number[]>([]);
   protected readonly dev = isDevMode();
   protected readonly selected = signal<number | null>(null);
-  protected readonly votes = signal<Partial<Record<Crit, Vote>>>({});
+  protected readonly live = inject(JudgeLive);
+  /** голоса судей по текущей дуэли (черновик, видят все пульты) */
+  private readonly voteKey = computed(() => {
+    const b = this.current();
+    return b ? `b:${b.id}:${b.omt_count}` : '';
+  });
+  protected readonly votes = computed(() => {
+    const m = this.live.marksFor(this.voteKey());
+    return Object.fromEntries(CRITS.filter((c) => m[c.key]?.vote).map((c) => [c.key, m[c.key]!.vote])) as Partial<Record<Crit, Vote>>;
+  });
   protected readonly busy = signal(false);
   protected readonly msg = signal<string | null>(null);
   protected readonly ok = signal(true);
@@ -302,7 +322,8 @@ export class AdminBattles implements OnInit, OnDestroy {
   }
 
   protected setVote(judge: Crit, v: Vote) {
-    this.votes.update((s) => ({ ...s, [judge]: v }));
+    if (!this.live.canEdit(judge)) return;
+    this.live.setMark(this.voteKey(), judge, { vote: this.votes()[judge] === v ? null : v });
   }
 
   protected preview(b: Battle) {
@@ -356,7 +377,7 @@ export class AdminBattles implements OnInit, OnDestroy {
       const r = await supabase.from('battles').update({ omt_count: b.omt_count + 1, status: 'running' }).eq('id', b.id);
       this.busy.set(false);
       if (r.error) return this.note(r.error.message, false);
-      this.votes.set({});
+      this.live.clear(`b:${b.id}:`);
       await this.load();
       return this.note(`OMT ${b.omt_count + 1}/2 — перезаезд`, true);
     }
@@ -393,7 +414,7 @@ export class AdminBattles implements OnInit, OnDestroy {
     this.busy.set(false);
     const err = results.find((r) => r.error)?.error;
     if (err) return this.note(err.message, false);
-    this.votes.set({});
+    this.live.clear(`b:${b.id}:`);
     this.selected.set(null);
     await this.load();
     this.note(`Победа: ${this.info(winner).nickname}`, true);
@@ -419,7 +440,7 @@ export class AdminBattles implements OnInit, OnDestroy {
     this.busy.set(false);
     const err = results.find((r) => r.error)?.error;
     if (err) return this.note(err.message, false);
-    this.votes.set({});
+    this.live.clear(`b:${b.id}:`);
     await this.load();
     this.note('Решение отменено', true);
   }
