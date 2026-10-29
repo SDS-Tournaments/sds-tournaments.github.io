@@ -19,7 +19,7 @@ import { Ticket } from '../data/tickets';
               <b class="track">{{ t.track }}</b>
               <span class="lv">{{ 'ticket.l' + t.level | transloco }}</span>
             </div>
-            <div class="stub"><span class="mono n">{{ t.level }}</span><span class="of mono">/4</span></div>
+            <div class="stub"><span class="stk"><svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="icon[t.level]" /></svg></span></div>
             @if (t.level === 4) { <i class="spark s1">✦</i><i class="spark s2">✦</i> }
           </div>
         </div>
@@ -32,7 +32,7 @@ import { Ticket } from '../data/tickets';
               <b class="track">{{ tr }}</b>
               <span class="lv">{{ 'ticket.locked' | transloco }}</span>
             </div>
-            <div class="stub"><span class="mono n">?</span></div>
+            <div class="stub"><span class="stk"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" [attr.d]="icon[0]" /></svg></span></div>
           </div>
         </div>
       }
@@ -65,19 +65,23 @@ import { Ticket } from '../data/tickets';
     .main, .stub { background: var(--tk-body); }
     .main { display: grid; align-content: center; padding: 7px 10px; border-radius: calc(var(--r) - var(--bw)) 0 0 calc(var(--r) - var(--bw)); min-width: 0; }
     .stub {
-      display: flex; align-items: baseline; justify-content: center; padding-top: 14px; border-radius: 0 calc(var(--r) - var(--bw)) calc(var(--r) - var(--bw)) 0;
+      display: grid; place-items: center; border-radius: 0 calc(var(--r) - var(--bw)) calc(var(--r) - var(--bw)) 0;
       /* перфорация по линии отрыва */
       background: repeating-linear-gradient(transparent 0 3px, color-mix(in srgb, var(--tk) 70%, transparent) 3px 6px) left top / 1px 100% no-repeat, var(--tk-body);
     }
-    .small .stub { padding-top: 10px; }
     .eb { font-size: 9px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--tk-sub); }
     .small .eb { display: none; }
     .track { font-size: 14px; line-height: 1.25; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .small .track { font-size: 13px; }
     .lv { font-size: 11px; color: var(--tk); font-weight: 600; }
-    .n { font-size: 22px; font-weight: 700; font-style: italic; color: var(--tk); line-height: 1; }
-    .small .n { font-size: 18px; }
-    .of { font-size: 9px; color: var(--tk-sub); }
+    /* стикер уровня: значок в кружке с белой каймой, чуть наклонён */
+    .stk {
+      display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; transform: rotate(-10deg);
+      background: var(--tk); color: #141414; box-shadow: 0 0 0 2px #f4f2ee, 0 3px 6px rgba(0, 0, 0, 0.45);
+    }
+    .stk svg { width: 15px; height: 15px; fill: currentColor; }
+    .small .stk { width: 22px; height: 22px; }
+    .small .stk svg { width: 13px; height: 13px; }
 
     .l2 { --bw: 2px; --tk: #e3e8eb; --frame: linear-gradient(150deg, #7d868c, #f4f7f8 40%, #9aa3a9 60%, #e9edef); }
 
@@ -88,7 +92,7 @@ import { Ticket } from '../data/tickets';
     }
     /* вторая, тонкая рамка внутри */
     .l3 .body::after { content: ''; position: absolute; inset: calc(var(--bw) + 3px); border: 1px solid rgba(245, 215, 122, 0.35); border-radius: calc(var(--r) - 4px); pointer-events: none; }
-    .l3 .n { text-shadow: 0 0 12px rgba(245, 215, 122, 0.6); }
+    .l3 .stk { background: linear-gradient(135deg, #f8e08e, #b8902c); box-shadow: 0 0 0 2px #f4f2ee, 0 0 12px rgba(245, 215, 122, 0.6); }
 
     .l4 {
       --bw: 3px; --tk: #8a6a1c; --tk-body: #f4f2ee; --tk-ink: #111; --tk-sub: #6f6a63; --frame: none;
@@ -101,7 +105,7 @@ import { Ticket } from '../data/tickets';
     .l4 .main { background-image: repeating-linear-gradient(115deg, transparent 0 9px, rgba(201, 151, 28, 0.1) 9px 10px); }
     .l4 .track { font-family: 'Russo One', var(--font); font-weight: 400; text-transform: uppercase; letter-spacing: 0.03em; }
     .small .l4 .track { font-family: inherit; font-weight: 700; text-transform: none; letter-spacing: 0; }
-    .l4 .n { background: linear-gradient(120deg, #111, #8a6a1c 45%, #111); -webkit-background-clip: text; background-clip: text; color: transparent; font-family: 'Russo One', var(--font); font-style: normal; font-weight: 400; }
+    .l4 .stk { background: conic-gradient(#ff6ec7, #ffd36e, #7dffb0, #6ee7ff, #b28dff, #ff6ec7); color: #111; box-shadow: 0 0 0 2px #111, 0 0 12px rgba(255, 211, 110, 0.7); }
     .spark { position: absolute; z-index: 2; font-style: normal; color: #ffd36e; text-shadow: 0 0 6px #fff; animation: twinkle 2.4s ease-in-out infinite; pointer-events: none; }
     .s1 { top: 5px; right: calc(var(--sw) + 6px); font-size: 10px; }
     .s2 { bottom: 4px; right: 6px; font-size: 8px; animation-delay: 1.2s; }
@@ -112,6 +116,7 @@ import { Ticket } from '../data/tickets';
 
     .locked { --tk: var(--hairline-strong); --frame: none; --tk-body: transparent; opacity: 0.6; }
     .locked .body { border: 1px dashed var(--hairline-strong); padding: 0; }
+    .locked .stk { background: none; color: var(--ink-subtle); box-shadow: inset 0 0 0 1px var(--hairline-strong); transform: none; }
     .locked .lv { color: var(--ink-subtle); font-weight: 400; }
     .legend { margin: 10px 0 0; font-size: 12px; }
   `,
@@ -122,4 +127,12 @@ export class TrackTickets {
   readonly locked = input<string[]>([]);
   readonly small = input(false);
   readonly hideTitle = input(false);
+  /** значки стикеров: 0 замок, 1 флаг (квала), 2 звезда (сетка), 3 медаль (финал), 4 корона (победа) */
+  protected readonly icon = [
+    'M7 10V7a5 5 0 0 1 10 0v3h1v11H6V10zm2 0h6V7a3 3 0 0 0-6 0z',
+    'M5 3h2v18H5zM8 4h11l-2.5 4L19 12H8z',
+    'M12 2l2.9 6.9 7.1.6-5.4 4.7 1.6 7.1L12 17.6l-6.2 3.7 1.6-7.1L2 9.5l7.1-.6z',
+    'M7 2h3.5L12 6l1.5-4H17l-2.6 7.4a6 6 0 1 1-4.8 0z',
+    'M3 7l4.5 4.5L12 4l4.5 7.5L21 7l-2 12H5z',
+  ];
 }
