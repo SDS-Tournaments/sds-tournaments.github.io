@@ -74,14 +74,10 @@ import { Ticket } from '../data/tickets';
     .track { font-size: 14px; line-height: 1.25; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .small .track { font-size: 13px; }
     .lv { font-size: 11px; color: var(--tk); font-weight: 600; }
-    /* стикер уровня: значок в кружке с белой каймой, чуть наклонён */
-    .stk {
-      display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; transform: rotate(-10deg);
-      background: var(--tk); color: #141414; box-shadow: 0 0 0 2px #f4f2ee, 0 3px 6px rgba(0, 0, 0, 0.45);
-    }
-    .stk svg { width: 15px; height: 15px; fill: currentColor; }
-    .small .stk { width: 22px; height: 22px; }
-    .small .stk svg { width: 13px; height: 13px; }
+    /* стикер уровня — значок цвета уровня */
+    .stk { display: grid; color: var(--tk); filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5)); }
+    .stk svg { width: 22px; height: 22px; fill: currentColor; }
+    .small .stk svg { width: 18px; height: 18px; }
 
     .l2 { --bw: 2px; --tk: #e3e8eb; --frame: linear-gradient(150deg, #7d868c, #f4f7f8 40%, #9aa3a9 60%, #e9edef); }
 
@@ -92,7 +88,7 @@ import { Ticket } from '../data/tickets';
     }
     /* вторая, тонкая рамка внутри */
     .l3 .body::after { content: ''; position: absolute; inset: calc(var(--bw) + 3px); border: 1px solid rgba(245, 215, 122, 0.35); border-radius: calc(var(--r) - 4px); pointer-events: none; }
-    .l3 .stk { background: linear-gradient(135deg, #f8e08e, #b8902c); box-shadow: 0 0 0 2px #f4f2ee, 0 0 12px rgba(245, 215, 122, 0.6); }
+    .l3 .stk { filter: drop-shadow(0 0 6px rgba(245, 215, 122, 0.7)); }
 
     .l4 {
       --bw: 3px; --tk: #8a6a1c; --tk-body: #f4f2ee; --tk-ink: #111; --tk-sub: #6f6a63; --frame: none;
@@ -105,7 +101,7 @@ import { Ticket } from '../data/tickets';
     .l4 .main { background-image: repeating-linear-gradient(115deg, transparent 0 9px, rgba(201, 151, 28, 0.1) 9px 10px); }
     .l4 .track { font-family: 'Russo One', var(--font); font-weight: 400; text-transform: uppercase; letter-spacing: 0.03em; }
     .small .l4 .track { font-family: inherit; font-weight: 700; text-transform: none; letter-spacing: 0; }
-    .l4 .stk { background: conic-gradient(#ff6ec7, #ffd36e, #7dffb0, #6ee7ff, #b28dff, #ff6ec7); color: #111; box-shadow: 0 0 0 2px #111, 0 0 12px rgba(255, 211, 110, 0.7); }
+    .l4 .stk { color: #b8860b; filter: drop-shadow(0 0 5px rgba(255, 211, 110, 0.8)); }
     .spark { position: absolute; z-index: 2; font-style: normal; color: #ffd36e; text-shadow: 0 0 6px #fff; animation: twinkle 2.4s ease-in-out infinite; pointer-events: none; }
     .s1 { top: 5px; right: calc(var(--sw) + 6px); font-size: 10px; }
     .s2 { bottom: 4px; right: 6px; font-size: 8px; animation-delay: 1.2s; }
@@ -116,7 +112,7 @@ import { Ticket } from '../data/tickets';
 
     .locked { --tk: var(--hairline-strong); --frame: none; --tk-body: transparent; opacity: 0.6; }
     .locked .body { border: 1px dashed var(--hairline-strong); padding: 0; }
-    .locked .stk { background: none; color: var(--ink-subtle); box-shadow: inset 0 0 0 1px var(--hairline-strong); transform: none; }
+    .locked .stk { color: var(--ink-subtle); filter: none; }
     .locked .lv { color: var(--ink-subtle); font-weight: 400; }
     .legend { margin: 10px 0 0; font-size: 12px; }
   `,
