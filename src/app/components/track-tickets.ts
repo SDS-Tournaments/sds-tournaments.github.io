@@ -13,22 +13,27 @@ import { Ticket } from '../data/tickets';
     <div class="list" [class.small]="small()">
       @for (t of tickets(); track t.track) {
         <div class="tk" [class]="'l' + t.level" [title]="('ticket.got' | transloco) + ': ' + t.title">
-          <div class="main">
-            <span class="eb">{{ 'ticket.kind' | transloco }}</span>
-            <b class="track">{{ t.track }}</b>
-            <span class="lv">{{ 'ticket.l' + t.level | transloco }}</span>
+          <div class="body">
+            <div class="main">
+              <span class="eb">{{ 'ticket.kind' | transloco }}</span>
+              <b class="track">{{ t.track }}</b>
+              <span class="lv">{{ 'ticket.l' + t.level | transloco }}</span>
+            </div>
+            <div class="stub"><span class="mono n">{{ t.level }}</span><span class="of mono">/4</span></div>
+            @if (t.level === 4) { <i class="spark s1">✦</i><i class="spark s2">✦</i> }
           </div>
-          <div class="stub"><span class="mono n">{{ t.level }}</span><span class="of mono">/4</span></div>
         </div>
       }
       @for (tr of locked(); track tr) {
         <div class="tk locked">
-          <div class="main">
-            <span class="eb">{{ 'ticket.kind' | transloco }}</span>
-            <b class="track">{{ tr }}</b>
-            <span class="lv">{{ 'ticket.locked' | transloco }}</span>
+          <div class="body">
+            <div class="main">
+              <span class="eb">{{ 'ticket.kind' | transloco }}</span>
+              <b class="track">{{ tr }}</b>
+              <span class="lv">{{ 'ticket.locked' | transloco }}</span>
+            </div>
+            <div class="stub"><span class="mono n">?</span></div>
           </div>
-          <div class="stub"><span class="mono n">?</span></div>
         </div>
       }
       @if (!tickets().length && !locked().length) { <p class="subtle">{{ 'ticket.none' | transloco }}</p> }
@@ -37,43 +42,76 @@ import { Ticket } from '../data/tickets';
   `,
   styles: `
     :host { display: block; }
-    .list { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
-    .list.small { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; }
+    .list { display: grid; grid-template-columns: repeat(auto-fill, minmax(172px, 1fr)); gap: 10px; }
+    .list.small { grid-template-columns: repeat(auto-fill, minmax(156px, 1fr)); gap: 8px; }
+    /* уровни — как у карточек пилота: 1 бронза, 2 серебро, 3 золото (двойная рамка, свечение), 4 легенда (перламутр, голо-рамка, блик, искры) */
     .tk {
-      --tk: var(--ink-subtle);
-      --tk-bg: var(--surface-2);
-      display: grid; grid-template-columns: 1fr 64px; min-height: 92px; color: var(--ink);
+      --sw: 42px; --bw: 1px; --r: 9px;
+      --tk: #c8895a; --frame: linear-gradient(135deg, #6b4226, #c8895a 50%, #7a4b2a); --tk-body: var(--surface-2); --tk-ink: var(--ink); --tk-sub: var(--ink-subtle);
+      color: var(--tk-ink);
+    }
+    .small .tk { --sw: 36px; }
+    .body {
+      position: relative; isolation: isolate; overflow: hidden;
+      display: grid; grid-template-columns: 1fr var(--sw); min-height: 58px; padding: var(--bw);
+      border-radius: var(--r); background: var(--frame);
       /* вырезы на линии отрыва */
-      -webkit-mask: radial-gradient(circle 9px at calc(100% - 64px) 0, #0000 98%, #000) top / 100% 51% no-repeat,
-        radial-gradient(circle 9px at calc(100% - 64px) 100%, #0000 98%, #000) bottom / 100% 51% no-repeat;
-      mask: radial-gradient(circle 9px at calc(100% - 64px) 0, #0000 98%, #000) top / 100% 51% no-repeat,
-        radial-gradient(circle 9px at calc(100% - 64px) 100%, #0000 98%, #000) bottom / 100% 51% no-repeat;
+      -webkit-mask: radial-gradient(circle 6px at calc(100% - var(--sw)) 0, #0000 98%, #000) top / 100% 51% no-repeat,
+        radial-gradient(circle 6px at calc(100% - var(--sw)) 100%, #0000 98%, #000) bottom / 100% 51% no-repeat;
+      mask: radial-gradient(circle 6px at calc(100% - var(--sw)) 0, #0000 98%, #000) top / 100% 51% no-repeat,
+        radial-gradient(circle 6px at calc(100% - var(--sw)) 100%, #0000 98%, #000) bottom / 100% 51% no-repeat;
     }
-    .small .tk { min-height: 72px; grid-template-columns: 1fr 52px; }
-    .main, .stub { background: var(--tk-bg); border: 1px solid color-mix(in srgb, var(--tk) 55%, transparent); }
-    .main { display: grid; align-content: center; gap: 2px; padding: 12px 14px; border-right: 0; border-radius: var(--r-md) 0 0 var(--r-md); min-width: 0; }
+    .small .body { min-height: 48px; }
+    .main, .stub { background: var(--tk-body); }
+    .main { display: grid; align-content: center; padding: 7px 10px; border-radius: calc(var(--r) - var(--bw)) 0 0 calc(var(--r) - var(--bw)); min-width: 0; }
     .stub {
-      display: flex; align-items: baseline; justify-content: center; align-self: stretch; padding-top: 24px; border-left: 0; border-radius: 0 var(--r-md) var(--r-md) 0;
+      display: flex; align-items: baseline; justify-content: center; padding-top: 14px; border-radius: 0 calc(var(--r) - var(--bw)) calc(var(--r) - var(--bw)) 0;
       /* перфорация по линии отрыва */
-      background: repeating-linear-gradient(transparent 0 5px, color-mix(in srgb, var(--tk) 70%, transparent) 5px 9px) left top / 1px 100% no-repeat, var(--tk-bg);
+      background: repeating-linear-gradient(transparent 0 3px, color-mix(in srgb, var(--tk) 70%, transparent) 3px 6px) left top / 1px 100% no-repeat, var(--tk-body);
     }
-    .small .stub { padding-top: 16px; }
-    .eb { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ink-subtle); }
-    .track { font-size: 18px; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .small .track { font-size: 15px; }
-    .lv { font-size: 12px; color: var(--tk); font-weight: 600; }
-    .n { font-size: 30px; font-weight: 700; font-style: italic; color: var(--tk); line-height: 1; }
-    .small .n { font-size: 24px; }
-    .of { font-size: 11px; color: var(--ink-subtle); }
-    .l1 { --tk: var(--ink-muted); }
-    .l2 { --tk: color-mix(in srgb, var(--primary) 70%, var(--ink-muted)); }
-    .l3 { --tk: var(--primary); --tk-bg: color-mix(in srgb, var(--primary) 8%, var(--surface-2)); }
-    .l3 .n { text-shadow: 0 0 14px var(--primary-glow); }
-    .l4 { --tk: #f5c242; --tk-bg: color-mix(in srgb, #f5c242 10%, var(--surface-2)); }
-    .l4 .n { text-shadow: 0 0 16px rgba(245, 194, 66, 0.6); }
-    .l4 .main { background-image: linear-gradient(110deg, transparent 30%, rgba(245, 194, 66, 0.12) 50%, transparent 70%); }
-    .locked { --tk: var(--hairline-strong); opacity: 0.6; }
-    .locked .main, .locked .stub { border-style: dashed; }
+    .small .stub { padding-top: 10px; }
+    .eb { font-size: 9px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--tk-sub); }
+    .small .eb { display: none; }
+    .track { font-size: 14px; line-height: 1.25; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .small .track { font-size: 13px; }
+    .lv { font-size: 11px; color: var(--tk); font-weight: 600; }
+    .n { font-size: 22px; font-weight: 700; font-style: italic; color: var(--tk); line-height: 1; }
+    .small .n { font-size: 18px; }
+    .of { font-size: 9px; color: var(--tk-sub); }
+
+    .l2 { --bw: 2px; --tk: #e3e8eb; --frame: linear-gradient(150deg, #7d868c, #f4f7f8 40%, #9aa3a9 60%, #e9edef); }
+
+    .l3 {
+      --bw: 2px; --tk: #f5d77a; --tk-body: color-mix(in srgb, #f5d77a 7%, var(--surface-2));
+      --frame: linear-gradient(135deg, #7a5a14, #f8e08e 22%, #b8902c 45%, #fff2b8 62%, #8a6a1c 82%, #e8c763);
+      filter: drop-shadow(0 4px 12px rgba(245, 215, 122, 0.3));
+    }
+    /* вторая, тонкая рамка внутри */
+    .l3 .body::after { content: ''; position: absolute; inset: calc(var(--bw) + 3px); border: 1px solid rgba(245, 215, 122, 0.35); border-radius: calc(var(--r) - 4px); pointer-events: none; }
+    .l3 .n { text-shadow: 0 0 12px rgba(245, 215, 122, 0.6); }
+
+    .l4 {
+      --bw: 3px; --tk: #8a6a1c; --tk-body: #f4f2ee; --tk-ink: #111; --tk-sub: #6f6a63; --frame: none;
+      filter: drop-shadow(0 4px 14px rgba(255, 211, 110, 0.35));
+    }
+    /* голографическая рамка вращается под телом билета */
+    .l4 .body::before { content: ''; position: absolute; inset: -150%; z-index: -1; background: conic-gradient(#ff6ec7, #ffd36e, #7dffb0, #6ee7ff, #b28dff, #ff6ec7); animation: spin 4s linear infinite; }
+    /* пробегающий блик */
+    .l4 .body::after { content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none; background: linear-gradient(105deg, transparent 40%, rgba(255, 255, 255, 0.75) 50%, transparent 60%); animation: sweep 3.5s ease-in-out infinite; }
+    .l4 .main { background-image: repeating-linear-gradient(115deg, transparent 0 9px, rgba(201, 151, 28, 0.1) 9px 10px); }
+    .l4 .track { font-family: 'Russo One', var(--font); font-weight: 400; text-transform: uppercase; letter-spacing: 0.03em; }
+    .small .l4 .track { font-family: inherit; font-weight: 700; text-transform: none; letter-spacing: 0; }
+    .l4 .n { background: linear-gradient(120deg, #111, #8a6a1c 45%, #111); -webkit-background-clip: text; background-clip: text; color: transparent; font-family: 'Russo One', var(--font); font-style: normal; font-weight: 400; }
+    .spark { position: absolute; z-index: 2; font-style: normal; color: #ffd36e; text-shadow: 0 0 6px #fff; animation: twinkle 2.4s ease-in-out infinite; pointer-events: none; }
+    .s1 { top: 5px; right: calc(var(--sw) + 6px); font-size: 10px; }
+    .s2 { bottom: 4px; right: 6px; font-size: 8px; animation-delay: 1.2s; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes sweep { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+    @keyframes twinkle { 0%, 100% { opacity: 0.2; transform: scale(0.7); } 50% { opacity: 1; transform: scale(1.15); } }
+    @media (prefers-reduced-motion: reduce) { .l4 .body::before, .l4 .body::after, .spark { animation: none; } }
+
+    .locked { --tk: var(--hairline-strong); --frame: none; --tk-body: transparent; opacity: 0.6; }
+    .locked .body { border: 1px dashed var(--hairline-strong); padding: 0; }
     .locked .lv { color: var(--ink-subtle); font-weight: 400; }
     .legend { margin: 10px 0 0; font-size: 12px; }
   `,
