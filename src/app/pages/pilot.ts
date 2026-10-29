@@ -7,8 +7,6 @@ import { CAR_PROTOTYPES } from '../catalog';
 import { pageTitle } from '../title';
 import { loadSkillRuns, PilotShowcase } from '../components/pilot-showcase';
 import { AchievementShelf } from '../components/achievement-shelf';
-import { TrackTickets } from '../components/track-tickets';
-import { loadTickets, Ticket } from '../data/tickets';
 import { currentSeason } from '../data/standings';
 import { Legacy, SkillRun } from '../scoring/scoring';
 
@@ -38,7 +36,7 @@ interface Result {
 // Публичный профиль пилота: обложка-ливрея, машина, статистика, «паутинка», FIFA-карточка, достижения, история
 @Component({
   selector: 'app-pilot',
-  imports: [RouterLink, TranslocoPipe, Loader, PilotShowcase, AchievementShelf, TrackTickets],
+  imports: [RouterLink, TranslocoPipe, Loader, PilotShowcase, AchievementShelf],
   template: `
     @if (!ready()) {
       <app-loader />
@@ -71,7 +69,6 @@ interface Result {
           </div>
 
           <app-pilot-showcase [pilot]="p" [runs]="runs()" [team]="team()" [wins]="wins()" [legacy]="p.legacy" />
-          @if (tickets().length) { <app-track-tickets class="tickets" [tickets]="tickets()" /> }
           <app-achievement-shelf [profileId]="p.id" />
 
           <h2 class="h sec">{{ 'pilot.history' | transloco }}</h2>
@@ -136,7 +133,6 @@ export class PilotPage implements OnInit {
   protected readonly team = signal<string | null>(null);
   protected readonly results = signal<Result[]>([]);
   protected readonly runs = signal<SkillRun[]>([]);
-  protected readonly tickets = signal<Ticket[]>([]);
   private readonly t = inject(TranslocoService);
   private readonly lang = signal(this.t.getActiveLang());
 
@@ -184,7 +180,6 @@ export class PilotPage implements OnInit {
       ]);
       this.results.set((results.data ?? []) as unknown as Result[]);
       this.runs.set(runs);
-      loadTickets(p.id).then((t) => this.tickets.set(t));
       this.team.set(((member.data as { team: { name: string } | null } | null)?.team?.name) ?? null);
       this.p.set(p);
       pageTitle(`${p.nickname} — пилот`);

@@ -1,8 +1,6 @@
 import { Component, computed, input } from '@angular/core';
 import { CAR_PROTOTYPES } from '../catalog';
 import { Legacy, mergeSkills, SkillRun, skills } from '../scoring/scoring';
-import { TrackTickets } from '../components/track-tickets';
-import { bestTickets } from '../data/tickets';
 import ruText from '../../../public/i18n/ru.json';
 
 export const ACH = ruText.ach as Record<string, { icon: string; name: string; desc: string }>;
@@ -28,14 +26,11 @@ export interface DossierResult {
   qual_place: number;
   total: number;
   title: string;
-  battle_place: number | null;
-  track: string | null;
 }
 
 // Досье пилота для комментатора: кто он (описание от самого пилота), машина, карьера, навыки, ачивки
 @Component({
   selector: 'app-dossier',
-  imports: [TrackTickets],
   template: `
     @let p = pilot();
     <div class="who" [class.compact]="compact()">
@@ -80,10 +75,6 @@ export interface DossierResult {
           <p class="hrow"><span class="t">{{ r.title }}</span><span class="mono subtle">квала {{ r.qual_place }}</span><b class="mono" [class.top]="r.stage_place <= 3">{{ r.stage_place }} место</b><span class="mono subtle">{{ r.total }} очк.</span></p>
         }
       </div>
-    }
-
-    @if (tickets().length) {
-      <div><p class="lbl">Тикеты трасс</p><app-track-tickets [tickets]="tickets()" [small]="true" [hideTitle]="true" /></div>
     }
 
     <div class="achs">
@@ -167,7 +158,6 @@ export class Dossier {
       { k: 'Стиль', v: s.style },
     ];
   }
-  protected readonly tickets = computed(() => bestTickets(this.history()));
   protected readonly achList = computed(() =>
     [...this.achCounts()]
       .filter(([code]) => ACH[code])

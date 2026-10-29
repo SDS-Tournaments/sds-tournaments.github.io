@@ -10,7 +10,6 @@ import { bracketSize, Fail, qualStandings, Round, SkillRun } from '../scoring/sc
 import { STAGE_STATUS } from '../admin/labels';
 import { Chance, duelChances, DuelSide, qualChances, qualTargets } from './chances';
 import { ACH, Dossier, DossierPilot, DossierResult } from './dossier';
-import { bestTickets, ticketOn } from '../data/tickets';
 
 interface Stage {
   id: number;
@@ -20,7 +19,6 @@ interface Stage {
   ord: number;
   warmup: boolean;
   bracket_size: 'auto' | '32' | '16' | '8';
-  track: string | null;
 }
 interface Reg {
   profile_id: string;
@@ -126,15 +124,6 @@ const FAIL_LABEL: Record<Fail, string> = { spin: 'Спин', crash: 'Авари�
                 </div>
               </div>
 
-              @if (stage()!.track) {
-                @let tk = ticketHere(f.profile_id);
-                <div class="tkt">
-                  <span class="lbl">Тикет трассы {{ stage()!.track }}</span>
-                  <p>Сейчас: <b>{{ tk ? 'уровень ' + tk.level + ' — ' + tkName[tk.level] : 'нет' }}</b></p>
-                  <p class="muted small">{{ ticketNext(tk?.level ?? 0) }}</p>
-                </div>
-              }
-
               @if (votes(); as v) {
                 <div class="votes">
                   <span class="lbl">Зрители думают ({{ v.total }})</span>
@@ -203,10 +192,6 @@ const FAIL_LABEL: Record<Fail, string> = { spin: 'Спин', crash: 'Авари�
                 <div class="facts">
                   <span class="pill hi">Квала: {{ placeOf(side.id) ?? '—' }}-й · {{ bestOf(side.id) ?? '—' }}</span>
                   @for (w of pathOf(side.id, b); track $index) { <span class="pill">{{ w }}</span> }
-                  @if (stage()!.track) {
-                    @let tk = ticketHere(side.id);
-                    <span class="pill">Тикет {{ stage()!.track }}: {{ tk ? 'ур. ' + tk.level : 'нет' }} → {{ duelTicket(b.round) }}</span>
-                  }
                 </div>
                 <div class="chances">
                   <p class="lbl">Ачивки в этой дуэли</p>
@@ -302,7 +287,6 @@ const FAIL_LABEL: Record<Fail, string> = { spin: 'Спин', crash: 'Авари�
     .bar, .split { height: 6px; border-radius: 3px; background: var(--surface-3); overflow: hidden; }
     .bar i, .split i { display: block; height: 100%; background: var(--primary); }
     .chances { display: grid; gap: 8px; }
-    .tkt { padding: 12px 14px; border-radius: var(--r-md); background: var(--surface-2); p { margin: 0; font-size: 14px; } .lbl { margin: 0 0 4px; } }
     .ch { display: flex; gap: 12px; align-items: flex-start; padding: 10px 12px; border-radius: var(--r-sm); background: var(--surface-2); border-left: 3px solid var(--primary); cursor: help; }
     .ch.warn { border-left-color: var(--warning); }
     .ch .ic { font-size: 22px; line-height: 1; }
@@ -486,7 +470,7 @@ export class Commentator implements OnInit, OnDestroy {
 
   async ngOnInit() {
     const id = Number(this.id());
-    const { data: st } = await supabase.from('stages').select('id, title_ru, status, season_id, ord, warmup, bracket_size, track').eq('id', id).single();
+    const { data: st } = await supabase.from('stages').select('id, title_ru, status, season_id, ord, warmup, bracket_size').eq('id', id).single();
     if (!st) return;
     this.stage.set(st);
     if (st.status === 'battles' || st.status === 'finished') this.mode.set('battles');
@@ -535,16 +519,16 @@ export class Commentator implements OnInit, OnDestroy {
     const ids = this.regs().map((r) => r.profile_id);
     if (!ids.length) return;
     const [res, achs, members, prev, standings] = await Promise.all([
-      supabase.from('stage_results').select('profile_id, stage_id, stage_place, qual_place, total, battle_place, stage:stages(ord, title_ru, track, season:seasons(title))').in('profile_id', ids).neq('stage_id', st.id),
+      supabase.from('stage_results').select('profile_id, stage_id, stage_place, qual_place, total, stage:stages(ord, title_ru, season:seasons(title))').in('profile_id', ids).neq('stage_id', st.id),
       supabase.from('achievements').select('profile_id, code').in('profile_id', ids),
       supabase.from('team_members').select('profile_id, team:teams(name)').eq('season_id', st.season_id).eq('status', 'approved'),
       supabase.from('stages').select('id').eq('season_id', st.season_id).eq('status', 'finished').lt('ord', st.ord).order('ord'),
       loadStandings(st.season_id),
     ]);
     const hist = new Map<string, DossierResult[]>();
-    type ResRow = { profile_id: string; stage_id: number; stage_place: number; qual_place: number; total: number; battle_place: number | null; stage: { ord: number; title_ru: string; track: string | null; season: { title: string } | null } | null };
+    type ResRow = { profile_id: string; stage_id: number; stage_place: number; qual_place: number; total: number; stage: { ord: number; title_ru: string; season: { title: string } | null } | null };
     for (const r of ((res.data ?? []) as unknown as ResRow[]).sort((a, b) => b.stage_id - a.stage_id)) {
-      hist.set(r.profile_id, [...(hist.get(r.profile_id) ?? []), { stage_id: r.stage_id, stage_place: r.stage_place, qual_place: r.qual_place, total: r.total, battle_place: r.battle_place, track: r.stage?.track ?? null, title: `${r.stage?.season?.title ?? ''} · ${r.stage?.title_ru ?? ''}` }]);
+      hist.set(r.profile_id, [...(hist.get(r.profile_id) ?? []), { stage_id: r.stage_id, stage_place: r.stage_place, qual_place: r.qual_place, total: r.total, title: `${r.stage?.season?.title ?? ''} · ${r.stage?.title_ru ?? ''}` }]);
     }
     this.results.set(hist);
     const a = new Map<string, Map<string, number>>();
@@ -646,30 +630,6 @@ export class Commentator implements OnInit, OnDestroy {
       { role: 'leader' as const, id: b.leader_id! },
       { role: 'chaser' as const, id: b.chaser_id! },
     ];
-  }
-
-  protected readonly tkName: Record<number, string> = { 1: 'квалификация', 2: 'Top 32', 3: 'финал', 4: 'победа' };
-  /** тикет пилота на трассе этапа — по прошлым этапам */
-  protected ticketHere(id: string) {
-    return ticketOn(bestTickets(this.historyOf(id)), this.stage()?.track ?? null);
-  }
-  /** что даст этот этап: следующие уровни выше текущего */
-  protected ticketNext(level: number) {
-    if (level >= 4) return 'Максимальный уровень — уже побеждал на этой трассе';
-    const steps = [
-      [1, 'проедет квалификацию'],
-      [2, `попадёт в Top ${this.cut()}`],
-      [3, 'выйдет в финал'],
-      [4, 'победит'],
-    ] as const;
-    return steps
-      .filter(([l]) => l > level)
-      .map(([l, w]) => `${w} → ур. ${l}`)
-      .join(' · ');
-  }
-  /** победа в дуэли: какой уровень тикета это гарантирует */
-  protected duelTicket(round: Round) {
-    return round === 'final' ? 'победа даст ур. 4' : round === 'sf' ? 'победа даст ур. 3' : 'в сетке — уже ур. 2';
   }
 
   pick(id: string) {

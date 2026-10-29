@@ -2,7 +2,6 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
 import { NextStage } from '../components/next-stage';
 import { LiveStage } from '../components/live-stage';
-import { TrackTickets } from '../components/track-tickets';
 import { NumberPicker } from '../components/number-picker';
 import { RoadStage, SeasonRoad } from '../components/season-road';
 import { CardData, PilotCard, tierOf } from '../components/pilot-card';
@@ -11,17 +10,13 @@ import { Pilot, Pilots, Rank } from './pilots';
 // Витрина базовых стилей для проверки дизайна (/dev/ui), не в меню
 @Component({
   selector: 'app-ui-showcase',
-  imports: [TrackTickets, LiveStage, NumberPicker, SeasonRoad, PilotCard, Pilots, NextStage],
+  imports: [LiveStage, NumberPicker, SeasonRoad, PilotCard, Pilots, NextStage],
   template: `
     <section class="section container stack">
       <h1 class="display-lg">UI kit</h1>
 
       <div class="card"><app-number-picker [(value)]="num" [taken]="taken" nickname="Sadlerk" /></div>
       <app-season-road [stages]="road" />
-
-      <!-- тикеты трасс: все 4 уровня + «ещё не открыт» (как в кабинете), маленькие — как в пульте комментатора -->
-      <div class="card"><app-track-tickets [tickets]="demoTickets" [locked]="['Ebisu Minami', 'Tsukuba']" /></div>
-      <div class="card"><app-track-tickets [tickets]="demoTickets" [small]="true" [hideTitle]="true" /></div>
 
       <!-- плашка стрима «Прогноз зрителей» в парных: разные расклады голосов, все 4 стиля -->
       <div class="card stack-sm">
@@ -141,12 +136,6 @@ export class UiShowcase {
   ];
   protected readonly pollSkin = signal('hud');
   protected readonly replay = signal(0);
-  protected readonly demoTickets = [
-    { track: 'ADM Raceway', level: 4 as const, stageId: 1, title: 'Сезон 1 · Этап 1' },
-    { track: 'Red Ring', level: 3 as const, stageId: 2, title: 'Сезон 1 · Этап 2' },
-    { track: 'Parking', level: 2 as const, stageId: 3, title: 'Сезон 1 · Этап 3' },
-    { track: 'Kami Road', level: 1 as const, stageId: 4, title: 'Сезон 1 · Этап 4' },
-  ];
   /** квалификация: ?qual=1&dist=… — голоса за <80 / 80+ / 85+ / 90+ / 95+ / 100, pollDone — итог */
   protected readonly qualFrames = computed(() =>
     [
