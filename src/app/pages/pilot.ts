@@ -71,8 +71,8 @@ interface Result {
           </div>
 
           <app-pilot-showcase [pilot]="p" [runs]="runs()" [team]="team()" [wins]="wins()" [legacy]="p.legacy" />
-          <app-achievement-shelf [profileId]="p.id" />
           @if (tickets().length) { <app-track-tickets class="tickets" [tickets]="tickets()" /> }
+          <app-achievement-shelf [profileId]="p.id" />
 
           <h2 class="h sec">{{ 'pilot.history' | transloco }}</h2>
           <div class="table-wrap card flush">

@@ -60,8 +60,8 @@ import { compressImage } from '../image';
         <!-- 1. Карточка и навыки -->
         <p class="eyebrow sec">{{ 'me.secCard' | transloco }}</p>
         <app-pilot-showcase [pilot]="me" [runs]="runs()" [team]="team()" [wins]="wins()" [legacy]="me.legacy" />
-        <app-achievement-shelf [profileId]="me.id" />
         <app-track-tickets class="tickets" [tickets]="tickets()" [locked]="lockedTracks()" />
+        <app-achievement-shelf [profileId]="me.id" />
 
         <!-- 2. Сезон: главные действия — запись на этап и команда -->
         <p class="eyebrow sec">{{ 'me.secSeason' | transloco }}</p>

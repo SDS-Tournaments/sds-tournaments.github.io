@@ -42,6 +42,7 @@ import { Ticket } from '../data/tickets';
   `,
   styles: `
     :host { display: block; }
+    .sec { margin: 40px 0 16px; }
     .list { display: grid; grid-template-columns: repeat(auto-fill, minmax(172px, 1fr)); gap: 10px; }
     .list.small { grid-template-columns: repeat(auto-fill, minmax(156px, 1fr)); gap: 8px; }
     /* уровни — как у карточек пилота: 1 бронза, 2 серебро, 3 золото (двойная рамка, свечение), 4 легенда (перламутр, голо-рамка, блик, искры) */
