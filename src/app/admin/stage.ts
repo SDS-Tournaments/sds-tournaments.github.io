@@ -56,6 +56,7 @@ const CRITS: { key: Crit; label: string }[] = [
       <header class="top">
         <h1 class="display-md">{{ st.title_ru }}</h1>
         @if (st.status !== 'draft') {
+          <a class="btn btn-secondary" [routerLink]="['/commentator', st.id]">Пульт комментатора →</a>
           <a class="btn btn-primary" [routerLink]="['/judge', st.id]">Пульт судьи →</a>
         }
       </header>

@@ -40,6 +40,7 @@ export const routes: Routes = [
   },
   // Пульты — на всю ширину, без бокового меню админки
   { path: 'judge/:id', canActivate: [staffGuard], loadComponent: () => import('./admin/judge').then((m) => m.AdminJudge) },
+  { path: 'commentator/:id', canActivate: [staffGuard], title: 'Пульт комментатора', loadComponent: () => import('./commentator/commentator').then((m) => m.Commentator) },
   { path: 'broadcast', canActivate: [staffGuard], loadComponent: () => import('./overlay/broadcast').then((m) => m.Broadcast) },
   // Плашки для OBS — публичная страница без шапки и подвала
   { path: 'overlay', loadComponent: () => import('./overlay/overlay').then((m) => m.Overlay) },
