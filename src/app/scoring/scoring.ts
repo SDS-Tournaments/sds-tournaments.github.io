@@ -215,7 +215,7 @@ export const ACHIEVEMENTS = [
   'win', 'first_win', 'back_to_back', 'hat_trick', 'flawless', 'podium', 'underdog',
   'qual_king', 'perfect_100', 'omt2', 'regicide', 'giant_slayer', 'debut',
   'revenge', 'last_wagon', 'marathon', 'sniper', 'wooden', 'spinner', 'throw_322',
-  'straight2', 'offtrack2', 'crash2', 'god_touch',
+  'straight2', 'offtrack2', 'crash2', 'god_touch', 'loyal',
 ] as const;
 export type Achievement = (typeof ACHIEVEMENTS)[number];
 
@@ -258,6 +258,8 @@ export interface Duel {
 export interface AchContext {
   bracket?: string[];
   prevDuels?: Duel[];
+  /** последний этап сезона: кто проехал все этапы сезона */
+  allStages?: Set<string>;
 }
 
 /**
@@ -307,6 +309,7 @@ export function stageAchievements(
     if (r.stagePlace === 4 && seeded.length >= 4) add('wooden');
     if (pair && pair !== 'sniper') add(pair);
     if (duels.some((d) => d.loser === r.id && d.contact)) add('god_touch');
+    if (ctx.allStages?.has(r.id)) add('loyal');
     // «322»: первый квалификации вылетает от последнего номера посева
     if (r.qualPlace === 1 && lastSeed && duels.some((d) => d.loser === r.id && d.winner === lastSeed)) add('throw_322');
   }

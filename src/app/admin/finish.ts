@@ -11,15 +11,16 @@ import { BattleResult, Duel, finishesFrom, PointsTable, qualStandings, Round, st
 export async function finishStage(stageId: number): Promise<string | null> {
   const { data: stage, error: e1 } = await supabase.from('stages').select('id, season_id, ord').eq('id', stageId).single();
   if (e1) return e1.message;
-  const [season, regs, runs, battles, members, prevStages] = await Promise.all([
+  const [season, regs, runs, battles, members, prevStages, seasonStages] = await Promise.all([
     supabase.from('seasons').select('qual_points, battle_points').eq('id', stage.season_id).single(),
     supabase.from('registrations').select('profile_id, queue_order, status').eq('stage_id', stageId),
     supabase.from('qual_runs').select('profile_id, attempt, total, spin, fail').eq('stage_id', stageId),
     supabase.from('battles').select('round, leader_id, chaser_id, winner_id, result, omt_count').eq('stage_id', stageId),
     supabase.from('team_members').select('profile_id, team_id').eq('season_id', stage.season_id).eq('status', 'approved'),
     supabase.from('stages').select('id').eq('season_id', stage.season_id).eq('status', 'finished').lt('ord', stage.ord).order('ord'),
+    supabase.from('stages').select('id, ord').eq('season_id', stage.season_id).neq('status', 'draft'),
   ]);
-  const err = [season, regs, runs, battles, members, prevStages].find((r) => r.error)?.error;
+  const err = [season, regs, runs, battles, members, prevStages, seasonStages].find((r) => r.error)?.error;
   if (err) return err.message;
 
   const table: PointsTable = { qual: season.data!.qual_points, battle: season.data!.battle_points };
@@ -57,13 +58,20 @@ export async function finishStage(stageId: number): Promise<string | null> {
   // Достижения: история побед — из уже завершённых этапов
   const prevIds = (prevStages.data ?? []).map((s) => s.id);
   const lastPrev = prevIds.at(-1);
-  const [prevWins, everWins, earlier, prevBattles] = await Promise.all([
+  // «А мне тут понравилось...»: этап последний в сезоне и все прошлые этапы сезона завершены
+  const others = (seasonStages.data ?? []).filter((s) => s.id !== stageId);
+  const lastOfSeason = others.every((s) => s.ord < stage.ord) && others.length === prevIds.length;
+  const [prevWins, everWins, earlier, prevBattles, seasonRides] = await Promise.all([
     prevIds.length ? supabase.from('stage_results').select('stage_id, profile_id').in('stage_id', prevIds).eq('stage_place', 1) : Promise.resolve({ data: [] }),
     supabase.from('stage_results').select('profile_id').eq('stage_place', 1).neq('stage_id', stageId),
     // shortcut: «раньше» = этап создан раньше (id меньше); если этапы заводят не по порядку — сравнивать по starts_at
     supabase.from('stage_results').select('profile_id').lt('stage_id', stageId).in('profile_id', places.map((p) => p.id)),
     lastPrev ? supabase.from('battles').select('leader_id, chaser_id, winner_id, result, omt_count').eq('stage_id', lastPrev) : Promise.resolve({ data: [] }),
+    lastOfSeason && prevIds.length ? supabase.from('stage_results').select('profile_id').in('stage_id', prevIds) : Promise.resolve({ data: [] }),
   ]);
+  const rides = new Map<string, number>();
+  for (const r of seasonRides.data ?? []) rides.set(r.profile_id, (rides.get(r.profile_id) ?? 0) + 1);
+  const allStages = new Set(lastOfSeason ? places.filter((p) => (rides.get(p.id) ?? 0) === prevIds.length).map((p) => p.id) : []);
   const prevWinners = prevIds.map((id) => (prevWins.data ?? []).find((w) => w.stage_id === id)?.profile_id ?? '');
   const best = new Map(qual.map((q) => [q.id, q.best]));
   const toDuels = (rows: { leader_id: string | null; chaser_id: string | null; winner_id: string | null; result: string | null; omt_count: number }[]): Duel[] =>
@@ -84,7 +92,7 @@ export async function finishStage(stageId: number): Promise<string | null> {
     new Set((everWins.data ?? []).map((w) => w.profile_id)),
     duels,
     new Set((earlier.data ?? []).map((r) => r.profile_id)),
-    { bracket, prevDuels: toDuels(prevBattles.data ?? []) },
+    { bracket, prevDuels: toDuels(prevBattles.data ?? []), allStages },
   ).map((a) => ({ profile_id: a.id, code: a.code, stage_id: stageId }));
 
   // Пересчёт с нуля

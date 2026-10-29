@@ -267,6 +267,16 @@ describe('итоги этапа', () => {
     expect(got.filter((x) => x.code === 'god_touch')).toEqual([{ id: 'b', code: 'god_touch' }]);
   });
 
+  it('«А мне тут понравилось...» — только тем, кто проехал все этапы сезона', () => {
+    const rows = [
+      { id: 'a', stagePlace: 1, qualPlace: 1, best: 90 },
+      { id: 'b', stagePlace: 2, qualPlace: 2, best: 89 },
+    ];
+    const got = stageAchievements(rows, [], new Set(), [], new Set(['a', 'b']), { allStages: new Set(['b']) });
+    expect(got.filter((x) => x.code === 'loyal')).toEqual([{ id: 'b', code: 'loyal' }]);
+    expect(stageAchievements(rows, [], new Set(), [], new Set(['a', 'b'])).some((x) => x.code === 'loyal')).toBe(false);
+  });
+
   it('достижения за нули: выпрямление, вылет, авария дважды; разные причины — не в зачёт', () => {
     const z = (fail: 'spin' | 'crash' | 'straight' | 'offtrack') => ({ total: 0, spin: true, fail });
     const rows = [

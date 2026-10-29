@@ -241,7 +241,8 @@
     "straight2": { "icon": "📏", "name": "Straight shooter", "desc": "Straighten up on both qualifying runs" },
     "offtrack2": { "icon": "🪱", "name": "Worm digger", "desc": "Go off track on both qualifying runs" },
     "crash2": { "icon": "💸", "name": "Money is no object", "desc": "Crash on both qualifying runs" },
-    "god_touch": { "icon": "☝️", "name": "Divine touch", "desc": "Lose a battle by crashing into your rival" }
+    "god_touch": { "icon": "☝️", "name": "Divine touch", "desc": "Lose a battle by crashing into your rival" },
+    "loyal": { "icon": "🛋️", "name": "I kinda like it here...", "desc": "Take part in every round of the tournament" }
   },
   "standings": {
     "pilot": "Driver",
