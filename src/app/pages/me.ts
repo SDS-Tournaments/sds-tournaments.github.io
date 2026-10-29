@@ -11,6 +11,8 @@ import { ContentRules } from '../components/content-rules';
 import { Loader } from '../components/loader';
 import { loadSkillRuns, PilotShowcase } from '../components/pilot-showcase';
 import { AchievementShelf } from '../components/achievement-shelf';
+import { TrackTickets } from '../components/track-tickets';
+import { loadTickets, loadTracks, Ticket } from '../data/tickets';
 import { publicSeasons } from '../data/standings';
 import { SkillRun } from '../scoring/scoring';
 import { StageSignup } from '../components/stage-signup';
@@ -19,7 +21,7 @@ import { compressImage } from '../image';
 // Личный кабинет пилота (шаг 2.2). Регистрация на этап и команда — шаги 3.3–3.4.
 @Component({
   selector: 'app-me',
-  imports: [FormsModule, TranslocoPipe, NumberPicker, StageSignup, MyTeam, MyProtests, Loader, PilotShowcase, AchievementShelf, ContentRules],
+  imports: [FormsModule, TranslocoPipe, NumberPicker, StageSignup, MyTeam, MyProtests, Loader, PilotShowcase, AchievementShelf, ContentRules, TrackTickets],
   template: `
     <section class="section container">
       @if (!auth.ready()) {
@@ -59,6 +61,7 @@ import { compressImage } from '../image';
         <p class="eyebrow sec">{{ 'me.secCard' | transloco }}</p>
         <app-pilot-showcase [pilot]="me" [runs]="runs()" [team]="team()" [wins]="wins()" [legacy]="me.legacy" />
         <app-achievement-shelf [profileId]="me.id" />
+        <app-track-tickets class="tickets" [tickets]="tickets()" [locked]="lockedTracks()" />
 
         <!-- 2. Сезон: главные действия — запись на этап и команда -->
         <p class="eyebrow sec">{{ 'me.secSeason' | transloco }}</p>
@@ -435,6 +438,13 @@ export class Me {
   protected readonly numberLocked = signal(false);
 
   /** запись на этап с открытой регистрацией: registered — записан, open — регистрация идёт, но не записан, closed — нет открытых этапов */
+  protected readonly tickets = signal<Ticket[]>([]);
+  private readonly tracks = signal<string[]>([]);
+  /** трассы опубликованных этапов, где тикета ещё нет */
+  protected readonly lockedTracks = computed(() => {
+    const own = new Set(this.tickets().map((t) => t.track.toLowerCase()));
+    return this.tracks().filter((t) => !own.has(t.toLowerCase()));
+  });
   protected readonly regState = signal<'registered' | 'open' | 'closed' | null>(null);
   async loadReg(id: string) {
     const [open, mine] = await Promise.all([
@@ -537,6 +547,10 @@ export class Me {
     this.seasonId.set(season?.id ?? null);
     this.loadLock(id);
     this.loadReg(id);
+    Promise.all([loadTickets(id), loadTracks()]).then(([t, tracks]) => {
+      this.tickets.set(t);
+      this.tracks.set(tracks);
+    });
     const [runs, wins, member] = await Promise.all([
       loadSkillRuns(id),
       supabase.from('stage_results').select('stage_id', { count: 'exact', head: true }).eq('profile_id', id).eq('stage_place', 1),

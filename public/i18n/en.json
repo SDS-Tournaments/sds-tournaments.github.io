@@ -425,5 +425,17 @@
     "stageClosedHint": "Registration is closed for now — we’ll announce it on Discord",
     "readyTitle": "All set — you’re in the round.",
     "readyText": "See you on track!"
+  },
+  "ticket": {
+    "title": "Track tickets",
+    "kind": "Track ticket",
+    "l1": "Qualifying",
+    "l2": "Top 32",
+    "l3": "Final",
+    "l4": "Win",
+    "locked": "Not unlocked",
+    "got": "Earned",
+    "none": "No tickets yet — finish qualifying at any round.",
+    "legend": "One ticket per track, it levels up: 1 — qualifying, 2 — Top 32, 3 — final, 4 — win."
   }
 }
