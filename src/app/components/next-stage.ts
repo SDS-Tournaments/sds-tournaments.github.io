@@ -11,43 +11,34 @@ const pad = (n: number) => String(n).padStart(2, '0');
 const step = (level: number) => (Math.max(1, level) - 1) / (HYPE_STEPS.length - 1);
 
 // Карточка ближайшего этапа: таймер до старта + сколько пилотов уже записалось.
-/** Трещины вокруг карточки в координатах 0…100 слоя ×1.4: карточка — квадрат 14.3…85.7 */
-function makeCracks(): { d: string; dl: string; branch: boolean }[] {
+/** Трещины вокруг карточки в координатах 0…100 слоя ×2.2: карточка — квадрат 27.3…72.7. Ветвятся, уровень 0 — ствол, 1–2 — ветки */
+function makeCracks(): { d: string; dl: string; lv: number }[] {
   let seed = 7;
   const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
-  const A = 14.3, B = 85.7;
-  const out: { d: string; dl: string; branch: boolean }[] = [];
-  for (let i = 0; i < 18; i++) {
-    const side = i % 4;
-    const t = A + (B - A) * (0.08 + 0.84 * rnd());
-    // точка на краю и направление наружу
-    let [x, y, dx, dy] = side === 0 ? [t, A, 0, -1] : side === 1 ? [B, t, 1, 0] : side === 2 ? [t, B, 0, 1] : [A, t, -1, 0];
-    let ang = Math.atan2(dy, dx) + (rnd() - 0.5) * 1.1;
+  const A = 27.3, B = 72.7;
+  const out: { d: string; dl: string; lv: number }[] = [];
+  const fx = (p: [number, number][]) => 'M' + p.map((q) => q[0].toFixed(2) + ' ' + q[1].toFixed(2)).join(' L');
+  // трещина растёт от (x, y) под углом ang; по пути отпочковывает ветки; задержка растёт с удалением — свет «расползается»
+  const grow = (x: number, y: number, ang: number, steps: number, lv: number, dl: number) => {
     const pts: [number, number][] = [[x, y]];
-    const steps = 4 + Math.floor(rnd() * 4);
-    let branchAt = 1 + Math.floor(rnd() * (steps - 1));
     for (let s = 0; s < steps; s++) {
-      ang += (rnd() - 0.5) * 1.2;
-      const len = 1.6 + rnd() * 2.4;
+      ang += (rnd() - 0.5) * (lv ? 1 : 0.8);
+      const len = (lv ? 1.1 : 1.6) + rnd() * (lv ? 1.4 : 1.8);
       x += Math.cos(ang) * len;
       y += Math.sin(ang) * len;
       pts.push([x, y]);
-      if (s === branchAt) {
-        // ответвление в сторону
-        let bx = x, by = y, ba = ang + (rnd() < 0.5 ? -1 : 1) * (0.6 + rnd() * 0.6);
-        const bp: [number, number][] = [[bx, by]];
-        for (let k = 0; k < 2 + Math.floor(rnd() * 2); k++) {
-          ba += (rnd() - 0.5) * 0.9;
-          const l = 1.2 + rnd() * 1.6;
-          bx += Math.cos(ba) * l;
-          by += Math.sin(ba) * l;
-          bp.push([bx, by]);
-        }
-        out.push({ d: 'M' + bp.map((p) => p.map((v) => v.toFixed(2)).join(' ')).join(' L'), dl: (0.3 + i * 0.07 + 0.4).toFixed(2), branch: true });
-        branchAt = -1;
+      if (lv < 2 && s < steps - 1 && rnd() < (lv ? 0.25 : 0.38)) {
+        const side = rnd() < 0.5 ? -1 : 1;
+        grow(x, y, ang + side * (0.5 + rnd() * 0.7), Math.max(2, Math.round((steps - s) * (0.45 + rnd() * 0.3))), lv + 1, dl + (s / steps) * 0.9);
       }
     }
-    out.push({ d: 'M' + pts.map((p) => p.map((v) => v.toFixed(2)).join(' ')).join(' L'), dl: (0.3 + i * 0.07).toFixed(2), branch: false });
+    out.push({ d: fx(pts), dl: dl.toFixed(2), lv });
+  };
+  for (let i = 0; i < 30; i++) {
+    const side = i % 4;
+    const t = A + (B - A) * (0.04 + 0.92 * rnd());
+    const [x, y, dx, dy] = side === 0 ? [t, A, 0, -1] : side === 1 ? [B, t, 1, 0] : side === 2 ? [t, B, 0, 1] : [A, t, -1, 0];
+    grow(x, y, Math.atan2(dy, dx) + (rnd() - 0.5) * 1.2, 6 + Math.floor(rnd() * 8), 0, 0.2 + rnd() * 1.4);
   }
   return out;
 }
@@ -87,7 +78,7 @@ function makeCracks(): { d: string; dl: string; branch: boolean }[] {
     @if (hypeOn() && lvx()) {
       <i class="xaura" aria-hidden="true"></i>
       <svg class="xcracks" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-        @for (c of cracks; track $index) { <path [attr.d]="c.d" pathLength="1" [style.--dl.s]="c.dl" [class.br]="c.branch" /> }
+        @for (c of cracks; track $index) { <path [attr.d]="c.d" pathLength="1" [style.--dl.s]="c.dl" [class]="'l' + c.lv" /> }
       </svg>
     }
     @if (hypeOn() && hy().level >= 10) {
@@ -404,18 +395,19 @@ function makeCracks(): { d: string; dl: string; branch: boolean }[] {
     :host(.max) .num { animation: glitch 2.8s steps(1) infinite, num-pump 1.1s ease-in-out infinite; }
     @keyframes num-pump { 12% { scale: 1.18; } 24% { scale: 1; } 36% { scale: 1.1; } 50% { scale: 1; } }
 
-    /* ── X: трещины вокруг карточки (рамка × 1.4, карточка — середина 14.3…85.7% по обеим осям), из них бьёт свет ── */
+    /* ── X: трещины вокруг карточки (слой × 2.2, карточка — середина 27.3…72.7% по обеим осям), из них бьёт свет ── */
     .xcracks {
-      position: absolute; inset: -20%; width: 140%; height: 140%; z-index: -1; overflow: visible; pointer-events: none;
+      position: absolute; inset: -60%; width: 220%; height: 220%; z-index: -1; overflow: visible; pointer-events: none;
       filter: drop-shadow(0 0 2px #fff) drop-shadow(0 0 6px var(--hc)) drop-shadow(0 0 16px var(--hc));
       animation: x-surge 3.2s ease-in infinite;
     }
     .xcracks path {
-      fill: none; stroke: #fff; stroke-width: 0.32; stroke-linecap: round; stroke-linejoin: round;
+      fill: none; stroke: #fff; stroke-width: 0.22; stroke-linecap: round; stroke-linejoin: round;
       stroke-dasharray: 1; stroke-dashoffset: 1;
-      animation: x-crack 0.9s cubic-bezier(0.2, 0.9, 0.3, 1) var(--dl) forwards, x-flick 1.7s steps(2) calc(var(--dl) + 0.9s) infinite;
+      animation: x-crack 1.1s cubic-bezier(0.2, 0.9, 0.3, 1) var(--dl) forwards, x-flick 1.7s steps(2) calc(var(--dl) + 1.1s) infinite;
     }
-    .xcracks path.br { stroke-width: 0.18; }
+    .xcracks path.l1 { stroke-width: 0.13; }
+    .xcracks path.l2 { stroke-width: 0.08; opacity: 0.85; }
     @keyframes x-crack { to { stroke-dashoffset: 0; } }
     @keyframes x-flick { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
     /* выброс: трещины раз в 3 с вспыхивают, свет за карточкой раздувается */
