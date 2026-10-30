@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { hype, HYPE_STEPS, hypeX } from './hype';
+import { Bolt, makeBolt } from './lightning';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
@@ -11,38 +12,6 @@ const pad = (n: number) => String(n).padStart(2, '0');
 const step = (level: number) => (Math.max(1, level) - 1) / (HYPE_STEPS.length - 1);
 
 // Карточка ближайшего этапа: таймер до старта + сколько пилотов уже записалось.
-/** Трещины вокруг карточки в координатах 0…100 слоя ×2.2: карточка — квадрат 27.3…72.7. Ветвятся, уровень 0 — ствол, 1–2 — ветки */
-function makeCracks(): { d: string; dl: string; lv: number }[] {
-  let seed = 7;
-  const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
-  const A = 27.3, B = 72.7;
-  const out: { d: string; dl: string; lv: number }[] = [];
-  const fx = (p: [number, number][]) => 'M' + p.map((q) => q[0].toFixed(2) + ' ' + q[1].toFixed(2)).join(' L');
-  // трещина растёт от (x, y) под углом ang; по пути отпочковывает ветки; задержка растёт с удалением — свет «расползается»
-  const grow = (x: number, y: number, ang: number, steps: number, lv: number, dl: number) => {
-    const pts: [number, number][] = [[x, y]];
-    for (let s = 0; s < steps; s++) {
-      ang += (rnd() - 0.5) * (lv ? 1 : 0.8);
-      const len = (lv ? 1.1 : 1.6) + rnd() * (lv ? 1.4 : 1.8);
-      x += Math.cos(ang) * len;
-      y += Math.sin(ang) * len;
-      pts.push([x, y]);
-      if (lv < 2 && s < steps - 1 && rnd() < (lv ? 0.25 : 0.38)) {
-        const side = rnd() < 0.5 ? -1 : 1;
-        grow(x, y, ang + side * (0.5 + rnd() * 0.7), Math.max(2, Math.round((steps - s) * (0.45 + rnd() * 0.3))), lv + 1, dl + (s / steps) * 0.9);
-      }
-    }
-    out.push({ d: fx(pts), dl: dl.toFixed(2), lv });
-  };
-  for (let i = 0; i < 30; i++) {
-    const side = i % 4;
-    const t = A + (B - A) * (0.04 + 0.92 * rnd());
-    const [x, y, dx, dy] = side === 0 ? [t, A, 0, -1] : side === 1 ? [B, t, 1, 0] : side === 2 ? [t, B, 0, 1] : [A, t, -1, 0];
-    grow(x, y, Math.atan2(dy, dx) + (rnd() - 0.5) * 1.2, 6 + Math.floor(rnd() * 8), 0, 0.2 + rnd() * 1.4);
-  }
-  return out;
-}
-
 // «Хайп»: чем больше записавшихся, тем ярче свечение и чаще пульсация карточки (уровни — hype.ts)
 @Component({
   selector: 'app-next-stage',
@@ -65,7 +34,7 @@ function makeCracks(): { d: string; dl: string; lv: number }[] {
     <!-- лестница хайпа — меняется сама карточка:
          5 острые углы · 6 кометы по рамке · 7 «эхо»-рамки разъезжаются · 8 глитч
          9 уголки-прицелы, искры, «Куда столько?» · 10 сердцебиение, осколки, пламя, тряска, «ВЫ ЧТО ТВОРИТЕ?»
-         X (скрытый, 120+) трещины вокруг карточки, из них бьёт свет, выбросы энергии, «ЭТО НЕРЕАЛЬНО» -->
+         X (скрытый, 120+) вокруг карточки бьют молнии (сами стоят на месте), выбросы энергии, «ЭТО НЕРЕАЛЬНО» -->
     @if (hypeOn() && hy().level >= 7) { <i class="echo e1" aria-hidden="true"></i><i class="echo e2" aria-hidden="true"></i> }
     @if (hypeOn() && hy().level >= 6) { <i class="orbit" aria-hidden="true"></i> }
     @if (hypeOn() && hy().level >= 9) { <span class="shout" [class.loud]="hy().level >= 10" [style]="hy().level >= 10 ? glitchVars() : null">{{ (lvx() ? 'home.next.shoutX' : hy().level >= 10 ? 'home.next.shout10' : 'home.next.shout9') | transloco }}</span> }
@@ -76,10 +45,14 @@ function makeCracks(): { d: string; dl: string; lv: number }[] {
       </span>
     }
     @if (hypeOn() && lvx()) {
-      <i class="xaura" aria-hidden="true"></i>
-      <svg class="xcracks" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-        @for (c of cracks; track $index) { <path [attr.d]="c.d" pathLength="1" [style.--dl.s]="c.dl" [class]="'l' + c.lv" /> }
-      </svg>
+      <div class="xsky" aria-hidden="true">
+        <i class="xaura"></i>
+        <svg class="xbolts" viewBox="0 0 100 100" preserveAspectRatio="none">
+          @for (b of bolts(); track b.id) {
+            <g class="bolt">@for (p of b.paths; track $index) { <path [attr.d]="p.d" [class]="'l' + p.lv" /> }</g>
+          }
+        </svg>
+      </div>
     }
     @if (hypeOn() && hy().level >= 10) {
       <i class="flames" aria-hidden="true"></i>
@@ -395,28 +368,35 @@ function makeCracks(): { d: string; dl: string; lv: number }[] {
     :host(.max) .num { animation: glitch 2.8s steps(1) infinite, num-pump 1.1s ease-in-out infinite; }
     @keyframes num-pump { 12% { scale: 1.18; } 24% { scale: 1; } 36% { scale: 1.1; } 50% { scale: 1; } }
 
-    /* ── X: трещины вокруг карточки (слой × 2.2, карточка — середина 27.3…72.7% по обеим осям), из них бьёт свет ── */
-    .xcracks {
-      position: absolute; inset: -60%; width: 220%; height: 220%; z-index: -1; overflow: visible; pointer-events: none;
-      filter: drop-shadow(0 0 2px #fff) drop-shadow(0 0 6px var(--hc)) drop-shadow(0 0 16px var(--hc));
-      animation: x-surge 3.2s ease-in infinite;
+    /* ── X: молнии вокруг карточки. Слой ×2.2 (карточка — середина 27.3…72.7%) и гасит пульс и тряску карточки обратной анимацией — молнии стоят на месте ── */
+    .xsky {
+      position: absolute; inset: -60%; z-index: -1; pointer-events: none;
+      animation: x-heart-inv 1.1s ease-in-out infinite, x-jolt-inv 3.2s ease-in infinite;
     }
-    .xcracks path {
-      fill: none; stroke: #fff; stroke-width: 0.22; stroke-linecap: round; stroke-linejoin: round;
-      stroke-dasharray: 1; stroke-dashoffset: 1;
-      animation: x-crack 1.1s cubic-bezier(0.2, 0.9, 0.3, 1) var(--dl) forwards, x-flick 1.7s steps(2) calc(var(--dl) + 1.1s) infinite;
+    @keyframes x-heart-inv { 0%, 100% { scale: 0.9709; } 12% { scale: 0.9174; } 24% { scale: 0.9709; } 36% { scale: 0.9346; } 50% { scale: 0.9709; } }
+    @keyframes x-jolt-inv {
+      0%, 74%, 100% { translate: 0 0; }
+      76% { translate: 7px -3px; }
+      78% { translate: -8px 4px; }
+      80% { translate: 6px 2px; }
+      82% { translate: -4px -3px; }
+      85% { translate: 2px 0; }
     }
-    .xcracks path.l1 { stroke-width: 0.13; }
-    .xcracks path.l2 { stroke-width: 0.08; opacity: 0.85; }
-    @keyframes x-crack { to { stroke-dashoffset: 0; } }
-    @keyframes x-flick { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
-    /* выброс: трещины раз в 3 с вспыхивают, свет за карточкой раздувается */
-    @keyframes x-surge {
-      0%, 70%, 100% { filter: drop-shadow(0 0 2px #fff) drop-shadow(0 0 6px var(--hc)) drop-shadow(0 0 16px var(--hc)); }
-      78% { filter: drop-shadow(0 0 4px #fff) drop-shadow(0 0 14px #fff) drop-shadow(0 0 40px var(--hc)); }
+    .xbolts {
+      position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible;
+      filter: drop-shadow(0 0 1.5px #fff) drop-shadow(0 0 7px var(--hc)) drop-shadow(0 0 22px var(--hc));
+    }
+    .xbolts path { fill: none; stroke: #fff; stroke-width: 0.3; stroke-linecap: round; stroke-linejoin: round; }
+    .xbolts path.l1 { stroke-width: 0.11; }
+    .xbolts path.l2 { stroke-width: 0.05; opacity: 0.8; }
+    /* удар: вспышка, мерцание, повторный разряд, гаснет */
+    .bolt { opacity: 0; animation: strike 0.95s linear forwards; }
+    @keyframes strike {
+      0% { opacity: 0; } 3% { opacity: 1; } 9% { opacity: 0.25; } 14% { opacity: 1; } 22% { opacity: 0.5; }
+      28% { opacity: 0.95; } 55% { opacity: 0.7; } 100% { opacity: 0; }
     }
     .xaura {
-      position: absolute; inset: -30%; z-index: -2; pointer-events: none; border-radius: 50%;
+      position: absolute; inset: 13.6%; z-index: -1; border-radius: 50%;
       background: radial-gradient(closest-side, color-mix(in oklab, var(--hc), #fff 45%), color-mix(in oklab, var(--hc), transparent 55%) 45%, transparent 75%);
       opacity: 0.35; animation: x-aura 3.2s ease-in infinite;
     }
@@ -446,8 +426,7 @@ function makeCracks(): { d: string; dl: string; lv: number }[] {
       :host(.hype) .hglow, :host(.r2)::before, .live .dot::after,
       .orbit::before, .sparks i, .flames, :host(.max), :host(.max) .num,
       .shout, .echo, :host(.g8) .title, :host(.g8) .num, .lock i, .shards i,
-      .xcracks, .xaura, :host(.lvx), .xlv { animation: none; }
-      .xcracks path { animation: none; stroke-dashoffset: 0; }
+      .xsky, .xaura, :host(.lvx), .xlv { animation: none; }
     }
     .live { display: flex; align-items: center; gap: 8px; color: var(--error); }
     .live .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--error); }
@@ -469,8 +448,8 @@ export class NextStage {
   protected readonly hypeOn = computed(() => !!this.stage() && this.status() === 'registration');
   protected readonly hy = computed(() => hype(this.registered()));
   protected readonly lvx = computed(() => hypeX(this.registered()));
-  /** трещины уровня X: от краёв карточки наружу, ломаные, с ответвлениями (детерминированно) */
-  protected readonly cracks = makeCracks();
+  /** молнии уровня X: каждые 0.25–0.7 с новый удар в случайном месте, живёт ~1 с */
+  protected readonly bolts = signal<Bolt[]>([]);
   /** позиция заполнения полоски в делениях (0…7): плавно едет от 0 к уровню + доле текущего */
   private readonly fillPos = signal(0);
   /** деление i заполняется, только когда линия до него доехала — одна непрерывная линия слева направо */
@@ -529,6 +508,22 @@ export class NextStage {
   constructor() {
     const id = setInterval(() => this.now.set(Date.now()), 1000);
     inject(DestroyRef).onDestroy(() => clearInterval(id));
+
+    // уровень X: молнии бьют, пока он есть; без анимаций (reduced motion) — одна молния стоит
+    effect((onCleanup) => {
+      if (!this.hypeOn() || !this.lvx()) return this.bolts.set([]);
+      if (matchMedia('(prefers-reduced-motion: reduce)').matches) return this.bolts.set([makeBolt(0)]);
+      let n = 0;
+      let timer: ReturnType<typeof setTimeout>;
+      const strike = () => {
+        const b = makeBolt(++n);
+        this.bolts.update((list) => [...list.slice(-3), b]);
+        setTimeout(() => this.bolts.update((list) => list.filter((x) => x !== b)), 1000);
+        timer = setTimeout(strike, 250 + Math.random() * 450);
+      };
+      strike();
+      onCleanup(() => clearTimeout(timer));
+    });
 
     // Счёт регистраций от 0 до N за ~1.2 с
     effect((onCleanup) => {
