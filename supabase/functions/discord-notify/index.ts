@@ -96,6 +96,9 @@ async function send(hook: string, embed: Embed) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       username: 'Sad Drift Series',
+      // каждое объявление пингует весь сервер; allowed_mentions — иначе Discord может не дать вебхуку упомянуть @everyone
+      content: '@everyone',
+      allowed_mentions: { parse: ['everyone'] },
       avatar_url: SITE ? `${SITE}/icon.png` : undefined,
       embeds: [{ ...embed, thumbnail: SITE ? { url: `${SITE}/icon.png` } : undefined, footer: { text: 'Sad Drift Series · CarX Drift Racing Online 2' }, timestamp: new Date().toISOString() }],
     }),
