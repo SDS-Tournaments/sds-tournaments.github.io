@@ -1,4 +1,4 @@
-import { Component, computed, DestroyRef, effect, inject, input, signal, untracked } from '@angular/core';
+import { Component, computed, DestroyRef, effect, ElementRef, inject, input, signal, untracked } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -59,8 +59,8 @@ const step = (level: number) => (Math.max(1, level) - 1) / (HYPE_STEPS.length - 
           </defs>
           <g [attr.mask]="'url(#' + maskId + ')'">
             @for (b of bolts(); track b.id) {
-              <g class="bolt">
-                @for (p of b.paths; track $index) { <path [attr.d]="p.d" pathLength="1" [class]="'l' + p.lv" [style.--dl.s]="p.dl" [style.--du.s]="p.du" /> }
+              <g class="bolt" [style.--bd.s]="b.dur" [style.opacity]="0.5 + 0.5 * b.power">
+                @for (p of b.paths; track $index) { <path [attr.d]="p.d" pathLength="1" [class]="'l' + p.lv" [style.stroke-width]="p.w" [style.--dl.s]="p.dl" [style.--du.s]="p.du" /> }
               </g>
             }
           </g>
@@ -400,16 +400,16 @@ const step = (level: number) => (Math.max(1, level) - 1) / (HYPE_STEPS.length - 
       filter: drop-shadow(0 0 1.5px #fff) drop-shadow(0 0 7px var(--hc)) drop-shadow(0 0 22px var(--hc));
     }
     .xbolts path {
-      fill: none; stroke: #fff; stroke-width: 0.3; stroke-linecap: round; stroke-linejoin: round;
+      fill: none; stroke: #fff; stroke-linecap: round; stroke-linejoin: round;
       /* прорастает от начала к концу: канал первым, отростки — когда канал дошёл до их места */
-      stroke-dasharray: 1; stroke-dashoffset: 1; animation: grow var(--du) cubic-bezier(0.3, 0.6, 0.4, 1) var(--dl) forwards;
+      stroke-dasharray: 1; stroke-dashoffset: 1;
     }
     @keyframes grow { to { stroke-dashoffset: 0; } }
     .xhole { transform-box: fill-box; transform-origin: center; animation: heart 1.1s ease-in-out infinite; }
-    .xbolts path.l1 { stroke-width: 0.11; }
-    .xbolts path.l2 { stroke-width: 0.05; opacity: 0.8; }
+    .xbolts path.l2 { opacity: 0.75; }
     /* удар: пока прорастает — видна; потом мерцание, повторный разряд и медленно гаснет */
-    .bolt { animation: strike 2.4s linear forwards; }
+    /* яркость — по силе удара (opacity на самой группе), мерцание — на пути */
+    .bolt path { animation: grow var(--du) cubic-bezier(0.3, 0.6, 0.4, 1) var(--dl) forwards, strike var(--bd) linear forwards; }
     @keyframes strike {
       0%, 40% { opacity: 1; } 44% { opacity: 0.35; } 48% { opacity: 1; } 56% { opacity: 0.6; }
       61% { opacity: 1; } 78% { opacity: 0.7; } 100% { opacity: 0; }
@@ -445,8 +445,8 @@ const step = (level: number) => (Math.max(1, level) - 1) / (HYPE_STEPS.length - 
       :host(.hype) .hglow, :host(.r2)::before, .live .dot::after,
       .orbit::before, .sparks i, .flames, :host(.max), :host(.max) .num,
       .shout, .echo, :host(.g8) .title, :host(.g8) .num, .lock i, .shards i,
-      .xsky, .xaura, :host(.lvx), .xlv, .bolt, .xhole { animation: none; }
-      .xbolts path { animation: none; stroke-dashoffset: 0; }
+      .xsky, .xaura, :host(.lvx), .xlv, .xhole { animation: none; }
+      .xbolts path, .bolt path { animation: none; stroke-dashoffset: 0; }
     }
     .live { display: flex; align-items: center; gap: 8px; color: var(--error); }
     .live .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--error); }
@@ -530,20 +530,56 @@ export class NextStage {
     const id = setInterval(() => this.now.set(Date.now()), 1000);
     inject(DestroyRef).onDestroy(() => clearInterval(id));
 
-    // уровень X: молнии бьют, пока он есть; без анимаций (reduced motion) — одна молния стоит
+    // уровень X: молнии бьют в такт прыжкам карточки — по её CSS-анимациям (heart 1.1 с, x-jolt 3.2 с):
+    // главный удар сердца — средняя молния, второй (послабее) — слабая, рывок — две сильные.
+    // Без анимаций (reduced motion) — одна молния стоит.
+    const host = inject(ElementRef).nativeElement as HTMLElement;
     effect((onCleanup) => {
       if (!this.hypeOn() || !this.lvx()) return this.bolts.set([]);
       if (matchMedia('(prefers-reduced-motion: reduce)').matches) return this.bolts.set([makeBolt(0)]);
       let n = 0;
-      let timer: ReturnType<typeof setTimeout>;
-      const strike = () => {
-        const b = makeBolt(++n);
-        this.bolts.update((list) => [...list.slice(-3), b]);
-        setTimeout(() => this.bolts.update((list) => list.filter((x) => x !== b)), 2500);
-        timer = setTimeout(strike, 900 + Math.random() * 900);
+      let raf = 0;
+      const timers = new Set<ReturnType<typeof setTimeout>>();
+      const strike = (power: number, side?: number) => {
+        const b = makeBolt(++n, power, Math.random, side);
+        this.bolts.update((list) => [...list.slice(-6), b]);
+        const t = setTimeout(() => {
+          timers.delete(t);
+          this.bolts.update((list) => list.filter((x) => x !== b));
+        }, b.dur * 1000 + 100);
+        timers.add(t);
       };
-      strike();
-      onCleanup(() => clearTimeout(timer));
+      // пороги — чуть раньше пика прыжка: молния успевает «ударить» в момент толчка
+      const beats = [
+        { name: 'heart', ms: 1100, at: 0.08, power: () => 0.55 },
+        { name: 'heart', ms: 1100, at: 0.32, power: () => 0.3 },
+        { name: 'x-jolt', ms: 3200, at: 0.73, power: () => 1, double: true },
+      ];
+      const last = new Map<number, number>();
+      const tick = () => {
+        const anims = host.getAnimations() as CSSAnimation[];
+        beats.forEach((b, i) => {
+          // Angular приписывает к именам @keyframes префикс компонента: _ngcontent-…_heart
+          const a = anims.find((x) => x.animationName === b.name || x.animationName.endsWith('_' + b.name));
+          const ct = a?.currentTime;
+          if (typeof ct !== 'number') return;
+          const ph = (ct % b.ms) / b.ms;
+          const prev = last.get(i);
+          last.set(i, ph);
+          if (prev === undefined) return;
+          if ((prev < b.at && ph >= b.at) || (prev > ph && ph >= b.at)) {
+            const side = Math.floor(Math.random() * 4);
+            strike(b.power(), side);
+            if (b.double) strike(b.power(), (side + 2) % 4);
+          }
+        });
+        raf = requestAnimationFrame(tick);
+      };
+      raf = requestAnimationFrame(tick);
+      onCleanup(() => {
+        cancelAnimationFrame(raf);
+        timers.forEach(clearTimeout);
+      });
     });
 
     // Счёт регистраций от 0 до N за ~1.2 с
