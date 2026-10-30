@@ -47,7 +47,9 @@
       "pilots": { "one": "driver", "few": "drivers", "many": "drivers" },
       "hypeMax": "Sold out! Max hype 🔥",
       "shout9": "Why so many?",
-      "shout10": "WHAT ARE YOU DOING?"
+      "shout10": "WHAT ARE YOU DOING?",
+      "shoutX": "THIS IS UNREAL",
+      "hypeX": "Level X. This should not exist ⚡"
     },
     "leaders": "Season leaders",
     "pilots": "Drivers",

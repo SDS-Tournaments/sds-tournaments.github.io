@@ -3,7 +3,7 @@ import { DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
-import { hype, HYPE_STEPS } from './hype';
+import { hype, HYPE_STEPS, hypeX } from './hype';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
@@ -11,6 +11,47 @@ const pad = (n: number) => String(n).padStart(2, '0');
 const step = (level: number) => (Math.max(1, level) - 1) / (HYPE_STEPS.length - 1);
 
 // Карточка ближайшего этапа: таймер до старта + сколько пилотов уже записалось.
+/** Трещины вокруг карточки в координатах 0…100 слоя ×1.4: карточка — квадрат 14.3…85.7 */
+function makeCracks(): { d: string; dl: string; branch: boolean }[] {
+  let seed = 7;
+  const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+  const A = 14.3, B = 85.7;
+  const out: { d: string; dl: string; branch: boolean }[] = [];
+  for (let i = 0; i < 18; i++) {
+    const side = i % 4;
+    const t = A + (B - A) * (0.08 + 0.84 * rnd());
+    // точка на краю и направление наружу
+    let [x, y, dx, dy] = side === 0 ? [t, A, 0, -1] : side === 1 ? [B, t, 1, 0] : side === 2 ? [t, B, 0, 1] : [A, t, -1, 0];
+    let ang = Math.atan2(dy, dx) + (rnd() - 0.5) * 1.1;
+    const pts: [number, number][] = [[x, y]];
+    const steps = 4 + Math.floor(rnd() * 4);
+    let branchAt = 1 + Math.floor(rnd() * (steps - 1));
+    for (let s = 0; s < steps; s++) {
+      ang += (rnd() - 0.5) * 1.2;
+      const len = 1.6 + rnd() * 2.4;
+      x += Math.cos(ang) * len;
+      y += Math.sin(ang) * len;
+      pts.push([x, y]);
+      if (s === branchAt) {
+        // ответвление в сторону
+        let bx = x, by = y, ba = ang + (rnd() < 0.5 ? -1 : 1) * (0.6 + rnd() * 0.6);
+        const bp: [number, number][] = [[bx, by]];
+        for (let k = 0; k < 2 + Math.floor(rnd() * 2); k++) {
+          ba += (rnd() - 0.5) * 0.9;
+          const l = 1.2 + rnd() * 1.6;
+          bx += Math.cos(ba) * l;
+          by += Math.sin(ba) * l;
+          bp.push([bx, by]);
+        }
+        out.push({ d: 'M' + bp.map((p) => p.map((v) => v.toFixed(2)).join(' ')).join(' L'), dl: (0.3 + i * 0.07 + 0.4).toFixed(2), branch: true });
+        branchAt = -1;
+      }
+    }
+    out.push({ d: 'M' + pts.map((p) => p.map((v) => v.toFixed(2)).join(' ')).join(' L'), dl: (0.3 + i * 0.07).toFixed(2), branch: false });
+  }
+  return out;
+}
+
 // «Хайп»: чем больше записавшихся, тем ярче свечение и чаще пульсация карточки (уровни — hype.ts)
 @Component({
   selector: 'app-next-stage',
@@ -21,6 +62,7 @@ const step = (level: number) => (Math.max(1, level) - 1) / (HYPE_STEPS.length - 
     '[class.g5]': 'hypeOn() && hy().level >= 5',
     '[class.g8]': 'hypeOn() && hy().level >= 8',
     '[class.max]': 'hypeOn() && hy().level >= 10',
+    '[class.lvx]': 'hypeOn() && lvx()',
     '[style.--hc]': 'color(hy().level, 0.95)',
     // свечение и частота пульса растут только до 5-го уровня — дальше уровни отличаются новыми эффектами
     '[style.--hg]': 'color(hy().level, 0.18 + glowLv() * 0.07)',
@@ -31,15 +73,22 @@ const step = (level: number) => (Math.max(1, level) - 1) / (HYPE_STEPS.length - 
     <i class="hglow" aria-hidden="true"></i>
     <!-- лестница хайпа — меняется сама карточка:
          5 острые углы · 6 кометы по рамке · 7 «эхо»-рамки разъезжаются · 8 глитч
-         9 уголки-прицелы, искры, «Куда столько?» · 10 сердцебиение, осколки, пламя, тряска, «ВЫ ЧТО ТВОРИТЕ?» -->
+         9 уголки-прицелы, искры, «Куда столько?» · 10 сердцебиение, осколки, пламя, тряска, «ВЫ ЧТО ТВОРИТЕ?»
+         X (скрытый, 120+) трещины вокруг карточки, из них бьёт свет, выбросы энергии, «ЭТО НЕРЕАЛЬНО» -->
     @if (hypeOn() && hy().level >= 7) { <i class="echo e1" aria-hidden="true"></i><i class="echo e2" aria-hidden="true"></i> }
     @if (hypeOn() && hy().level >= 6) { <i class="orbit" aria-hidden="true"></i> }
-    @if (hypeOn() && hy().level >= 9) { <span class="shout" [class.loud]="hy().level >= 10" [style]="hy().level >= 10 ? glitchVars() : null">{{ (hy().level >= 10 ? 'home.next.shout10' : 'home.next.shout9') | transloco }}</span> }
+    @if (hypeOn() && hy().level >= 9) { <span class="shout" [class.loud]="hy().level >= 10" [style]="hy().level >= 10 ? glitchVars() : null">{{ (lvx() ? 'home.next.shoutX' : hy().level >= 10 ? 'home.next.shout10' : 'home.next.shout9') | transloco }}</span> }
     @if (hypeOn() && hy().level >= 9) {
       <span class="lock" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
       <span class="sparks" aria-hidden="true">
         @for (k of sparks; track k.x) { <i [style.left.%]="k.x" [style.--dl.s]="k.d" [style.--du.s]="k.t" [style.--dx.px]="k.dx"></i> }
       </span>
+    }
+    @if (hypeOn() && lvx()) {
+      <i class="xaura" aria-hidden="true"></i>
+      <svg class="xcracks" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+        @for (c of cracks; track $index) { <path [attr.d]="c.d" pathLength="1" [style.--dl.s]="c.dl" [class.br]="c.branch" /> }
+      </svg>
     }
     @if (hypeOn() && hy().level >= 10) {
       <i class="flames" aria-hidden="true"></i>
@@ -93,7 +142,7 @@ const step = (level: number) => (Math.max(1, level) - 1) / (HYPE_STEPS.length - 
         <div class="hype-bar">
           <div class="hb-top">
             <span>{{ 'home.next.hype' | transloco }}</span>
-            <span class="mono">{{ hy().level }}/{{ hy().max }}</span>
+            @if (lvx()) { <span class="mono xlv">X</span> } @else { <span class="mono">{{ hy().level }}/{{ hy().max }}</span> }
           </div>
           <div class="segs" aria-hidden="true">
             @for (i of segs; track i) {
@@ -102,6 +151,7 @@ const step = (level: number) => (Math.max(1, level) - 1) / (HYPE_STEPS.length - 
           </div>
           <p class="hb-note">
             @if (hy().toNext; as n) { {{ 'home.next.hypeNext' | transloco: { n, w: ('home.next.pilots.' + plural(n)) | transloco, l: hy().level + 1 } }} }
+            @else if (lvx()) { <span class="xnote">{{ 'home.next.hypeX' | transloco }}</span> }
             @else { {{ 'home.next.hypeMax' | transloco }} }
           </p>
         </div>
@@ -354,6 +404,44 @@ const step = (level: number) => (Math.max(1, level) - 1) / (HYPE_STEPS.length - 
     :host(.max) .num { animation: glitch 2.8s steps(1) infinite, num-pump 1.1s ease-in-out infinite; }
     @keyframes num-pump { 12% { scale: 1.18; } 24% { scale: 1; } 36% { scale: 1.1; } 50% { scale: 1; } }
 
+    /* ── X: трещины вокруг карточки (рамка × 1.4, карточка — середина 14.3…85.7% по обеим осям), из них бьёт свет ── */
+    .xcracks {
+      position: absolute; inset: -20%; width: 140%; height: 140%; z-index: -1; overflow: visible; pointer-events: none;
+      filter: drop-shadow(0 0 2px #fff) drop-shadow(0 0 6px var(--hc)) drop-shadow(0 0 16px var(--hc));
+      animation: x-surge 3.2s ease-in infinite;
+    }
+    .xcracks path {
+      fill: none; stroke: #fff; stroke-width: 0.32; stroke-linecap: round; stroke-linejoin: round;
+      stroke-dasharray: 1; stroke-dashoffset: 1;
+      animation: x-crack 0.9s cubic-bezier(0.2, 0.9, 0.3, 1) var(--dl) forwards, x-flick 1.7s steps(2) calc(var(--dl) + 0.9s) infinite;
+    }
+    .xcracks path.br { stroke-width: 0.18; }
+    @keyframes x-crack { to { stroke-dashoffset: 0; } }
+    @keyframes x-flick { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+    /* выброс: трещины раз в 3 с вспыхивают, свет за карточкой раздувается */
+    @keyframes x-surge {
+      0%, 70%, 100% { filter: drop-shadow(0 0 2px #fff) drop-shadow(0 0 6px var(--hc)) drop-shadow(0 0 16px var(--hc)); }
+      78% { filter: drop-shadow(0 0 4px #fff) drop-shadow(0 0 14px #fff) drop-shadow(0 0 40px var(--hc)); }
+    }
+    .xaura {
+      position: absolute; inset: -30%; z-index: -2; pointer-events: none; border-radius: 50%;
+      background: radial-gradient(closest-side, color-mix(in oklab, var(--hc), #fff 45%), color-mix(in oklab, var(--hc), transparent 55%) 45%, transparent 75%);
+      opacity: 0.35; animation: x-aura 3.2s ease-in infinite;
+    }
+    @keyframes x-aura { 0%, 70%, 100% { opacity: 0.3; scale: 0.9; } 78% { opacity: 0.85; scale: 1.15; } 90% { opacity: 0.4; scale: 1; } }
+    /* карточку дёргает в момент выброса */
+    :host(.lvx) { animation: heart 1.1s ease-in-out infinite, x-jolt 3.2s ease-in infinite; }
+    @keyframes x-jolt {
+      0%, 74%, 100% { translate: 0 0; }
+      76% { translate: -7px 3px; }
+      78% { translate: 8px -4px; }
+      80% { translate: -6px -2px; }
+      82% { translate: 4px 3px; }
+      85% { translate: -2px 0; }
+    }
+    .xlv { font: 400 15px 'Russo One', var(--font); color: #fff; text-shadow: 0 0 6px var(--hc), 0 0 16px var(--hc); animation: glitch 2.8s steps(1) infinite; }
+    .xnote { color: #fff; font-weight: 600; text-shadow: 0 0 10px var(--hc); }
+
     .hype-bar { display: grid; gap: 8px; }
     .hb-top { display: flex; justify-content: space-between; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ink-subtle); }
     .hb-top .mono { color: var(--hc, var(--ink-muted)); }
@@ -365,7 +453,9 @@ const step = (level: number) => (Math.max(1, level) - 1) / (HYPE_STEPS.length - 
     @media (prefers-reduced-motion: reduce) {
       :host(.hype) .hglow, :host(.r2)::before, .live .dot::after,
       .orbit::before, .sparks i, .flames, :host(.max), :host(.max) .num,
-      .shout, .echo, :host(.g8) .title, :host(.g8) .num, .lock i, .shards i { animation: none; }
+      .shout, .echo, :host(.g8) .title, :host(.g8) .num, .lock i, .shards i,
+      .xcracks, .xaura, :host(.lvx), .xlv { animation: none; }
+      .xcracks path { animation: none; stroke-dashoffset: 0; }
     }
     .live { display: flex; align-items: center; gap: 8px; color: var(--error); }
     .live .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--error); }
@@ -386,6 +476,9 @@ export class NextStage {
   /** хайп только пока идёт регистрация */
   protected readonly hypeOn = computed(() => !!this.stage() && this.status() === 'registration');
   protected readonly hy = computed(() => hype(this.registered()));
+  protected readonly lvx = computed(() => hypeX(this.registered()));
+  /** трещины уровня X: от краёв карточки наружу, ломаные, с ответвлениями (детерминированно) */
+  protected readonly cracks = makeCracks();
   /** позиция заполнения полоски в делениях (0…7): плавно едет от 0 к уровню + доле текущего */
   private readonly fillPos = signal(0);
   /** деление i заполняется, только когда линия до него доехала — одна непрерывная линия слева направо */
@@ -394,9 +487,11 @@ export class NextStage {
   }
   protected readonly segs = HYPE_STEPS.map((_, i) => i);
   /** «ВЫ ЧТО ТВОРИТЕ?» во время глитча: настоящий текст и 5 вариантов, где часть букв заменена мусором */
-  private readonly shout10 = toSignal(inject(TranslocoService).selectTranslate('home.next.shout10'), { initialValue: '' });
+  private readonly tl = inject(TranslocoService);
+  private readonly shout10 = toSignal(this.tl.selectTranslate('home.next.shout10'), { initialValue: '' });
+  private readonly shoutX = toSignal(this.tl.selectTranslate('home.next.shoutX'), { initialValue: '' });
   protected readonly glitchVars = computed(() => {
-    const text = this.shout10();
+    const text = this.lvx() ? this.shoutX() : this.shout10();
     const junk = '#@%&$!?/<>*+=0137'; // без букв (одинаково для RU и EN) и только из шрифта надписи
     const vars: Record<string, string> = { '--g0': JSON.stringify(text) };
     for (let v = 1; v <= 5; v++) {

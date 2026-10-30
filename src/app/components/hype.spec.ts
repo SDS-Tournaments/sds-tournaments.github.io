@@ -1,4 +1,4 @@
-import { hype } from './hype';
+import { hype, hypeX } from './hype';
 
 describe('уровень хайпа этапа', () => {
   it('до 5 пилотов — уровень 0, считаем до пятого', () => {
@@ -14,5 +14,6 @@ describe('уровень хайпа этапа', () => {
     expect(hype(72)).toMatchObject({ level: 8, toNext: 8 });
     expect(hype(100)).toEqual({ level: 10, max: 10, toNext: null, progress: 1 });
     expect(hype(150).level).toBe(10);
+    expect([100, 120, 121].map(hypeX)).toEqual([false, false, true]);
   });
 });
