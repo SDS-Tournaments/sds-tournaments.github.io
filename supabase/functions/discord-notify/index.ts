@@ -1,5 +1,7 @@
 // Оповещения в Discord: регистрация открыта, этап начался, какая группа едет / готовится, итоги этапа (+ лидер сезона), новый протест, тест из админки.
 // Два канала: RU и EN (зарубежные пилоты) — каждое объявление уходит в оба на своём языке; протесты — только в RU (штабу).
+// Тестовый канал: test: true в запросе (штаб, «Прогнать все сообщения») или включённый тестовый режим — всё уходит только туда,
+// оба языка подряд, с пометкой «🧪 ТЕСТ»; протест в тесте не помечается отправленным и может быть любой давности.
 // Вебхуки — в private_settings (видны только admin). Вызывать может: штаб — любые события, пилот — только свой свежий протест.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
@@ -111,18 +113,27 @@ Deno.serve(async (req) => {
   const { data: me } = await db.from('profiles').select('role').eq('id', uid).single();
   const staff = me?.role === 'admin' || me?.role === 'staff';
 
-  const { type, id, lang } = await req.json();
-  const { data: settings } = await db.from('private_settings').select('discord_webhook_url, discord_webhook_en').eq('id', 1).single();
+  const body = await req.json();
+  const { type, id, lang } = body;
+  const { data: settings } = await db.from('private_settings').select('discord_webhook_url, discord_webhook_en, discord_webhook_test, discord_test_mode').eq('id', 1).single();
+  const testRun = (staff && body.test === true) || lang === 'test' || !!settings?.discord_test_mode;
+  if (testRun && !staff && type !== 'protest') return json({ error: 'Только для штаба' }, 403);
   const hooks: Partial<Record<Lang, string>> = {};
-  if (settings?.discord_webhook_url) hooks.ru = settings.discord_webhook_url;
-  if (settings?.discord_webhook_en) hooks.en = settings.discord_webhook_en;
+  if (testRun) {
+    // тест: оба языка — в один тестовый канал; нет тестового вебхука — никуда (настоящие каналы не трогаем)
+    if (!settings?.discord_webhook_test) return json({ skipped: 'тестовый вебхук не настроен' });
+    hooks.ru = hooks.en = settings.discord_webhook_test;
+  } else {
+    if (settings?.discord_webhook_url) hooks.ru = settings.discord_webhook_url;
+    if (settings?.discord_webhook_en) hooks.en = settings.discord_webhook_en;
+  }
 
   /** готовое сообщение на нужном языке; null — в этот канал не шлём */
   let build: (l: Lang) => Embed | null;
 
   if (type === 'test') {
     if (!staff) return json({ error: 'Только для штаба' }, 403);
-    const only: Lang = lang === 'en' ? 'en' : 'ru';
+    const only: Lang = lang === 'en' ? 'en' : 'ru'; // lang 'test' — тестовый канал, сообщение по-русски
     build = (l) => (l === only ? { title: T[l].testTitle, description: T[l].testText, color: TIFFANY, url: SITE || undefined } : null);
   } else if (type === 'protest') {
     const { data: p } = await db
@@ -132,10 +143,12 @@ Deno.serve(async (req) => {
       .single();
     const pr = p as unknown as { profile_id: string; created_at: string; notified_at: string | null; reason: string; video_url: string; battle: { round: string } | null; pilot: { nickname: string; start_number: number | null } | null; stage: { title_ru: string } | null };
     if (!pr || (!staff && pr.profile_id !== uid)) return json({ error: 'Нет доступа' }, 403);
-    if (pr.notified_at) return json({ skipped: 'уже отправлено' });
-    if (Date.now() - Date.parse(pr.created_at) > 10 * 60_000) return json({ skipped: 'протест старше 10 минут' });
+    if (!testRun) {
+      if (pr.notified_at) return json({ skipped: 'уже отправлено' });
+      if (Date.now() - Date.parse(pr.created_at) > 10 * 60_000) return json({ skipped: 'протест старше 10 минут' });
+    }
     if (!hooks.ru) return json({ skipped: 'вебхук не настроен' });
-    await db.from('protests').update({ notified_at: new Date().toISOString() }).eq('id', id);
+    if (!testRun) await db.from('protests').update({ notified_at: new Date().toISOString() }).eq('id', id);
     // протест — дело штаба, только в русский канал
     build = (l) =>
       l === 'ru'
@@ -226,9 +239,16 @@ Deno.serve(async (req) => {
 
   const jobs = (Object.entries(hooks) as [Lang, string][]).flatMap(([l, hook]) => {
     const e = build(l);
-    return e ? [send(hook, e)] : [];
+    if (!e) return [];
+    // в тестовом канале видно, какой это язык и что это тест
+    return [{ hook, e: testRun ? { ...e, title: `🧪 ТЕСТ · ${l.toUpperCase()} · ${e.title ?? ''}` } : e }];
   });
   if (!jobs.length) return json({ skipped: 'вебхук не настроен' });
-  const errors = (await Promise.all(jobs)).filter(Boolean);
+  // по очереди: в тестовом канале RU и EN идут друг за другом, а не вперемешку
+  const errors: string[] = [];
+  for (const j of jobs) {
+    const err = await send(j.hook, j.e);
+    if (err) errors.push(err);
+  }
   return json(errors.length ? { error: errors.join('; ') } : { sent: true }, errors.length ? 502 : 200);
 });
