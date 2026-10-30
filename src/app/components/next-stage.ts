@@ -7,6 +7,8 @@ import { hype, HYPE_STEPS, hypeX } from './hype';
 import { Bolt, makeBolt } from './lightning';
 
 const pad = (n: number) => String(n).padStart(2, '0');
+/** id маски молний: карточек на странице может быть несколько (UI kit) */
+let maskSeq = 0;
 
 /** доля уровня 0…1 (1-й уровень — 0, последний — 1); сам оттенок задаёт тема: --hype-h0 и --hype-span */
 const step = (level: number) => (Math.max(1, level) - 1) / (HYPE_STEPS.length - 1);
@@ -48,9 +50,20 @@ const step = (level: number) => (Math.max(1, level) - 1) / (HYPE_STEPS.length - 
       <div class="xsky" aria-hidden="true">
         <i class="xaura"></i>
         <svg class="xbolts" viewBox="0 0 100 100" preserveAspectRatio="none">
-          @for (b of bolts(); track b.id) {
-            <g class="bolt">@for (p of b.paths; track $index) { <path [attr.d]="p.d" [class]="'l' + p.lv" /> }</g>
-          }
+          <!-- под карточкой молнию не видно: дыра в маске размером с карточку и пульсирует вместе с ней -->
+          <defs>
+            <mask [attr.id]="maskId" maskUnits="userSpaceOnUse" x="-60" y="-60" width="220" height="220">
+              <rect x="-60" y="-60" width="220" height="220" fill="#fff" />
+              <rect class="xhole" x="27.3" y="27.3" width="45.4" height="45.4" fill="#000" />
+            </mask>
+          </defs>
+          <g [attr.mask]="'url(#' + maskId + ')'">
+            @for (b of bolts(); track b.id) {
+              <g class="bolt">
+                @for (p of b.paths; track $index) { <path [attr.d]="p.d" pathLength="1" [class]="'l' + p.lv" [style.--dl.s]="p.dl" [style.--du.s]="p.du" /> }
+              </g>
+            }
+          </g>
         </svg>
       </div>
     }
@@ -386,14 +399,20 @@ const step = (level: number) => (Math.max(1, level) - 1) / (HYPE_STEPS.length - 
       position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible;
       filter: drop-shadow(0 0 1.5px #fff) drop-shadow(0 0 7px var(--hc)) drop-shadow(0 0 22px var(--hc));
     }
-    .xbolts path { fill: none; stroke: #fff; stroke-width: 0.3; stroke-linecap: round; stroke-linejoin: round; }
+    .xbolts path {
+      fill: none; stroke: #fff; stroke-width: 0.3; stroke-linecap: round; stroke-linejoin: round;
+      /* прорастает от начала к концу: канал первым, отростки — когда канал дошёл до их места */
+      stroke-dasharray: 1; stroke-dashoffset: 1; animation: grow var(--du) cubic-bezier(0.3, 0.6, 0.4, 1) var(--dl) forwards;
+    }
+    @keyframes grow { to { stroke-dashoffset: 0; } }
+    .xhole { transform-box: fill-box; transform-origin: center; animation: heart 1.1s ease-in-out infinite; }
     .xbolts path.l1 { stroke-width: 0.11; }
     .xbolts path.l2 { stroke-width: 0.05; opacity: 0.8; }
-    /* удар: вспышка, мерцание, повторный разряд, гаснет */
-    .bolt { opacity: 0; animation: strike 0.95s linear forwards; }
+    /* удар: пока прорастает — видна; потом мерцание, повторный разряд и медленно гаснет */
+    .bolt { animation: strike 2.4s linear forwards; }
     @keyframes strike {
-      0% { opacity: 0; } 3% { opacity: 1; } 9% { opacity: 0.25; } 14% { opacity: 1; } 22% { opacity: 0.5; }
-      28% { opacity: 0.95; } 55% { opacity: 0.7; } 100% { opacity: 0; }
+      0%, 40% { opacity: 1; } 44% { opacity: 0.35; } 48% { opacity: 1; } 56% { opacity: 0.6; }
+      61% { opacity: 1; } 78% { opacity: 0.7; } 100% { opacity: 0; }
     }
     .xaura {
       position: absolute; inset: 13.6%; z-index: -1; border-radius: 50%;
@@ -426,7 +445,8 @@ const step = (level: number) => (Math.max(1, level) - 1) / (HYPE_STEPS.length - 
       :host(.hype) .hglow, :host(.r2)::before, .live .dot::after,
       .orbit::before, .sparks i, .flames, :host(.max), :host(.max) .num,
       .shout, .echo, :host(.g8) .title, :host(.g8) .num, .lock i, .shards i,
-      .xsky, .xaura, :host(.lvx), .xlv { animation: none; }
+      .xsky, .xaura, :host(.lvx), .xlv, .bolt, .xhole { animation: none; }
+      .xbolts path { animation: none; stroke-dashoffset: 0; }
     }
     .live { display: flex; align-items: center; gap: 8px; color: var(--error); }
     .live .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--error); }
@@ -448,8 +468,9 @@ export class NextStage {
   protected readonly hypeOn = computed(() => !!this.stage() && this.status() === 'registration');
   protected readonly hy = computed(() => hype(this.registered()));
   protected readonly lvx = computed(() => hypeX(this.registered()));
-  /** молнии уровня X: каждые 0.25–0.7 с новый удар в случайном месте, живёт ~1 с */
+  /** молнии уровня X: каждые 0.9–1.8 с новый удар в случайном месте, живёт ~2.4 с */
   protected readonly bolts = signal<Bolt[]>([]);
+  protected readonly maskId = 'xmask' + ++maskSeq;
   /** позиция заполнения полоски в делениях (0…7): плавно едет от 0 к уровню + доле текущего */
   private readonly fillPos = signal(0);
   /** деление i заполняется, только когда линия до него доехала — одна непрерывная линия слева направо */
@@ -518,8 +539,8 @@ export class NextStage {
       const strike = () => {
         const b = makeBolt(++n);
         this.bolts.update((list) => [...list.slice(-3), b]);
-        setTimeout(() => this.bolts.update((list) => list.filter((x) => x !== b)), 1000);
-        timer = setTimeout(strike, 250 + Math.random() * 450);
+        setTimeout(() => this.bolts.update((list) => list.filter((x) => x !== b)), 2500);
+        timer = setTimeout(strike, 900 + Math.random() * 900);
       };
       strike();
       onCleanup(() => clearTimeout(timer));
