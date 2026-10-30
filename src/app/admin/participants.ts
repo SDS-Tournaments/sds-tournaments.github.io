@@ -61,7 +61,8 @@ interface Reg {
                 <span class="mono subtle">{{ g.length }}</span>
                 <button class="mv" title="Выше" (click)="moveGroup(gi, -1)" [disabled]="gi === 0">▲</button>
                 <button class="mv" title="Ниже" (click)="moveGroup(gi, 1)" [disabled]="gi === groups().length - 1">▼</button>
-                @if (!g.length) { <button class="mv" title="Убрать пустую группу" (click)="removeGroup(gi)">✕</button> }
+                @if (m?.buffer) { <button class="mv" [title]="g.length ? 'Убрать буфер — пилоты станут обычной группой' : 'Убрать буфер'" (click)="unbuffer(gi)">✕</button> }
+                @else if (!g.length) { <button class="mv" title="Убрать пустую группу" (click)="removeGroup(gi)">✕</button> }
               </span>
             </h3>
             <ol cdkDropList [cdkDropListData]="g" (cdkDropListDropped)="drop($event)">
@@ -235,6 +236,14 @@ export class AdminParticipants implements OnInit {
   removeGroup(gi: number) {
     this.groups.update((g) => g.filter((_, i) => i !== gi));
     this.meta.update((m) => m.filter((_, i) => i !== gi));
+    this.dirty.set(true);
+  }
+
+  /** убрать буфер: пустой — удаляется, с пилотами — становится обычной группой на том же месте */
+  unbuffer(gi: number) {
+    if (!this.groups()[gi].length) return this.removeGroup(gi);
+    if (!confirm('Убрать буфер? Пилоты из него станут обычной группой (' + groupLabel(gi + 1, this.meta().map((m, i) => (i === gi ? {} : m))) + ').')) return;
+    this.meta.update((m) => m.map((x, i) => (i === gi ? {} : x)));
     this.dirty.set(true);
   }
 
