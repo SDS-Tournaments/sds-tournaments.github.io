@@ -91,7 +91,8 @@ export class StageGroups implements OnInit {
   private readonly runs = signal<{ profile_id: string; attempt: number }[]>([]);
   private readonly meta = signal<GroupMeta[]>([]);
   private readonly t = inject(TranslocoService);
-  private readonly lang = toSignal(this.t.langChanges$, { initialValue: this.t.getActiveLang() });
+  /** «Группа» / «Буфер» на языке сайта — подписка, а не translate(): словарь грузится асинхронно, иначе на миг (или навсегда) видны ключи */
+  private readonly words = toSignal(this.t.selectTranslate(['groups.group', 'groups.buffer']), { initialValue: ['', ''] });
   private sub?: RealtimeChannel;
 
   /** проехал обе зачётные попытки */
@@ -105,8 +106,8 @@ export class StageGroups implements OnInit {
   private readonly started = computed(() => this.status() === 'qualifying' || this.runs().length > 0);
   protected readonly onTrack = computed(() => (this.started() ? (this.queue().find((r) => !this.done().has(r.profile_id))?.profile_id ?? null) : null));
   protected readonly groups = computed(() => {
-    this.lang();
-    const words = { group: this.t.translate('groups.group'), buffer: this.t.translate('groups.buffer') };
+    const [group, buffer] = this.words() as string[];
+    const words = { group, buffer };
     const nos = [...new Set(this.queue().map((r) => r.group_no!))];
     const started = this.started();
     const pending = nos.filter((g) => this.queue().some((r) => r.group_no === g && !this.done().has(r.profile_id)));
