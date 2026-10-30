@@ -4,7 +4,7 @@ import { RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { hype, HYPE_STEPS, hypeX } from './hype';
-import { Bolt, makeBolt } from './lightning';
+import { Bolt, makeBolt, pickSide } from './lightning';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 /** id маски молний: карточек на странице может быть несколько (UI kit) */
@@ -51,9 +51,17 @@ const step = (level: number) => (Math.max(1, level) - 1) / (HYPE_STEPS.length - 
         <i class="xaura"></i>
         <svg class="xbolts" viewBox="0 0 100 100" preserveAspectRatio="none">
           <!-- под карточкой молнию не видно: дыра в маске размером с карточку и пульсирует вместе с ней -->
+          <!-- и не упирается в соседние блоки: сверху и снизу молния плавно гаснет у края своего блока -->
           <defs>
+            @let fd = fade();
+            <linearGradient [attr.id]="maskId + 'f'" gradientUnits="userSpaceOnUse" x1="0" x2="0" [attr.y1]="fd.y0" [attr.y2]="fd.y1">
+              <stop offset="0" stop-color="#000" />
+              <stop [attr.offset]="fd.a" stop-color="#fff" />
+              <stop [attr.offset]="fd.b" stop-color="#fff" />
+              <stop offset="1" stop-color="#000" />
+            </linearGradient>
             <mask [attr.id]="maskId" maskUnits="userSpaceOnUse" x="-60" y="-60" width="220" height="220">
-              <rect x="-60" y="-60" width="220" height="220" fill="#fff" />
+              <rect x="-60" y="-60" width="220" height="220" [attr.fill]="'url(#' + maskId + 'f)'" />
               <rect class="xhole" x="27.3" y="27.3" width="45.4" height="45.4" fill="#000" />
             </mask>
           </defs>
@@ -471,6 +479,13 @@ export class NextStage {
   /** молнии уровня X: каждые 0.9–1.8 с новый удар в случайном месте, живёт ~2.4 с */
   protected readonly bolts = signal<Bolt[]>([]);
   protected readonly maskId = 'xmask' + ++maskSeq;
+  /** свободное место вокруг карточки до края блока, который её обрезает (верх, право, низ, лево), в единицах слоя молний */
+  private readonly room = signal([99, 99, 99, 99]);
+  protected readonly fade = computed(() => {
+    const [top, , bottom] = this.room();
+    const y0 = 27.3 - top, y1 = 72.7 + bottom, h = y1 - y0;
+    return { y0, y1, a: Math.min(8, top * 0.35) / h, b: 1 - Math.min(8, bottom * 0.35) / h };
+  });
   /** позиция заполнения полоски в делениях (0…7): плавно едет от 0 к уровню + доле текущего */
   private readonly fillPos = signal(0);
   /** деление i заполняется, только когда линия до него доехала — одна непрерывная линия слева направо */
@@ -536,12 +551,23 @@ export class NextStage {
     const host = inject(ElementRef).nativeElement as HTMLElement;
     effect((onCleanup) => {
       if (!this.hypeOn() || !this.lvx()) return this.bolts.set([]);
-      if (matchMedia('(prefers-reduced-motion: reduce)').matches) return this.bolts.set([makeBolt(0)]);
+      if (matchMedia('(prefers-reduced-motion: reduce)').matches) return this.bolts.set([makeBolt(0, 1, Math.random, 1)]);
       let n = 0;
       let raf = 0;
       const timers = new Set<ReturnType<typeof setTimeout>>();
-      const strike = (power: number, side?: number) => {
-        const b = makeBolt(++n, power, Math.random, side);
+      // ближайший предок, который обрезает (overflow) — в его границы молния и должна укладываться
+      let clip: HTMLElement | null = host.parentElement;
+      while (clip && getComputedStyle(clip).overflow === 'visible') clip = clip.parentElement;
+      const measure = () => {
+        if (!clip) return this.room();
+        const r = clip.getBoundingClientRect(), c = host.getBoundingClientRect();
+        const uy = 45.4 / host.offsetHeight, ux = 45.4 / host.offsetWidth;
+        const room = [(c.top - r.top) * uy, (r.right - c.right) * ux, (r.bottom - c.bottom) * uy, (c.left - r.left) * ux].map((v, i) => Math.min(i % 2 ? 30 : 99, Math.max(0, v))); // вбок — не дальше ~2/3 карточки, чтобы не лезть на текст рядом
+        this.room.set(room);
+        return room;
+      };
+      const strike = (power: number, side: number, room: number[]) => {
+        const b = makeBolt(++n, power, Math.random, side, room);
         this.bolts.update((list) => [...list.slice(-6), b]);
         const t = setTimeout(() => {
           timers.delete(t);
@@ -568,9 +594,10 @@ export class NextStage {
           last.set(i, ph);
           if (prev === undefined) return;
           if ((prev < b.at && ph >= b.at) || (prev > ph && ph >= b.at)) {
-            const side = Math.floor(Math.random() * 4);
-            strike(b.power(), side);
-            if (b.double) strike(b.power(), (side + 2) % 4);
+            const room = measure();
+            const side = pickSide(room);
+            strike(b.power(), side, room);
+            if (b.double) strike(b.power(), room[(side + 2) % 4] > 12 ? (side + 2) % 4 : pickSide(room), room);
           }
         });
         raf = requestAnimationFrame(tick);

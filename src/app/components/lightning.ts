@@ -30,8 +30,20 @@ function zig(a: P, b: P, rough: number, depth: number, rnd: () => number): P[] {
 
 const d = (pts: P[]) => 'M' + pts.map((p) => p[0].toFixed(2) + ' ' + p[1].toFixed(2)).join(' L');
 
-/** Удар молнии из-под случайного края карточки наружу; side — с какой стороны (0 верх, 1 право, 2 низ, 3 лево) */
-export function makeBolt(id: number, power = 1, rnd: () => number = Math.random, side = Math.floor(rnd() * 4)): Bolt {
+/** сторона удара: случайно, но только туда, где есть место (room — свободно от края карточки, в единицах слоя: верх, право, низ, лево) */
+export function pickSide(room: number[], rnd: () => number = Math.random): number {
+  const w = room.map((r) => Math.max(0, r - 6));
+  const sum = w.reduce((a, b) => a + b, 0);
+  if (!sum) return Math.floor(rnd() * 4);
+  let x = rnd() * sum;
+  return w.findIndex((v) => (x -= v) < 0);
+}
+
+/**
+ * Удар молнии из-под края карточки наружу; side — с какой стороны (0 верх, 1 право, 2 низ, 3 лево).
+ * room[side] — сколько места до соседнего блока: канал не длиннее, чтобы молния не упиралась в край.
+ */
+export function makeBolt(id: number, power = 1, rnd: () => number = Math.random, side = Math.floor(rnd() * 4), room = [99, 99, 99, 99]): Bolt {
   const t = CARD_A + (CARD_B - CARD_A) * (0.05 + 0.9 * rnd());
   const A = CARD_A + UNDER, B = CARD_B - UNDER;
   const start: P = side === 0 ? [t, A] : side === 1 ? [B, t] : side === 2 ? [t, B] : [A, t];
@@ -54,6 +66,7 @@ export function makeBolt(id: number, power = 1, rnd: () => number = Math.random,
       branch(p, ang + s * (0.35 + rnd() * 0.6), len * (0.3 + rnd() * 0.35) * (1.1 - at * 0.6), lv + 1, dl + du * at);
     }
   };
-  branch(start, Math.atan2(out[1], out[0]) + (rnd() - 0.5) * 1.0, 14 + 32 * power + rnd() * 8, 0, 0);
+  const len = Math.min(14 + 32 * power + rnd() * 8, Math.max(6, room[side] * 0.75));
+  branch(start, Math.atan2(out[1], out[0]) + (rnd() - 0.5) * 1.0, len, 0, 0);
   return { id, power, dur: 1.2 + 1.3 * power, paths };
 }
