@@ -14,7 +14,8 @@
 
 ## discord-notify
 Оповещения в Discord. Вызов с фронта — `notify(type, id)` (фоном) или из админки (тест).
-- Типы: `registration`, `stage_start`, `battles_start`, `results` (подиум + лидер сезона), `protest`, `test` (+ `lang`).
+- Типы: `registration`, `stage_start`, `battles_start`, `groups` (квала: какая группа едет и какая готовится — считает на сервере по очереди и qual_runs 1–2; подписи групп как `groupLabel`), `results` (подиум + лидер сезона), `protest`, `test` (+ `lang`).
+- `groups` шлётся: сразу после `stage_start`; с пульта главного судьи, когда на трассу выходит новая группа; кнопкой «📣 Группы в Discord». Пилотов не пингует (вебхук умеет только по Discord ID).
 - Два канала: `private_settings.discord_webhook_url` (RU) и `discord_webhook_en` (EN). Объявления этапов уходят в оба,
   каждый на своём языке (EN: `title_en`, время «31 Oct, 20:30 MSK (UTC+3)»). Протесты — только RU (дело штаба). Пустой вебхук — канал пропускается.
 - Права: штаб — любые события; пилот — только свой протест младше 10 минут (и только один раз — `notified_at`).
