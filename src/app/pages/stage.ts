@@ -274,8 +274,8 @@ export class StagePage implements OnInit {
       const f = `stage_id=eq.${id}`;
       this.sub = supabase
         .channel(`stage-${id}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'qual_runs', filter: f }, () => this.load())
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'battles', filter: f }, () => this.load())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'qual_runs', filter: f }, () => this.loadRuns())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'battles', filter: f }, () => this.loadBattles())
         .subscribe();
     }
   }
@@ -296,6 +296,16 @@ export class StagePage implements OnInit {
     this.runs.set(runs.data ?? []);
     this.battles.set((battles.data ?? []) as TreeBattle[]);
     this.results.set(res);
+  }
+
+  private async loadRuns() {
+    const { data } = await supabase.from('qual_runs').select('profile_id, attempt, total, spin, fail').eq('stage_id', Number(this.id()));
+    this.runs.set(data ?? []);
+  }
+
+  private async loadBattles() {
+    const { data } = await supabase.from('battles').select('id, round, slot, leader_id, chaser_id, winner_id, omt_count, status, result').eq('stage_id', Number(this.id()));
+    this.battles.set((data ?? []) as TreeBattle[]);
   }
 
   protected p(id: string): TreePilot {

@@ -1,5 +1,4 @@
 import { DestroyRef, effect, inject, Injectable, signal } from '@angular/core';
-import { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from './auth';
 
 export interface LiveStage {
@@ -17,26 +16,23 @@ export interface LiveStage {
 @Injectable({ providedIn: 'root' })
 export class Live {
   readonly stage = signal<LiveStage | null>(null);
-  private channel?: RealtimeChannel;
+  private timer?: ReturnType<typeof setInterval>;
   private pulseTimer?: ReturnType<typeof setTimeout>;
 
   constructor() {
     const root = document.documentElement;
     effect(() => root.classList.toggle('live', !!this.stage()));
-    inject(DestroyRef).onDestroy(() => this.channel && supabase.removeChannel(this.channel));
+    inject(DestroyRef).onDestroy(() => clearInterval(this.timer));
   }
 
+  /**
+   * Без Realtime: постоянное подключение у каждого посетителя упиралось бы в лимит Supabase (200 на Free).
+   * Идёт ли этап — опрос раз в минуту и при возврате на вкладку; вспышку на оценку/решение подаёт блок эфира (live-stage).
+   */
   async start() {
     await this.load();
-    this.channel = supabase
-      .channel('site-live')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'stages' }, () => this.load())
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'qual_runs' }, () => this.pulse())
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'battles' }, (e) => {
-        // вспышка только на решение судей, не на рассадку пар
-        if ((e.new as { status?: string }).status === 'done') this.pulse();
-      })
-      .subscribe();
+    this.timer = setInterval(() => document.visibilityState === 'visible' && this.load(), 60_000);
+    document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && this.load());
   }
 
   private async load() {
@@ -44,7 +40,7 @@ export class Live {
     this.stage.set(data as LiveStage | null);
   }
 
-  private pulse() {
+  pulse() {
     if (!this.stage()) return;
     const root = document.documentElement;
     root.classList.remove('pulse');

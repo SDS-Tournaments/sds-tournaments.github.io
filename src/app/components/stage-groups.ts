@@ -87,9 +87,14 @@ export class StageGroups implements OnInit {
   readonly status = input<string>('registration');
   /** витрина (UI kit): вымышленные группы без базы — до старта или по ходу квалы */
   readonly demo = input<'before' | 'live' | null>(null);
-  private readonly regs = signal<Reg[]>([]);
-  private readonly runs = signal<{ profile_id: string; attempt: number }[]>([]);
-  private readonly meta = signal<GroupMeta[]>([]);
+  /** данные из блока эфира (там они уже есть и обновляются) — свой запрос и подписка не нужны */
+  readonly data = input<{ regs: Reg[]; runs: { profile_id: string; attempt: number }[]; meta: GroupMeta[] } | null>(null);
+  private readonly ownRegs = signal<Reg[]>([]);
+  private readonly ownRuns = signal<{ profile_id: string; attempt: number }[]>([]);
+  private readonly ownMeta = signal<GroupMeta[]>([]);
+  private readonly regs = computed(() => this.data()?.regs ?? this.ownRegs());
+  private readonly runs = computed(() => this.data()?.runs ?? this.ownRuns());
+  private readonly meta = computed(() => this.data()?.meta ?? this.ownMeta());
   private readonly t = inject(TranslocoService);
   /** «Группа» / «Буфер» на языке сайта — подписка, а не translate(): словарь грузится асинхронно, иначе на миг (или навсегда) видны ключи */
   private readonly words = toSignal(this.t.selectTranslate(['groups.group', 'groups.buffer']), { initialValue: ['', ''] });
@@ -124,6 +129,7 @@ export class StageGroups implements OnInit {
 
   async ngOnInit() {
     if (this.demo()) return this.showDemo();
+    if (this.data()) return;
     await this.load();
     const id = this.stageId();
     const f = `stage_id=eq.${id}`;
@@ -139,9 +145,9 @@ export class StageGroups implements OnInit {
   private showDemo() {
     const names = ['Kaido', 'Touge_Ghost', 'NightOwl', 'SmokeUnit', 'Hachiroku', 'Akina_Down', 'RedSuns', 'Usui_Line', 'Clutchkick', 'Feint', 'Manji', 'Choku_Dori', 'Inertia', 'Shakedown', 'Handbrake', 'Gaiden', 'Apex', 'Sidewall', 'Lockup', 'Rev_Limit', 'Shift', 'Overcut', 'Ebrake', 'Zipper', 'Flick', 'Sakura', 'Kansei', 'Yokai', 'Oni', 'Tengu', 'Lucky_Bob', 'Mr_Smith', 'Big_Ben', 'Hans'];
     const regs: Reg[] = names.map((n, i) => ({ profile_id: 'd' + i, group_no: i < 30 ? Math.floor(i / 10) + 1 : 4, queue_order: i + 1, profile: { nickname: n, start_number: 3 + ((i * 37) % 900) } }));
-    this.regs.set(regs);
-    this.meta.set([{}, {}, {}, { buffer: true, name: 'EN сервер' }]);
-    this.runs.set(this.demo() === 'live' ? regs.slice(0, 13).flatMap((r) => [{ profile_id: r.profile_id, attempt: 1 }, { profile_id: r.profile_id, attempt: 2 }]) : []);
+    this.ownRegs.set(regs);
+    this.ownMeta.set([{}, {}, {}, { buffer: true, name: 'EN сервер' }]);
+    this.ownRuns.set(this.demo() === 'live' ? regs.slice(0, 13).flatMap((r) => [{ profile_id: r.profile_id, attempt: 1 }, { profile_id: r.profile_id, attempt: 2 }]) : []);
   }
 
   private async load() {
@@ -151,8 +157,8 @@ export class StageGroups implements OnInit {
       supabase.from('qual_runs').select('profile_id, attempt').eq('stage_id', id),
       supabase.from('stages').select('group_meta').eq('id', id).single(),
     ]);
-    this.regs.set((regs.data ?? []) as unknown as Reg[]);
-    this.runs.set(runs.data ?? []);
-    this.meta.set((st.data?.group_meta ?? []) as GroupMeta[]);
+    this.ownRegs.set((regs.data ?? []) as unknown as Reg[]);
+    this.ownRuns.set(runs.data ?? []);
+    this.ownMeta.set((st.data?.group_meta ?? []) as GroupMeta[]);
   }
 }

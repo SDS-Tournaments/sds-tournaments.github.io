@@ -9,6 +9,8 @@ import { StageGroups } from './stage-groups';
 import { PredictionPoll } from './prediction-poll';
 import { loadPredictionCounts, PredictionCount, RUN_PICKS, runTarget } from '../predict';
 import { mockStage } from '../overlay/mock';
+import { Live } from '../live';
+import { GroupMeta } from '../groups';
 
 interface Pilot {
   nickname: string;
@@ -26,6 +28,13 @@ interface Battle {
   omt_count: number;
 }
 const ORDER = ['r32', 'r16', 'qf', 'sf', 'third', 'final'];
+interface Run {
+  id: number;
+  profile_id: string;
+  attempt: number;
+  total: number;
+}
+type Row = Record<string, unknown>;
 
 // Прямой эфир этапа на главной: Twitch + живые данные (топ квалификации или текущая дуэль)
 @Component({
@@ -122,7 +131,7 @@ const ORDER = ['r32', 'r16', 'qf', 'sf', 'third', 'final'];
     </div>
     <!-- квалификация: какие группы едут / готовятся — под трансляцией (и на главной, и на странице этапа) -->
     @if (status() === 'qualifying' && !demo()) {
-      <app-stage-groups class="groups" [stageId]="stageId()" [status]="status()" />
+      <app-stage-groups class="groups" [stageId]="stageId()" [status]="status()" [data]="groupsData()" />
     }
   `,
   styles: `
@@ -248,14 +257,18 @@ export class LiveStage implements OnInit {
   protected readonly wide = signal(false);
   // анимации появления страниц (transform) иначе «запирают» position: fixed внутри себя; прокрутку под окном — блокируем
   private readonly wideRoot = effect(() => document.documentElement.classList.toggle('live-wide', this.wide()));
-  private readonly regs = signal<{ profile_id: string; queue_order: number | null }[]>([]);
-  private readonly runs = signal<{ profile_id: string; attempt: number; total: number }[]>([]);
+  private readonly regs = signal<{ profile_id: string; group_no: number | null; queue_order: number | null; profile: Pilot | null }[]>([]);
+  private readonly runs = signal<Run[]>([]);
+  private readonly groupMeta = signal<GroupMeta[]>([]);
+  /** группы берут те же данные — без второй загрузки и второго подключения */
+  protected readonly groupsData = computed(() => ({ regs: this.regs(), runs: this.runs(), meta: this.groupMeta() }));
+  private readonly live = inject(Live);
   private readonly battles = signal<Battle[]>([]);
   /** итоги прогнозов зрителей этапа */
   protected readonly predCounts = signal<PredictionCount[]>([]);
   /** за кого голосуем в квалификации: пилот на трассе и его зачётная попытка */
   protected readonly runT = computed(() => (this.status() === 'qualifying' ? runTarget(this.regs(), this.runs()) : null));
-  private countsTimer?: ReturnType<typeof setTimeout>;
+  private countsTimer?: ReturnType<typeof setInterval>;
   private readonly sanitizer = inject(DomSanitizer);
   private sub?: RealtimeChannel;
 
@@ -289,40 +302,84 @@ export class LiveStage implements OnInit {
     inject(DestroyRef).onDestroy(() => {
       if (this.sub) supabase.removeChannel(this.sub);
       document.documentElement.classList.remove('live-wide');
-      clearTimeout(this.countsTimer);
+      clearInterval(this.countsTimer);
+    });
+    // прогноз: опрос итогов текущего голосования раз в 4 с, только пока вкладку видно
+    // (раньше каждый голос рассылался всем зрителям — нагрузка росла как квадрат числа зрителей)
+    effect((onCleanup) => {
+      const t = this.pollTarget();
+      if (this.demo() || !t) return;
+      this.loadCounts();
+      const id = setInterval(() => document.visibilityState === 'visible' && this.loadCounts(), 4000);
+      onCleanup(() => clearInterval(id));
     });
   }
+
+  /** за что сейчас голосуют: заезд на трассе или текущая дуэль */
+  private readonly pollTarget = computed(() => {
+    if (this.status() === 'qualifying') {
+      const t = this.runT();
+      return t ? { profileId: t.profileId, attempt: t.attempt } : null;
+    }
+    const b = this.current();
+    return b ? { battleId: b.id } : null;
+  });
 
   async ngOnInit() {
     if (this.demo()) return this.showDemo();
     await this.load();
     const f = `stage_id=eq.${this.stageId()}`;
+    // изменения берём прямо из сообщения — без перекачки всех списков у каждого зрителя на каждую оценку
     this.sub = supabase
       .channel(`live-${this.stageId()}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'qual_runs', filter: f }, () => this.load())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'battles', filter: f }, () => this.load())
-      // голоса идут пачками — пересчитываем не чаще раза в 0.7 с
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'predictions', filter: f }, () => {
-        clearTimeout(this.countsTimer);
-        this.countsTimer = setTimeout(() => this.loadCounts(), 700);
-      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'qual_runs', filter: f }, (e) => this.onRun(e.eventType, e.new as Row, e.old as Row))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'battles', filter: f }, (e) => this.onBattle(e.eventType, e.new as Row, e.old as Row))
+      // перестановки в очереди / буфер — редко, тут можно перечитать
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'registrations', filter: f }, () => this.loadRegs())
       .subscribe();
   }
 
   private async load() {
     const id = this.stageId();
-    const [regs, runs, battles] = await Promise.all([
-      supabase.from('registrations').select('profile_id, queue_order, profile:profiles(nickname, start_number, avatar_url)').eq('stage_id', id).eq('status', 'registered'),
-      supabase.from('qual_runs').select('profile_id, attempt, total').eq('stage_id', id),
+    const [runs, battles] = await Promise.all([
+      supabase.from('qual_runs').select('id, profile_id, attempt, total').eq('stage_id', id),
       supabase.from('battles').select('id, round, slot, leader_id, chaser_id, winner_id, status, omt_count').eq('stage_id', id),
+      this.loadRegs(),
     ]);
-    const r = (regs.data ?? []) as unknown as { profile_id: string; queue_order: number | null; profile: Pilot | null }[];
+    this.runs.set((runs.data ?? []).map((r) => ({ ...r, total: Number(r.total) })));
+    this.battles.set(battles.data ?? []);
+    this.loaded.set(true);
+  }
+
+  private async loadRegs() {
+    const id = this.stageId();
+    const [regs, st] = await Promise.all([
+      supabase.from('registrations').select('profile_id, group_no, queue_order, profile:profiles(nickname, start_number, avatar_url)').eq('stage_id', id).eq('status', 'registered'),
+      supabase.from('stages').select('group_meta').eq('id', id).single(),
+    ]);
+    const r = (regs.data ?? []) as unknown as { profile_id: string; group_no: number | null; queue_order: number | null; profile: Pilot | null }[];
     this.pilots.set(new Map(r.map((x) => [x.profile_id, x.profile ?? { nickname: '?', start_number: null }])));
     this.regs.set(r);
-    this.runs.set(runs.data ?? []);
-    this.battles.set(battles.data ?? []);
-    await this.loadCounts();
-    this.loaded.set(true);
+    this.groupMeta.set((st.data?.group_meta ?? []) as GroupMeta[]);
+  }
+
+  /** оценка из сообщения Realtime; total — генерируемый столбец, в сообщении его может не быть — считаем сами */
+  private onRun(type: string, row: Row, old: Row) {
+    if (type === 'DELETE') return this.runs.update((list) => list.filter((r) => r.id !== old['id']));
+    if (row['id'] == null || !row['profile_id']) return void this.load();
+    const n = (k: string) => Number(row[k]) || 0;
+    const run: Run = { id: Number(row['id']), profile_id: String(row['profile_id']), attempt: n('attempt'), total: row['spin'] ? 0 : n('angle') + n('style') + n('line') };
+    this.runs.update((list) => [...list.filter((r) => r.id !== run.id), run]);
+    if (type === 'INSERT') this.live.pulse();
+  }
+
+  private onBattle(type: string, row: Row, old: Row) {
+    if (type === 'DELETE') return this.battles.update((list) => list.filter((b) => b.id !== old['id']));
+    if (row['id'] == null) return void this.load();
+    const b = row as unknown as Battle;
+    this.battles.update((list) => [...list.filter((x) => x.id !== b.id), b]);
+    // вспышка только на решение судей, не на рассадку пар
+    if (b.status === 'done') this.live.pulse();
   }
 
   /** витрина: вымышленный этап (как в тестовых данных плашек); в квале последний в очереди ещё на трассе */
@@ -330,9 +387,9 @@ export class LiveStage implements OnInit {
     const m = mockStage();
     const last = m.regs[m.regs.length - 1].profile_id;
     this.pilots.set(new Map([...m.pilots].map(([id, p]) => [id, { nickname: p.nickname, start_number: p.start_number, avatar_url: null }])));
-    this.regs.set(m.regs);
+    this.regs.set(m.regs.map((r) => ({ ...r, profile: null })));
     const runs = this.status() === 'qualifying' ? m.runs.filter((r) => r.profile_id !== last || r.attempt === 0) : m.runs;
-    this.runs.set(runs);
+    this.runs.set(runs.map((r, i) => ({ id: i, profile_id: r.profile_id, attempt: r.attempt, total: r.total })));
     this.battles.set(m.battles as unknown as Battle[]);
     const d = this.current();
     this.predCounts.set(
@@ -351,7 +408,9 @@ export class LiveStage implements OnInit {
   async loadCounts() {
     if (this.demo()) return;
     if (this.status() !== 'qualifying' && this.status() !== 'battles') return;
-    this.predCounts.set(await loadPredictionCounts(this.stageId()));
+    const t = this.pollTarget();
+    if (!t) return;
+    this.predCounts.set(await loadPredictionCounts(this.stageId(), t));
   }
 
   protected p(id: string | null): Pilot {

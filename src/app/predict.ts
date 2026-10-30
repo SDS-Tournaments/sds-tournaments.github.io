@@ -36,8 +36,11 @@ export interface PredictionCount {
   n: number;
 }
 
-export async function loadPredictionCounts(stageId: number): Promise<PredictionCount[]> {
-  const { data } = await supabase.rpc('prediction_counts', { p_stage: stageId });
+/** target — только этот заезд/дуэль: зрителям не нужен весь этап (в разы меньше трафика при опросе раз в несколько секунд) */
+export async function loadPredictionCounts(stageId: number, target?: { profileId: string; attempt: number } | { battleId: number }): Promise<PredictionCount[]> {
+  let q = supabase.rpc('prediction_counts', { p_stage: stageId }, { get: true });
+  if (target) q = 'battleId' in target ? q.eq('battle_id', target.battleId) : q.eq('profile_id', target.profileId).eq('attempt', target.attempt);
+  const { data } = await q;
   return ((data ?? []) as PredictionCount[]).map((r) => ({ ...r, n: Number(r.n) }));
 }
 
