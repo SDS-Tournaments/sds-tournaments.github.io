@@ -189,14 +189,21 @@ Deno.serve(async (req) => {
     } else if (type === 'groups') {
       // группа на трассе = первая по очереди, где кто-то ещё не проехал обе зачётные; следующая — за ней
       const [{ data: regs }, { data: runs }] = await Promise.all([
-        db.from('registrations').select('profile_id, group_no, queue_order, pilot:profiles(nickname, start_number)').eq('stage_id', id).eq('status', 'registered').not('group_no', 'is', null).order('queue_order'),
+        db.from('registrations').select('profile_id, group_no, queue_order, pilot:profiles(nickname, start_number)').eq('stage_id', id).eq('status', 'registered').order('queue_order').order('created_at'),
         db.from('qual_runs').select('profile_id, attempt').eq('stage_id', id).in('attempt', [1, 2]),
       ]);
-      const rows = (regs ?? []) as unknown as { profile_id: string; group_no: number; pilot: { nickname: string; start_number: number | null } | null }[];
+      const all = (regs ?? []) as unknown as { profile_id: string; group_no: number | null; pilot: { nickname: string; start_number: number | null } | null }[];
+      let rows = all.filter((r): r is typeof r & { group_no: number } => r.group_no !== null);
       const n = new Map<string, number>();
       for (const r of runs ?? []) n.set(r.profile_id, (n.get(r.profile_id) ?? 0) + 1);
-      const order = [...new Set(rows.map((r) => r.group_no))];
-      const pending = order.filter((g) => rows.some((r) => r.group_no === g && (n.get(r.profile_id) ?? 0) < 2));
+      const pendingOf = () => [...new Set(rows.map((r) => r.group_no))].filter((g) => rows.some((r) => r.group_no === g && (n.get(r.profile_id) ?? 0) < 2));
+      let pending = pendingOf();
+      // тест, а групп ещё нет или квала проехана: пример — записавшиеся по 10 в порядке регистрации, «едет» первая
+      if (testRun && !pending.length && all.length) {
+        rows = all.map((r, i) => ({ ...r, group_no: Math.floor(i / 10) + 1 }));
+        n.clear();
+        pending = pendingOf();
+      }
       const [now, next] = pending;
       if (!now) return json({ skipped: 'квалификация проехана' });
       const list = (g: number) => {
