@@ -142,6 +142,8 @@ export function roadProgress(stages: { status: string; starts_at: string | null 
       height: 9px;
       border-radius: 50%;
       background: #fff;
+      /* поверх точек этапов: видно, как огонёк въезжает в кольцо следующего этапа (линия остаётся под ними) */
+      z-index: 2;
       /* чем ближе этап, тем краснее и ярче */
       box-shadow:
         0 0 8px 2px var(--hot),
