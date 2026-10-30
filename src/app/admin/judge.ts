@@ -7,6 +7,8 @@ import { Fail, qualStandings } from '../scoring/scoring';
 import { AdminBattles } from './battles';
 import { STAGE_STATUS } from './labels';
 import { JudgeLive, Seat } from './judge-live';
+import { GroupMeta, groupLabel } from '../groups';
+import { notify } from '../notify';
 
 type Crit = 'angle' | 'style' | 'line';
 interface Stage {
@@ -17,6 +19,7 @@ interface Stage {
   judges: Record<Crit, string>;
   bracket_size: 'auto' | '32' | '16' | '8';
   warmup: boolean;
+  group_meta: GroupMeta[];
 }
 interface Reg {
   profile_id: string;
@@ -67,6 +70,7 @@ const SEAT_LABEL = Object.fromEntries(SEATS.map((s) => [s.key, s.label])) as Rec
         </div>
         <span class="badge" [class.off]="st.status !== 'qualifying' && st.status !== 'battles'">{{ statusLabel[st.status] }}</span>
         <span class="live"><i></i>онлайн</span>
+        @if (mode() === 'qual') { <button class="btn btn-ghost small" (click)="announce()" [disabled]="busy()" title="Отправить в Discord: какая группа едет и какая готовится. Бот делает это сам, когда на трассу выходит новая группа">📣 Группы в Discord</button> }
       </header>
 
       <!-- кто за пультом: место (критерий) и «главный»; список подключённых судей -->
@@ -113,7 +117,7 @@ const SEAT_LABEL = Object.fromEntries(SEATS.map((s) => [s.key, s.label])) as Rec
           <ol>
             @for (r of queue(); track r.profile_id; let i = $index) {
               @if (i === 0 || r.group_no !== queue()[i - 1].group_no) {
-                <li class="ghead">Группа {{ r.group_no ?? '—' }}</li>
+                <li class="ghead" [class.buf]="isBuffer(r.group_no)">{{ gl(r.group_no) }}</li>
               }
               <li>
                 <button class="qrow" [class.cur]="r.profile_id === current()?.profile_id" [class.done]="isDone(r.profile_id)" (click)="pick(r.profile_id)">
@@ -136,7 +140,7 @@ const SEAT_LABEL = Object.fromEntries(SEATS.map((s) => [s.key, s.label])) as Rec
             <div class="pilot">
               <span class="plate mono">{{ c.profile?.start_number ?? '—' }}</span>
               <div>
-                <p class="eyebrow">Группа {{ c.group_no ?? '—' }} · в очереди {{ c.queue_order ?? '—' }}</p>
+                <p class="eyebrow">{{ gl(c.group_no) }} · в очереди {{ c.queue_order ?? '—' }}</p>
                 <h2 class="nick-big">{{ c.profile?.nickname }}</h2>
                 <p class="subtle car">{{ c.profile?.car ?? '' }}</p>
                 @if (warnings().get(c.profile_id); as n) {
@@ -194,6 +198,7 @@ const SEAT_LABEL = Object.fromEntries(SEATS.map((s) => [s.key, s.label])) as Rec
             @if (live.chief()) {
               <div class="incidents">
                 <button class="btn btn-ghost" (click)="disconnect(c)" [disabled]="busy()">Дисконнект → в конец группы</button>
+                @if (!isBuffer(c.group_no)) { <button class="btn btn-ghost" (click)="toBuffer(c)" [disabled]="busy()" title="Например, нужен другой сервер — пилот проедет вместе с буфер-группой">→ В буфер</button> }
                 <button class="btn btn-ghost danger" (click)="techLoss(c)" [disabled]="busy()">Техпоражение</button>
               </div>
             }
@@ -318,6 +323,7 @@ const SEAT_LABEL = Object.fromEntries(SEATS.map((s) => [s.key, s.label])) as Rec
     .actions { grid-column: 1 / -1; display: flex; gap: 12px; flex-wrap: wrap; }
     .big { min-height: 52px; padding: 12px 28px; font-size: 16px; }
     .warmup { display: grid; gap: 12px; justify-items: start; }
+    .ghead.buf { color: var(--warning); }
     .incidents { display: flex; gap: 8px; flex-wrap: wrap; padding-top: 16px; border-top: 1px solid var(--hairline); }
     .danger { color: var(--error); }
     .finished { text-align: center; padding: 40px 0; h2 { color: var(--primary); } }
@@ -407,6 +413,17 @@ export class AdminJudge implements OnInit, OnDestroy {
   });
 
   constructor() {
+    // на трассу вышла новая группа — бот пишет «едет / готовится» (только с пульта главного судьи, чтобы не дублировать)
+    let lastGroup: number | null | undefined;
+    effect(() => {
+      const g = this.activeGroup();
+      untracked(() => {
+        if (!this.loaded) return;
+        if (lastGroup !== undefined && g !== null && g !== lastGroup && this.live.chief() && this.mode() === 'qual') notify('groups', Number(this.id()));
+        lastGroup = g;
+      });
+    });
+
     // Поля = черновик судей, иначе сохранённая оценка (правка). Баллы с других пультов подставляются сразу,
     // кроме поля, в котором сейчас курсор, — чтобы не стирать то, что судья вводит.
     let lastKey = '';
@@ -449,7 +466,7 @@ export class AdminJudge implements OnInit, OnDestroy {
 
   async ngOnInit() {
     const id = Number(this.id());
-    const { data } = await supabase.from('stages').select('id, title_ru, status, weights, judges, bracket_size, warmup').eq('id', id).single();
+    const { data } = await supabase.from('stages').select('id, title_ru, status, weights, judges, bracket_size, warmup, group_meta').eq('id', id).single();
     this.stage.set(data);
     await this.live.start(id);
     if (data?.status === 'battles' || data?.status === 'finished') this.mode.set('battles');
@@ -468,16 +485,72 @@ export class AdminJudge implements OnInit, OnDestroy {
 
   private async load() {
     const id = Number(this.id());
-    const [regs, runs, warns] = await Promise.all([
+    const [regs, runs, warns, st] = await Promise.all([
       supabase.from('registrations').select('profile_id, group_no, queue_order, status, profile:profiles(nickname, start_number, avatar_url, car)').eq('stage_id', id),
       supabase.from('qual_runs').select('profile_id, attempt, angle, style, line, spin, fail, total').eq('stage_id', id),
       supabase.from('sanctions').select('profile_id').eq('type', 'warning'),
+      supabase.from('stages').select('group_meta').eq('id', id).single(),
     ]);
+    // названия групп могли поменять на странице участников
+    if (st.data) this.stage.update((s) => (s ? { ...s, group_meta: st.data.group_meta } : s));
     this.regs.set((regs.data ?? []) as unknown as Reg[]);
     this.runs.set(runs.data ?? []);
     const w = new Map<string, number>();
     for (const s of warns.data ?? []) w.set(s.profile_id, (w.get(s.profile_id) ?? 0) + 1);
     this.warnings.set(w);
+    this.loaded = true;
+  }
+  private loaded = false;
+
+  protected gl(no: number | null) {
+    return groupLabel(no, this.stage()?.group_meta);
+  }
+  protected isBuffer(no: number | null) {
+    return !!no && !!this.stage()?.group_meta?.[no - 1]?.buffer;
+  }
+  /** группа, которая сейчас на трассе: первая, где есть непроехавшие */
+  private readonly activeGroup = computed(() => this.queue().find((r) => !this.isDone(r.profile_id))?.group_no ?? null);
+
+  /** «Едет / готовится» в Discord */
+  announce() {
+    notify('groups', Number(this.id()));
+    this.note('Отправлено в Discord: какая группа едет и какая готовится', true);
+  }
+
+  /** Пилот → в буфер (в конец первой буфер-группы; если её нет — создаётся в конце очереди) */
+  async toBuffer(c: Reg) {
+    const st = this.stage();
+    if (!st || !confirm(`${c.profile?.nickname}: перенести в буфер?`)) return;
+    const meta = [...(st.group_meta ?? [])];
+    const q = this.queue().filter((r) => r.group_no);
+    let buf = meta.findIndex((m) => m?.buffer) + 1;
+    this.busy.set(true);
+    if (!buf) {
+      buf = Math.max(meta.length, ...q.map((r) => r.group_no!)) + 1;
+      while (meta.length < buf - 1) meta.push({});
+      meta.push({ buffer: true, name: null });
+      const { error } = await supabase.from('stages').update({ group_meta: meta }).eq('id', st.id);
+      if (error) {
+        this.busy.set(false);
+        return this.note(error.message, false);
+      }
+      this.stage.set({ ...st, group_meta: meta });
+    }
+    // новая очередь: по группам, пилот — последним в буфере; пишем только изменившиеся строки
+    const moved = { ...c, group_no: buf };
+    const order = [...q.filter((r) => r.profile_id !== c.profile_id), moved].sort(
+      (a, b) => a.group_no! - b.group_no! || (a === moved ? 1 : b === moved ? -1 : (a.queue_order ?? 0) - (b.queue_order ?? 0)),
+    );
+    const changes = order.map((r, i) => ({ r, order: i + 1 })).filter(({ r, order }) => r === moved || r.queue_order !== order);
+    const results = await Promise.all(
+      changes.map(({ r, order }) => supabase.from('registrations').update({ group_no: r.group_no, queue_order: order }).match({ stage_id: st.id, profile_id: r.profile_id })),
+    );
+    this.busy.set(false);
+    const error = results.find((x) => x.error)?.error;
+    if (error) return this.note(error.message, false);
+    await this.load();
+    this.note(`${c.profile?.nickname} → ${this.gl(buf)}`, true);
+    this.advance();
   }
 
   /** предупреждения пилотов (регламент 1.6: повторное → дисквалификация) */

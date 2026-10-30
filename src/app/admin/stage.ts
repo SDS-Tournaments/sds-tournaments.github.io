@@ -400,7 +400,8 @@ export class AdminStage implements OnInit {
     this.st.set({ ...st, status });
     this.note(`Статус: ${STAGE_STATUS[status]}`, true);
     if (status === 'registration') notify('registration', st.id);
-    if (status === 'qualifying') notify('stage_start', st.id);
+    // старт квалы, следом — какая группа едет и какая готовится
+    if (status === 'qualifying') notify('stage_start', st.id).then(() => notify('groups', st.id));
     if (status === 'battles') notify('battles_start', st.id);
   }
 

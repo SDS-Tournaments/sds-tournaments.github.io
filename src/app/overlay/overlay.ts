@@ -15,6 +15,7 @@ import { forceNoir } from '../theme';
 import { mockStage } from './mock';
 import { countsFor, loadPredictionCounts, pickOfScore, PredictionCount, RUN_PICK_LABEL, RUN_PICKS, runTarget } from '../predict';
 import { DEFAULT_STATE, LANG_SWAP_FULL_MS, LANG_SWAP_MS, OVERLAY_TEXT, OverlayState, Widget } from './state';
+import { GroupMeta, groupLabel } from '../groups';
 
 interface Pilot extends TreePilot {
   avatar_url: string | null;
@@ -57,6 +58,7 @@ interface Stage {
   season_id: number;
   weights: { angle: number; style: number; line: number };
   warmup?: boolean;
+  group_meta?: GroupMeta[];
 }
 
 const ORDER: Round[] = ['r32', 'r16', 'qf', 'sf', 'third', 'final'];
@@ -94,7 +96,7 @@ const FLASH_MS = 10_000;
           <span class="plate">{{ p(c.profile_id).start_number ?? '—' }}</span>
           @if (p(c.profile_id).avatar_url) { <img [src]="p(c.profile_id).avatar_url" alt="" /> }
           <div class="who">
-            <span class="label">{{ attemptLabel() }} · {{ t().group }} {{ c.group_no ?? '—' }}</span>
+            <span class="label">{{ attemptLabel() }} · {{ gl(c.group_no) }}</span>
             <b>{{ p(c.profile_id).nickname }}</b>
             <span class="sub">{{ sub(c.profile_id) }}</span>
           </div>
@@ -341,6 +343,9 @@ export class Overlay implements OnInit {
 
   protected readonly state = signal<OverlayState>(DEFAULT_STATE);
   protected readonly stage = signal<Stage | null>(null);
+  protected gl(no: number | null) {
+    return groupLabel(no, this.stage()?.group_meta, { group: this.t().group, buffer: this.t().buffer });
+  }
   private readonly regs = signal<Reg[]>([]);
   private readonly runs = signal<Run[]>([]);
   protected readonly battles = signal<Battle[]>([]);
@@ -818,7 +823,7 @@ export class Overlay implements OnInit {
     if (this.state().mock) return this.showMock();
     const id = this.state().stageId;
     if (!id) return this.stage.set(null);
-    const { data: stage } = await supabase.from('stages').select('id, ord, title_ru, title_en, status, season_id, weights, warmup').eq('id', id).single();
+    const { data: stage } = await supabase.from('stages').select('id, ord, title_ru, title_en, status, season_id, weights, warmup, group_meta').eq('id', id).single();
     if (!stage) return;
     const [regs, runs, battles, results, teams] = await Promise.all([
       supabase.from('registrations').select('profile_id, group_no, queue_order, profile:profiles(nickname, start_number, avatar_url, car)').eq('stage_id', id).eq('status', 'registered'),

@@ -10,6 +10,7 @@ import { bracketSize, Fail, qualStandings, Round, SkillRun } from '../scoring/sc
 import { STAGE_STATUS } from '../admin/labels';
 import { Chance, duelChances, DuelSide, qualChances, qualTargets } from './chances';
 import { ACH, Dossier, DossierPilot, DossierResult } from './dossier';
+import { GroupMeta, groupLabel } from '../groups';
 
 interface Stage {
   id: number;
@@ -19,6 +20,7 @@ interface Stage {
   ord: number;
   warmup: boolean;
   bracket_size: 'auto' | '32' | '16' | '8';
+  group_meta: GroupMeta[];
 }
 interface Reg {
   profile_id: string;
@@ -79,7 +81,7 @@ const FAIL_LABEL: Record<Fail, string> = { spin: 'Спин', crash: 'Авари�
             <h2 class="h">Очередь <span class="mono subtle">{{ doneCount() }}/{{ queue().length }}</span></h2>
             <ol>
               @for (r of queue(); track r.profile_id; let i = $index) {
-                @if (i === 0 || r.group_no !== queue()[i - 1].group_no) { <li class="ghead">Группа {{ r.group_no ?? '—' }}</li> }
+                @if (i === 0 || r.group_no !== queue()[i - 1].group_no) { <li class="ghead">{{ gl(r.group_no) }}</li> }
                 <li>
                   <button class="qrow" [class.track]="r.profile_id === onTrack()?.profile_id" [class.cur]="r.profile_id === focusId()" [class.done]="isDone(r.profile_id)" (click)="pick(r.profile_id)">
                     <span class="mono n">{{ r.profile.start_number ?? '—' }}</span>
@@ -470,7 +472,7 @@ export class Commentator implements OnInit, OnDestroy {
 
   async ngOnInit() {
     const id = Number(this.id());
-    const { data: st } = await supabase.from('stages').select('id, title_ru, status, season_id, ord, warmup, bracket_size').eq('id', id).single();
+    const { data: st } = await supabase.from('stages').select('id, title_ru, status, season_id, ord, warmup, bracket_size, group_meta').eq('id', id).single();
     if (!st) return;
     this.stage.set(st);
     if (st.status === 'battles' || st.status === 'finished') this.mode.set('battles');
@@ -630,6 +632,10 @@ export class Commentator implements OnInit, OnDestroy {
       { role: 'leader' as const, id: b.leader_id! },
       { role: 'chaser' as const, id: b.chaser_id! },
     ];
+  }
+
+  protected gl(no: number | null) {
+    return groupLabel(no, this.stage()?.group_meta);
   }
 
   pick(id: string) {

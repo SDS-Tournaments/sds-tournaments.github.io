@@ -2,6 +2,7 @@ import { CdkDrag, CdkDragDrop, CdkDragHandle, CdkDropList, CdkDropListGroup, mov
 import { Component, input, isDevMode, OnInit, signal } from '@angular/core';
 import { supabase } from '../auth';
 import { assignGroups } from '../scoring/scoring';
+import { GroupMeta, groupLabel } from '../groups';
 
 interface Reg {
   profile_id: string;
@@ -24,10 +25,11 @@ interface Reg {
           <button class="btn btn-secondary" (click)="split(false)" [disabled]="busy() || !total()">По 10, по порядку регистрации</button>
           <button class="btn btn-secondary" (click)="split(true)" [disabled]="busy() || !total()">🎲 Перемешать и по 10</button>
           <button class="btn btn-ghost" (click)="addGroup()" [disabled]="busy()">+ Группа</button>
+          <button class="btn btn-ghost" (click)="addGroup(true)" [disabled]="busy()" title="Запасная группа для внештатных ситуаций — например, пилоты на другом сервере">+ Буфер</button>
           <button class="btn btn-ghost" (click)="load()" [disabled]="busy()">↻ Обновить</button>
         </div>
       </header>
-      <p class="muted small">Перетаскивайте пилотов между группами и внутри группы — это порядок выезда в квалификации. Не забудьте сохранить.</p>
+      <p class="muted small">Перетаскивайте пилотов между группами и внутри группы — это порядок выезда в квалификации. Группы двигаются стрелками ▲▼. Буфер — запасная группа со своим названием (например, «EN сервер»): едет там, где стоит в списке. Не забудьте сохранить.</p>
 
       <div class="groups" cdkDropListGroup>
         @if (unassigned().length) {
@@ -47,8 +49,21 @@ interface Reg {
           </div>
         }
         @for (g of groups(); track $index; let gi = $index) {
-          <div class="group">
-            <h3>Группа {{ gi + 1 }} <span class="mono subtle">{{ g.length }}</span></h3>
+          @let m = meta()[gi];
+          <div class="group" [class.buffer]="m?.buffer">
+            <h3>
+              @if (m?.buffer) {
+                <input class="gname" [value]="m.name ?? ''" placeholder="Буфер" maxlength="40" aria-label="Название буфера" (input)="rename(gi, $any($event.target).value)" />
+              } @else {
+                <span>{{ label(gi) }}</span>
+              }
+              <span class="gtools">
+                <span class="mono subtle">{{ g.length }}</span>
+                <button class="mv" title="Выше" (click)="moveGroup(gi, -1)" [disabled]="gi === 0">▲</button>
+                <button class="mv" title="Ниже" (click)="moveGroup(gi, 1)" [disabled]="gi === groups().length - 1">▼</button>
+                @if (!g.length) { <button class="mv" title="Убрать пустую группу" (click)="removeGroup(gi)">✕</button> }
+              </span>
+            </h3>
             <ol cdkDropList [cdkDropListData]="g" (cdkDropListDropped)="drop($event)">
               @for (r of g; track r.profile_id) {
                 <li cdkDrag class="pilot">
@@ -93,8 +108,16 @@ interface Reg {
       border: 1px solid var(--hairline-strong);
       border-radius: var(--r-md);
       padding: 12px;
-      h3 { font-size: 14px; font-weight: 500; margin: 0 0 10px; display: flex; justify-content: space-between; }
+      h3 { font-size: 14px; font-weight: 500; margin: 0 0 10px; display: flex; gap: 8px; align-items: center; justify-content: space-between; }
     }
+    .gtools { display: flex; gap: 2px; align-items: center; .subtle { margin-right: 6px; } }
+    .mv {
+      width: 26px; height: 26px; border: 1px solid var(--hairline); border-radius: var(--r-sm); background: none; color: var(--ink-muted); font-size: 11px; cursor: pointer;
+      &:hover:not(:disabled) { color: var(--primary); border-color: var(--primary); }
+      &:disabled { opacity: 0.3; cursor: default; }
+    }
+    .buffer { border-style: dashed; border-color: var(--warning); background: color-mix(in srgb, var(--warning) 5%, transparent); }
+    .gname { min-width: 0; flex: 1; padding: 4px 8px; border: 1px solid var(--hairline-strong); border-radius: var(--r-sm); background: var(--surface-2); color: var(--warning); font: 600 14px var(--font); }
     .pool { border-style: dashed; border-color: var(--primary); }
     ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; min-height: 44px; }
     .pilot {
@@ -130,6 +153,8 @@ export class AdminParticipants implements OnInit {
   readonly stageId = input.required<number>();
   protected readonly unassigned = signal<Reg[]>([]);
   protected readonly groups = signal<Reg[][]>([]);
+  /** буфер и название — по позиции группы, параллельно groups */
+  protected readonly meta = signal<GroupMeta[]>([]);
   /** ник Discord участника (pilot_contacts) */
   protected readonly discord = signal(new Map<string, string>());
   protected readonly total = signal(0);
@@ -154,17 +179,23 @@ export class AdminParticipants implements OnInit {
       .order('created_at');
     if (error) return this.note(error.message, false);
     const rows = data as unknown as Reg[];
+    const { data: st } = await supabase.from('stages').select('group_meta').eq('id', this.stageId()).single();
     const { data: dc } = await supabase.from('pilot_contacts').select('profile_id, discord').in('profile_id', rows.map((r) => r.profile_id));
     this.discord.set(new Map((dc ?? []).map((c) => [c.profile_id, c.discord])));
     const max = Math.max(0, ...rows.map((r) => r.group_no ?? 0));
-    this.groups.set(Array.from({ length: max }, (_, g) => rows.filter((r) => r.group_no === g + 1)));
+    const meta = (st?.group_meta ?? []) as GroupMeta[];
+    const count = Math.max(max, meta.length);
+    this.groups.set(Array.from({ length: count }, (_, g) => rows.filter((r) => r.group_no === g + 1)));
+    this.meta.set(Array.from({ length: count }, (_, g) => meta[g] ?? {}));
     this.unassigned.set(rows.filter((r) => !r.group_no));
     this.total.set(rows.length);
     this.dirty.set(false);
   }
 
+  /** по 10 раскладываются все, кроме буферов — они остаются как есть, в конце */
   split(shuffle: boolean) {
-    const all = [...this.unassigned(), ...this.groups().flat()];
+    const buffers = this.groups().flatMap((g, i) => (this.meta()[i]?.buffer ? [{ g, m: this.meta()[i] }] : []));
+    const all = [...this.unassigned(), ...this.groups().filter((_, i) => !this.meta()[i]?.buffer).flat()];
     all.sort((a, b) => a.created_at.localeCompare(b.created_at));
     if (shuffle)
       for (let i = all.length - 1; i > 0; i--) {
@@ -174,13 +205,42 @@ export class AdminParticipants implements OnInit {
     const ordered = all;
     const rows = assignGroups(ordered);
     const count = Math.max(0, ...rows.map((r) => r.group));
-    this.groups.set(Array.from({ length: count }, (_, g) => rows.filter((r) => r.group === g + 1).map((r) => r.item)));
+    this.groups.set([...Array.from({ length: count }, (_, g) => rows.filter((r) => r.group === g + 1).map((r) => r.item)), ...buffers.map((b) => b.g)]);
+    this.meta.set([...Array.from({ length: count }, () => ({})), ...buffers.map((b) => b.m)]);
     this.unassigned.set([]);
     this.dirty.set(true);
   }
 
-  addGroup() {
+  addGroup(buffer = false) {
     this.groups.update((g) => [...g, []]);
+    this.meta.update((m) => [...m, buffer ? { buffer: true, name: null } : {}]);
+    this.dirty.set(true);
+  }
+
+  protected label(gi: number) {
+    return groupLabel(gi + 1, this.meta());
+  }
+
+  moveGroup(gi: number, dir: -1 | 1) {
+    const swap = <T>(a: T[]) => {
+      const b = [...a];
+      [b[gi], b[gi + dir]] = [b[gi + dir], b[gi]];
+      return b;
+    };
+    this.groups.update(swap);
+    this.meta.update(swap);
+    this.dirty.set(true);
+  }
+
+  removeGroup(gi: number) {
+    this.groups.update((g) => g.filter((_, i) => i !== gi));
+    this.meta.update((m) => m.filter((_, i) => i !== gi));
+    this.dirty.set(true);
+  }
+
+  rename(gi: number, name: string) {
+    this.meta.update((m) => m.map((x, i) => (i === gi ? { ...x, name } : x)));
+    this.dirty.set(true);
   }
 
   drop(e: CdkDragDrop<Reg[]>) {
@@ -194,13 +254,19 @@ export class AdminParticipants implements OnInit {
 
   async save() {
     this.busy.set(true);
-    const groups = this.groups().filter((g) => g.length);
+    // пустые обычные группы выкидываем, пустой буфер оставляем — он может понадобиться по ходу квалы
+    const kept = this.groups()
+      .map((g, i) => ({ g, m: this.meta()[i] ?? {} }))
+      .filter((x) => x.g.length || x.m.buffer);
+    const groups = kept.map((x) => x.g);
+    const meta: GroupMeta[] = kept.map((x) => (x.m.buffer ? { buffer: true, name: x.m.name?.trim() || null } : {}));
     let queue = 0;
     const rows = [
       ...groups.flatMap((g, gi) => g.map((r) => ({ stage_id: this.stageId(), profile_id: r.profile_id, group_no: gi + 1, queue_order: ++queue }))),
       ...this.unassigned().map((r) => ({ stage_id: this.stageId(), profile_id: r.profile_id, group_no: null, queue_order: null })),
     ];
-    const { error } = await supabase.from('registrations').upsert(rows);
+    const { error: e1 } = await supabase.from('stages').update({ group_meta: meta }).eq('id', this.stageId());
+    const { error } = e1 ? { error: e1 } : rows.length ? await supabase.from('registrations').upsert(rows) : { error: null };
     this.busy.set(false);
     if (error) return this.note(error.message, false);
     await this.load();

@@ -1,4 +1,4 @@
-// Оповещения в Discord: регистрация открыта, этап начался, итоги этапа (+ лидер сезона), новый протест, тест из админки.
+// Оповещения в Discord: регистрация открыта, этап начался, какая группа едет / готовится, итоги этапа (+ лидер сезона), новый протест, тест из админки.
 // Два канала: RU и EN (зарубежные пилоты) — каждое объявление уходит в оба на своём языке; протесты — только в RU (штабу).
 // Вебхуки — в private_settings (видны только admin). Вызывать может: штаб — любые события, пилот — только свой свежий протест.
 import { createClient } from 'npm:@supabase/supabase-js@2';
@@ -40,6 +40,12 @@ const T = {
     bracket: 'Сетка',
     resTitle: '🏁 Итоги этапа',
     leader: 'Лидер сезона',
+    group: 'Группа',
+    buffer: 'Буфер',
+    onTrack: 'на трассе',
+    now: '🟢 Едет',
+    next: '⏳ Готовится',
+    last: 'Это последняя группа квалификации.',
   },
   en: {
     testTitle: '✅ Webhook works',
@@ -56,16 +62,30 @@ const T = {
     bracket: 'Bracket',
     resTitle: '🏁 Round results',
     leader: 'Season leader',
+    group: 'Group',
+    buffer: 'Buffer',
+    onTrack: 'on track',
+    now: '🟢 Now driving',
+    next: '⏳ Get ready',
+    last: 'This is the last qualifying group.',
   },
 };
 
 async function stageInfo(id: number) {
   const { data } = await db
     .from('stages')
-    .select('id, ord, title_ru, title_en, track, starts_at, battles_at, twitch_channel, season:seasons(id, title, team_counted)')
+    .select('id, ord, title_ru, title_en, track, starts_at, battles_at, twitch_channel, group_meta, season:seasons(id, title, team_counted)')
     .eq('id', id)
     .single();
-  return data as unknown as { id: number; ord: number; title_ru: string; title_en: string | null; track: string | null; starts_at: string | null; battles_at: string | null; twitch_channel: string | null; season: { id: number; title: string } };
+  return data as unknown as { id: number; ord: number; title_ru: string; title_en: string | null; track: string | null; starts_at: string | null; battles_at: string | null; twitch_channel: string | null; group_meta: GroupMeta[] | null; season: { id: number; title: string } };
+}
+
+type GroupMeta = { buffer?: boolean; name?: string | null };
+/** как groupLabel на сайте (src/app/groups.ts): буфер — своё название, обычные — по порядку без буферов */
+function groupLabel(no: number, meta: GroupMeta[] | null, l: Lang) {
+  const m = meta ?? [];
+  if (m[no - 1]?.buffer) return m[no - 1].name?.trim() || T[l].buffer;
+  return `${T[l].group} ${no - m.slice(0, no - 1).filter((x) => x?.buffer).length}`;
 }
 
 async function send(hook: string, embed: Embed) {
@@ -149,6 +169,33 @@ Deno.serve(async (req) => {
         description: `**${name(l)}**\n${qual ? T[l].liveText : T[l].battlesText}${tw ? `\n\n📺 https://twitch.tv/${tw}` : ''}${link ? `\n🏁 ${qual ? T[l].table : T[l].bracket}: ${link}` : ''}`,
         color: RED,
         url: link,
+      });
+    } else if (type === 'groups') {
+      // группа на трассе = первая по очереди, где кто-то ещё не проехал обе зачётные; следующая — за ней
+      const [{ data: regs }, { data: runs }] = await Promise.all([
+        db.from('registrations').select('profile_id, group_no, queue_order, pilot:profiles(nickname, start_number)').eq('stage_id', id).eq('status', 'registered').not('group_no', 'is', null).order('queue_order'),
+        db.from('qual_runs').select('profile_id, attempt').eq('stage_id', id).in('attempt', [1, 2]),
+      ]);
+      const rows = (regs ?? []) as unknown as { profile_id: string; group_no: number; pilot: { nickname: string; start_number: number | null } | null }[];
+      const n = new Map<string, number>();
+      for (const r of runs ?? []) n.set(r.profile_id, (n.get(r.profile_id) ?? 0) + 1);
+      const order = [...new Set(rows.map((r) => r.group_no))];
+      const pending = order.filter((g) => rows.some((r) => r.group_no === g && (n.get(r.profile_id) ?? 0) < 2));
+      const [now, next] = pending;
+      if (!now) return json({ skipped: 'квалификация проехана' });
+      const list = (g: number) => {
+        const names = rows.filter((r) => r.group_no === g).map((r) => `#${r.pilot?.start_number ?? '—'} ${r.pilot?.nickname ?? '?'}`);
+        return (names.length > 30 ? [...names.slice(0, 30), `… +${names.length - 30}`] : names).join(' · ').slice(0, 1000) || '—';
+      };
+      build = (l) => ({
+        title: `🏁 ${groupLabel(now, s.group_meta, l)} — ${T[l].onTrack}`,
+        description: `**${name(l)}**`,
+        color: RED,
+        url: link,
+        fields: [
+          { name: `${T[l].now}: ${groupLabel(now, s.group_meta, l)}`, value: list(now) },
+          next ? { name: `${T[l].next}: ${groupLabel(next, s.group_meta, l)}`, value: list(next) } : { name: T[l].next, value: T[l].last },
+        ],
       });
     } else if (type === 'results') {
       const { data: top } = await db.from('stage_results').select('stage_place, total, pilot:profiles(nickname)').eq('stage_id', id).lte('stage_place', 3).order('stage_place');
