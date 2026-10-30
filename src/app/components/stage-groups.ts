@@ -85,6 +85,8 @@ export class StageGroups implements OnInit {
   readonly stageId = input.required<number>();
   /** статус этапа: в «Квалификации» первая группа «едет», даже пока оценок ещё нет */
   readonly status = input<string>('registration');
+  /** витрина (UI kit): вымышленные группы без базы — до старта или по ходу квалы */
+  readonly demo = input<'before' | 'live' | null>(null);
   private readonly regs = signal<Reg[]>([]);
   private readonly runs = signal<{ profile_id: string; attempt: number }[]>([]);
   private readonly meta = signal<GroupMeta[]>([]);
@@ -120,6 +122,7 @@ export class StageGroups implements OnInit {
   }
 
   async ngOnInit() {
+    if (this.demo()) return this.showDemo();
     await this.load();
     const id = this.stageId();
     const f = `stage_id=eq.${id}`;
@@ -129,6 +132,15 @@ export class StageGroups implements OnInit {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'registrations', filter: f }, () => this.load())
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'stages', filter: `id=eq.${id}` }, () => this.load())
       .subscribe();
+  }
+
+  /** 3 группы по 10 + буфер «EN сервер»; по ходу квалы: группа 1 проехала, во 2-й едет 4-й пилот */
+  private showDemo() {
+    const names = ['Kaido', 'Touge_Ghost', 'NightOwl', 'SmokeUnit', 'Hachiroku', 'Akina_Down', 'RedSuns', 'Usui_Line', 'Clutchkick', 'Feint', 'Manji', 'Choku_Dori', 'Inertia', 'Shakedown', 'Handbrake', 'Gaiden', 'Apex', 'Sidewall', 'Lockup', 'Rev_Limit', 'Shift', 'Overcut', 'Ebrake', 'Zipper', 'Flick', 'Sakura', 'Kansei', 'Yokai', 'Oni', 'Tengu', 'Lucky_Bob', 'Mr_Smith', 'Big_Ben', 'Hans'];
+    const regs: Reg[] = names.map((n, i) => ({ profile_id: 'd' + i, group_no: i < 30 ? Math.floor(i / 10) + 1 : 4, queue_order: i + 1, profile: { nickname: n, start_number: 3 + ((i * 37) % 900) } }));
+    this.regs.set(regs);
+    this.meta.set([{}, {}, {}, { buffer: true, name: 'EN сервер' }]);
+    this.runs.set(this.demo() === 'live' ? regs.slice(0, 13).flatMap((r) => [{ profile_id: r.profile_id, attempt: 1 }, { profile_id: r.profile_id, attempt: 2 }]) : []);
   }
 
   private async load() {

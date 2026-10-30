@@ -1,6 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
 import { NextStage } from '../components/next-stage';
+import { StageGroups } from '../components/stage-groups';
 import { LiveStage } from '../components/live-stage';
 import { NumberPicker } from '../components/number-picker';
 import { RoadStage, SeasonRoad } from '../components/season-road';
@@ -10,7 +11,7 @@ import { Pilot, Pilots, Rank } from './pilots';
 // Витрина базовых стилей для проверки дизайна (/dev/ui), не в меню
 @Component({
   selector: 'app-ui-showcase',
-  imports: [LiveStage, NumberPicker, SeasonRoad, PilotCard, Pilots, NextStage],
+  imports: [LiveStage, NumberPicker, SeasonRoad, PilotCard, Pilots, NextStage, StageGroups],
   template: `
     <section class="section container stack">
       <h1 class="display-lg">UI kit</h1>
@@ -52,6 +53,13 @@ import { Pilot, Pilots, Rank } from './pilots';
             </figure>
           }
         </div>
+      </div>
+      <!-- группы квалификации для зрителей: страница этапа (до старта) и под трансляцией (по ходу квалы) -->
+      <div class="card stack-sm">
+        <h2 class="h-sm">Группы квалификации — страница этапа, до старта</h2>
+        <app-stage-groups [stageId]="-1" status="registration" demo="before" />
+        <h2 class="h-sm">Группы квалификации — идёт квала (так же под трансляцией на главной)</h2>
+        <app-stage-groups [stageId]="-1" status="qualifying" demo="live" />
       </div>
       <!-- «хайп» карточки ближайшего этапа на разном числе записавшихся -->
       <div class="hype-demo">
