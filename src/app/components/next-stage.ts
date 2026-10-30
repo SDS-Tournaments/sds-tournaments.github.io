@@ -583,10 +583,12 @@ export class NextStage {
       ];
       const last = new Map<number, number>();
       const tick = () => {
+        // следующий кадр — заранее: ошибка в одном кадре не должна останавливать молнии навсегда
+        raf = requestAnimationFrame(tick);
         const anims = host.getAnimations() as CSSAnimation[];
         beats.forEach((b, i) => {
-          // Angular приписывает к именам @keyframes префикс компонента: _ngcontent-…_heart
-          const a = anims.find((x) => x.animationName === b.name || x.animationName.endsWith('_' + b.name));
+          // Angular приписывает к именам @keyframes префикс компонента: _ngcontent-…_heart; у CSS-переходов (transition) имени нет
+          const a = anims.find((x) => x.animationName === b.name || x.animationName?.endsWith('_' + b.name));
           const ct = a?.currentTime;
           if (typeof ct !== 'number') return;
           const ph = (ct % b.ms) / b.ms;
@@ -600,7 +602,6 @@ export class NextStage {
             if (b.double) strike(b.power(), room[(side + 2) % 4] > 12 ? (side + 2) % 4 : pickSide(room), room);
           }
         });
-        raf = requestAnimationFrame(tick);
       };
       raf = requestAnimationFrame(tick);
       onCleanup(() => {
