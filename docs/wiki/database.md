@@ -41,7 +41,7 @@
 | `protests` (0003) | battle_id, stage_id, profile_id, video_url, reason, status, admin_comment, resolved_*, notified_at (0008) | сам и штаб / пилот (insert), admin |
 | `overlay_state` | id=1, state jsonb (см. [overlay.md](overlay.md)) | все / staff |
 | `app_settings` | id=1, twitch_channel, regulation_ru/en, regulation_version, **discord_invite** (0017) | все / admin |
-| `private_settings` | id=1, discord_webhook_url (RU), **discord_webhook_en** (0018) | admin / admin |
+| `private_settings` | id=1, discord_webhook_url (RU), **discord_webhook_en** (0018), **discord_webhook_test**, **discord_test_mode** (0026) | admin / admin |
 
 ## Функции и триггеры
 - `my_role()`, `is_admin()`, `is_staff()` — security definer (без рекурсии RLS). staff = admin или staff.
@@ -92,8 +92,9 @@
 | 0022 | Прогнозы зрителей: `predictions` (анонимно, voter = id браузера), `guard_prediction` (открыто, пока нет оценки/победителя), `prediction_counts(stage)`, Realtime |
 | 0023 | `stages.warmup` (прогрев вкл/выкл), `profiles.custom_nickname` / `custom_avatar` (steam-auth не перезаписывает), бакет `avatars` (пишет admin) |
 | 0025 | `stages.group_meta` — буфер-группы и их названия |
+| 0026 | `private_settings.discord_webhook_test`, `discord_test_mode` — тестовый канал Discord |
 | 0024 | Общий пульт судей: `judge_marks` (черновые баллы/голоса, PK stage+target+crit; target `q:<pilot>:<attempt>` / `b:<battle>:<try>`), `judge_live` (общий выбор пилота), только штаб, Realtime |
 | 0021 | Трасса этапа: `stages.track_map_url`, `stages.zones` (jsonb), бакет `tracks` (пишет штаб) |
 
-Статус: 0001–0025 на проде выполнены (0023–0024 — 2026-10-28, 0025 — 2026-10-30, проверено запросом). 0001–0019 на **проде** выполнены (0019 — таблица точно есть; триггер — если владелец запускал SQL целиком).
+Статус: 0001–0026 на проде выполнены (0023–0024 — 2026-10-28, 0025–0026 — 2026-10-30/31, проверено запросом). 0001–0019 на **проде** выполнены (0019 — таблица точно есть; триггер — если владелец запускал SQL целиком).
 На **staging** 0017–0019 — не подтверждено, проверить перед прогоном.
