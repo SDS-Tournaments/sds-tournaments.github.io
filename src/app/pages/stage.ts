@@ -7,6 +7,7 @@ import { supabase } from '../auth';
 import { BracketTree, TreeBattle, TreePilot } from '../components/bracket-tree';
 import { LiveStage } from '../components/live-stage';
 import { Loader } from '../components/loader';
+import { StageGroups } from '../components/stage-groups';
 import { qualStandings, Round } from '../scoring/scoring';
 import { pageTitle } from '../title';
 
@@ -46,7 +47,7 @@ type Tab = 'results' | 'bracket' | 'qual';
 // Страница этапа для зрителей: итоги, живая сетка, квалификация
 @Component({
   selector: 'app-stage',
-  imports: [RouterLink, TranslocoPipe, DatePipe, BracketTree, LiveStage, Loader],
+  imports: [RouterLink, TranslocoPipe, DatePipe, BracketTree, LiveStage, Loader, StageGroups],
   template: `
     @if (stage(); as s) {
       <section class="section container page-in">
@@ -93,6 +94,11 @@ type Tab = 'results' | 'bracket' | 'qual';
               </div>
             }
           </section>
+        }
+
+        <!-- группы квалификации: до старта (когда штаб разбил по группам) и после квалы; во время квалы — в блоке эфира -->
+        @if (!live() && s.status !== 'finished' && s.status !== 'draft') {
+          <app-stage-groups class="groups" [stageId]="s.id" [status]="s.status" />
         }
 
         @if (live()) {
@@ -172,6 +178,7 @@ type Tab = 'results' | 'bracket' | 'qual';
     .st-draft, .st-finished { background: var(--surface-3); color: var(--ink-muted); }
     .st-qualifying, .st-battles { background: rgba(255, 92, 92, 0.15); color: var(--error); }
     .live-wrap { margin-top: 40px; }
+    .groups { margin-top: 40px; }
     /* трасса и зоны: таблица в духе макета — строки критериев, колонки зон, итог подсвечен */
     .track { margin-top: 40px; display: grid; gap: 16px; }
     .h2 { font-size: 22px; margin: 0; }

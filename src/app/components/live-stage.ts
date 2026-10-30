@@ -5,6 +5,7 @@ import { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '../auth';
 import { qualStandings } from '../scoring/scoring';
 import { Loader } from './loader';
+import { StageGroups } from './stage-groups';
 import { PredictionPoll } from './prediction-poll';
 import { loadPredictionCounts, PredictionCount, RUN_PICKS, runTarget } from '../predict';
 import { mockStage } from '../overlay/mock';
@@ -29,7 +30,7 @@ const ORDER = ['r32', 'r16', 'qf', 'sf', 'third', 'final'];
 // Прямой эфир этапа на главной: Twitch + живые данные (топ квалификации или текущая дуэль)
 @Component({
   selector: 'app-live-stage',
-  imports: [TranslocoPipe, Loader, PredictionPoll],
+  imports: [TranslocoPipe, Loader, PredictionPoll, StageGroups],
   host: { '(document:keydown.escape)': 'wide.set(false)' },
   template: `
     <!-- широкий экран: трансляция поверх сайта на всё окно, панель с голосованием остаётся справа -->
@@ -119,8 +120,13 @@ const ORDER = ['r32', 'r16', 'qf', 'sf', 'third', 'final'];
         }
       </aside>
     </div>
+    <!-- квалификация: какие группы едут / готовятся — под трансляцией (и на главной, и на странице этапа) -->
+    @if (status() === 'qualifying' && !demo()) {
+      <app-stage-groups class="groups" [stageId]="stageId()" [status]="status()" />
+    }
   `,
   styles: `
+    .groups { margin-top: 32px; }
     .wrap { display: grid; gap: 16px; grid-template-columns: 1fr 340px; align-items: stretch; }
     /* видео всегда 16:9 по ширине колонки; высоту ряда задаёт оно, панель справа — ровно такой же высоты */
     .player { position: relative; align-self: start; width: 100%; min-width: 0; aspect-ratio: 16 / 9; border-radius: var(--r-lg); overflow: hidden; border: 1px solid var(--hairline-strong); background: var(--surface-1); }

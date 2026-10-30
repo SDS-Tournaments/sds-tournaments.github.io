@@ -428,5 +428,14 @@
     "stageClosedHint": "Registration is closed for now — we’ll announce it on Discord",
     "readyTitle": "All set — you’re in the round.",
     "readyText": "See you on track!"
+  },
+  "groups": {
+    "title": "Qualifying groups",
+    "group": "Group",
+    "buffer": "Buffer",
+    "now": "Driving",
+    "next": "Get ready",
+    "done": "Done",
+    "onTrack": "on track"
   }
 }
