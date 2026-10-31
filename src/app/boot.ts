@@ -1,6 +1,8 @@
 // Загрузочный экран «SAD» (разметка и стили — в index.html, чтобы он был виден ещё до загрузки кода).
 // Надпись заливается по мере ответов базы; когда страница открыта и запросы затихли — доливается и исчезает.
 
+import { guardedFetch } from './db-guard';
+
 let started = 0;
 let done = 0;
 let onChange: (() => void) | null = null;
@@ -21,11 +23,11 @@ export async function retryFetch(input: RequestInfo | URL, init?: RequestInit, w
   }
 }
 
-/** fetch для supabase-js: считает запросы, чтобы двигать заливку */
+/** fetch для supabase-js: считает запросы, чтобы двигать заливку; аварийное заграждение — db-guard.ts */
 export const trackedFetch: typeof fetch = (input, init) => {
   started++;
   onChange?.();
-  return retryFetch(input, init).finally(() => {
+  return guardedFetch(input, init, retryFetch).finally(() => {
     done++;
     onChange?.();
   });

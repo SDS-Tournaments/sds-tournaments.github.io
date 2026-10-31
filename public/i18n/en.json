@@ -437,5 +437,9 @@
     "next": "Get ready",
     "done": "Done",
     "onTrack": "on track"
+  },
+  "busy": {
+    "text": "The server is overloaded — the site paused to give it room. The Twitch stream is unaffected.",
+    "retry": "Retrying in {{s}}s"
   }
 }

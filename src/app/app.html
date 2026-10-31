@@ -84,4 +84,10 @@
     <b>{{ 'nag.fill' | transloco }} →</b>
   </a>
 }
+@if (busyLeft(); as s) {
+  <div class="db-busy" role="status">
+    <span>⚠ {{ 'busy.text' | transloco }}</span>
+    <b class="mono">{{ 'busy.retry' | transloco: { s } }}</b>
+  </div>
+}
 @if (staging && !bare) { <div class="staging">ТЕСТОВАЯ БАЗА</div> }

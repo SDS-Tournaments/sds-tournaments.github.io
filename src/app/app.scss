@@ -320,6 +320,29 @@ main {
 }
 
 /* напоминание указать Discord — плашка внизу, не сдвигает страницу */
+/* аварийное заграждение: база перегружена — сайт держит паузу */
+.db-busy {
+  position: fixed;
+  left: 50%;
+  top: 84px;
+  z-index: 95;
+  translate: -50% 0;
+  width: max-content;
+  max-width: calc(100% - 32px);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 12px;
+  padding: 10px 18px;
+  border: 1px solid color-mix(in srgb, var(--warning) 60%, transparent);
+  border-radius: var(--r-lg);
+  background: color-mix(in srgb, var(--warning) 12%, var(--surface-1));
+  backdrop-filter: blur(8px);
+  font-size: 14px;
+  color: var(--ink);
+  text-align: center;
+  b { color: var(--warning); }
+}
 .dc-nag {
   position: fixed;
   left: 50%;

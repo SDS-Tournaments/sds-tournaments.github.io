@@ -1,4 +1,5 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
+import { dbBusyUntil } from './db-guard';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter, map, take } from 'rxjs';
@@ -44,6 +45,16 @@ export class App {
   protected readonly staging = STAGING;
   // shortcut: проверяем адрес при загрузке — /overlay открывают напрямую в OBS, переходом изнутри сайта туда не попадают
   protected readonly bare = location.pathname.startsWith('/overlay');
+
+  /** аварийное заграждение: сколько секунд до повтора (0 — база отвечает) */
+  private readonly clock = signal(Date.now());
+  protected readonly busyLeft = computed(() => Math.max(0, Math.ceil((dbBusyUntil() - this.clock()) / 1000)));
+  private readonly busyTick = effect((onCleanup) => {
+    if (!dbBusyUntil()) return;
+    const id = setInterval(() => this.clock.set(Date.now()), 1000);
+    this.clock.set(Date.now());
+    onCleanup(() => clearInterval(id));
+  });
 
   /** генеральный спонсор для подвала — из Админки → Спонсоры */
   protected readonly general = signal<{ name: string; url: string | null } | null>(null);
