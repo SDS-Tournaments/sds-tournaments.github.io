@@ -49,7 +49,7 @@ interface OpenStage {
           @if (mine) {
             <button class="leave" (click)="set(s, 'withdrawn')" [disabled]="busy()">{{ 'signup.leave' | transloco }}</button>
           } @else if (s.reg_closed) {
-            <button class="btn btn-secondary join" disabled>🔒 {{ 'signup.closed' | transloco }}</button>
+            <button class="btn btn-secondary join shut" disabled>🔒 {{ 'signup.closed' | transloco }}</button>
           } @else {
             <button class="btn btn-primary join" (click)="set(s, 'registered')" [disabled]="busy() || !hasNumber() || !hasDiscord()">{{ 'signup.joinShort' | transloco }}</button>
           }
@@ -111,6 +111,7 @@ interface OpenStage {
       background: repeating-linear-gradient(90deg, var(--ink) 0 2px, transparent 2px 4px, var(--ink) 4px 5px, transparent 5px 8px, var(--ink) 8px 11px, transparent 11px 12px);
     }
     .join { padding: 8px 14px; font-size: 13px; }
+    .shut { white-space: normal; line-height: 1.25; }
     .leave {
       border: 0; background: none; padding: 4px; cursor: pointer;
       font: inherit; font-size: 12px; color: var(--ink-subtle); text-decoration: underline; text-underline-offset: 3px;
