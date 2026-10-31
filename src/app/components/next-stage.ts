@@ -123,7 +123,11 @@ const step = (level: number) => (Math.max(1, level) - 1) / (HYPE_STEPS.length - 
       @if (live()) {
         <a href="#live" class="btn btn-primary">{{ 'home.next.watch' | transloco }}</a>
       } @else if (status() === 'registration') {
-        <a routerLink="/me" class="btn btn-primary">{{ 'home.next.cta' | transloco }}</a>
+        @if (regClosed()) {
+          <button class="btn btn-secondary" disabled>🔒 {{ 'home.next.regClosed' | transloco }}</button>
+        } @else {
+          <a routerLink="/me" class="btn btn-primary">{{ 'home.next.cta' | transloco }}</a>
+        }
         <div class="hype-bar">
           <div class="hb-top">
             <span>{{ 'home.next.hype' | transloco }}</span>
@@ -471,6 +475,8 @@ export class NextStage {
   protected readonly target = computed(() => (this.status() === 'qual_done' ? this.battlesAt() : this.startsAt()));
   registered = input(0);
   status = input<string>('registration');
+  /** регистрация закрыта, этап ещё не начался */
+  regClosed = input(false);
   protected readonly live = computed(() => this.status() === 'qualifying' || this.status() === 'battles');
   /** хайп только пока идёт регистрация */
   protected readonly hypeOn = computed(() => !!this.stage() && this.status() === 'registration');

@@ -22,6 +22,8 @@ interface Stage {
   starts_at: string | null;
   battles_at: string | null;
   status: (typeof STAGE_FLOW)[number];
+  /** регистрация закрыта, статус тот же (0028): записаться нельзя, сняться можно */
+  reg_closed: boolean;
   weights: Record<Crit, number>;
   judges: Record<Crit, string>;
   bracket_size: string;
@@ -71,6 +73,12 @@ const CRITS: { key: Crit; label: string }[] = [
           </li>
         }
       </ol>
+      @if (st.status === 'registration') {
+        <p class="reg">
+          Запись пилотов: <b [class.off]="st.reg_closed">{{ st.reg_closed ? 'закрыта' : 'открыта' }}</b>
+          <button type="button" class="btn btn-secondary" (click)="toggleReg()" [disabled]="busy()">{{ st.reg_closed ? '🔓 Открыть снова' : '🔒 Закрыть регистрацию' }}</button>
+        </p>
+      }
 
       <form class="stack" (ngSubmit)="save()">
         <section class="card stack">
@@ -228,6 +236,9 @@ const CRITS: { key: Crit; label: string }[] = [
     .ok { color: var(--primary); }
     .bad { color: var(--error); }
 
+    .reg { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: -8px 0 24px; }
+    .reg b { color: var(--primary); }
+    .reg b.off { color: var(--warning); }
     .flow {
       display: flex;
       flex-wrap: wrap;
@@ -298,7 +309,7 @@ export class AdminStage implements OnInit {
   async ngOnInit() {
     const { data, error } = await supabase
       .from('stages')
-      .select('id, season_id, ord, title_ru, title_en, description_ru, description_en, track, starts_at, battles_at, status, weights, judges, bracket_size, warmup, twitch_channel, track_map_url, zones')
+      .select('id, season_id, ord, title_ru, title_en, description_ru, description_en, track, starts_at, battles_at, status, reg_closed, weights, judges, bracket_size, warmup, twitch_channel, track_map_url, zones')
       .eq('id', this.id())
       .single();
     if (error) return this.note(error.message, false);
@@ -403,6 +414,20 @@ export class AdminStage implements OnInit {
     // старт квалы, следом — какая группа едет и какая готовится
     if (status === 'qualifying') notify('stage_start', st.id).then(() => notify('groups', st.id));
     if (status === 'battles') notify('battles_start', st.id);
+  }
+
+  /** закрыть / снова открыть запись, статус этапа не меняется */
+  async toggleReg() {
+    const st = this.st();
+    if (!st) return;
+    const reg_closed = !st.reg_closed;
+    if (reg_closed && !confirm('Закрыть регистрацию? Новые пилоты не смогут записаться (сняться — смогут). Вручную записать можно в «Пилоты и санкции».')) return;
+    this.busy.set(true);
+    const { error } = await supabase.from('stages').update({ reg_closed }).eq('id', st.id);
+    this.busy.set(false);
+    if (error) return this.note(error.message, false);
+    this.st.set({ ...st, reg_closed });
+    this.note(reg_closed ? 'Регистрация закрыта' : 'Регистрация снова открыта', true);
   }
 
   async remove() {

@@ -69,6 +69,7 @@ import { Home } from './home';
             [battlesAt]="next()?.battles_at ? toDate(next()!.battles_at!) : null"
             [registered]="nextCount()"
             [status]="next()?.status ?? 'registration'"
+            [regClosed]="!!next()?.reg_closed"
           />
         </div>
       </div>

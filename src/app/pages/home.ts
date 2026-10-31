@@ -44,6 +44,7 @@ import { Reveal } from '../reveal';
           [battlesAt]="next()?.battles_at ? toDate(next()!.battles_at!) : null"
           [registered]="nextCount()"
           [status]="next()?.status ?? 'registration'"
+          [regClosed]="!!next()?.reg_closed"
         />
       </div>
     </section>
@@ -347,7 +348,7 @@ export class Home implements OnInit {
 
   private async load() {
     const [stages, settings, sponsors, season] = await Promise.all([
-      supabase.from('stages').select('id, title_ru, title_en, track, starts_at, battles_at, status, twitch_channel').in('status', ['registration', 'qualifying', 'qual_done', 'battles']).order('starts_at'),
+      supabase.from('stages').select('id, title_ru, title_en, track, starts_at, battles_at, status, reg_closed, twitch_channel').in('status', ['registration', 'qualifying', 'qual_done', 'battles']).order('starts_at'),
       supabase.from('app_settings').select('twitch_channel').single(),
       supabase.from('sponsors').select('id, name, logo_url, url, tier').order('tier').order('sort'),
       currentSeason(),
@@ -420,6 +421,7 @@ interface StageCard {
   starts_at: string | null;
   battles_at?: string | null;
   status: string;
+  reg_closed?: boolean;
   twitch_channel: string | null;
 }
 interface Sponsor {

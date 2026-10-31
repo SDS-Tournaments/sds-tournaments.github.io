@@ -438,7 +438,7 @@ export class Me {
   protected readonly regState = signal<'registered' | 'open' | 'closed' | null>(null);
   async loadReg(id: string) {
     const [open, mine] = await Promise.all([
-      supabase.from('stages').select('id', { count: 'exact', head: true }).eq('status', 'registration'),
+      supabase.from('stages').select('id', { count: 'exact', head: true }).eq('status', 'registration').eq('reg_closed', false),
       supabase
         .from('registrations')
         .select('stage_id, stage:stages!inner(status)', { count: 'exact', head: true })

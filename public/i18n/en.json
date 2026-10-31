@@ -37,6 +37,7 @@
       "registered": "drivers already signed up",
       "racing": "drivers on track",
       "cta": "Register",
+      "regClosed": "Registration closed",
       "watch": "Watch live",
       "qualifying": "Qualifying",
       "battles": "Battles",
@@ -136,6 +137,8 @@
     "join": "Register",
     "joinShort": "Sign up",
     "leave": "Withdraw",
+    "leaveClosed": "Registration is already closed — you won't be able to sign up again. Withdraw?",
+    "closed": "Registration closed",
     "none": "No rounds are open for registration right now.",
     "needNumber": "Pick and save a race number below to register.",
     "needDiscord": "To sign up, add your Discord username above.",
@@ -257,7 +260,8 @@
   "stages": {
     "round": "Round",
     "empty": "The season's rounds haven't been announced yet.",
-    "regOpen": "Registration open"
+    "regOpen": "Registration open",
+    "regClosed": "Registration closed"
   },
   "stage": {
     "track": "Track",

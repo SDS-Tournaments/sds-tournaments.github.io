@@ -16,6 +16,7 @@ interface StageRow {
   starts_at: string | null;
   battles_at: string | null;
   status: string;
+  reg_closed: boolean;
 }
 
 // Этапы сезона: карточки со статусом и победителем
@@ -67,7 +68,9 @@ interface StageRow {
               <div class="stubs">
                 <div class="stub">
                   <span class="no"><small>{{ 'stages.round' | transloco }}</small><b class="mono">{{ s.ord < 10 ? '0' + s.ord : s.ord }}</b></span>
-                  @if (s.status === 'registration') {
+                  @if (s.status === 'registration' && s.reg_closed) {
+                    <span class="cta">🔒 {{ 'stages.regClosed' | transloco }}</span>
+                  } @else if (s.status === 'registration') {
                     <span class="cta">{{ 'stages.regOpen' | transloco }} →</span>
                   } @else if (s.status === 'qualifying' || s.status === 'battles') {
                     <span class="cta">{{ 'home.next.watch' | transloco }} →</span>
@@ -262,7 +265,7 @@ export class Stages implements OnInit {
   async pick(id: number) {
     this.loading.set(true);
     this.season.set(this.seasons().find((s) => s.id === id) ?? null);
-    const { data } = await supabase.from('stages').select('id, ord, title_ru, title_en, track, starts_at, battles_at, status').eq('season_id', id).order('ord');
+    const { data } = await supabase.from('stages').select('id, ord, title_ru, title_en, track, starts_at, battles_at, status, reg_closed').eq('season_id', id).order('ord');
     const ids = (data ?? []).map((s) => s.id);
     const { data: w } = ids.length
       ? await supabase.from('stage_results').select('stage_id, pilot:profiles(nickname)').in('stage_id', ids).eq('stage_place', 1)

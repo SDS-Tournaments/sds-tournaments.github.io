@@ -11,6 +11,7 @@ interface OpenStage {
   track: string | null;
   starts_at: string | null;
   battles_at: string | null;
+  reg_closed: boolean;
   registrations: { profile_id: string; status: string }[];
 }
 
@@ -47,6 +48,8 @@ interface OpenStage {
           </span>
           @if (mine) {
             <button class="leave" (click)="set(s, 'withdrawn')" [disabled]="busy()">{{ 'signup.leave' | transloco }}</button>
+          } @else if (s.reg_closed) {
+            <button class="btn btn-secondary join" disabled>🔒 {{ 'signup.closed' | transloco }}</button>
           } @else {
             <button class="btn btn-primary join" (click)="set(s, 'registered')" [disabled]="busy() || !hasNumber() || !hasDiscord()">{{ 'signup.joinShort' | transloco }}</button>
           }
@@ -172,7 +175,7 @@ export class StageSignup implements OnInit {
   private async load() {
     const { data, error } = await supabase
       .from('stages')
-      .select('id, title_ru, title_en, track, starts_at, battles_at, registrations(profile_id, status)')
+      .select('id, title_ru, title_en, track, starts_at, battles_at, reg_closed, registrations(profile_id, status)')
       .eq('status', 'registration')
       .order('starts_at');
     this.loading.set(false);
@@ -191,6 +194,8 @@ export class StageSignup implements OnInit {
   async set(s: OpenStage, status: 'registered' | 'withdrawn') {
     // первая запись в сезоне закрепляет номер до конца сезона (0011)
     if (status === 'registered' && !this.numberLocked() && !confirm(this.transloco.translate('signup.lockConfirm', { n: this.number() }))) return;
+    // регистрация закрыта — снятие не отменить
+    if (status === 'withdrawn' && s.reg_closed && !confirm(this.transloco.translate('signup.leaveClosed'))) return;
     this.busy.set(true);
     this.error.set(null);
     const row = { stage_id: s.id, profile_id: this.profileId() };
