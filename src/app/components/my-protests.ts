@@ -114,7 +114,7 @@ export class MyProtests implements OnInit {
 
   async ngOnInit() {
     await this.load();
-    // лайт-режим: без Realtime (подписка на все дуэли у каждого пилота в кабинете) — опрос раз в 30 с
+    // лайт-режим: без Realtime (подписка на все дуэли у каждого пилота в кабинете) — опрос ~раз в 45 с
     if (LITE) {
       this.destroyRef.onDestroy(litePoll(() => this.load()));
       return;

@@ -10,7 +10,7 @@ import { PredictionPoll } from './prediction-poll';
 import { loadPredictionCounts, PredictionCount, RUN_PICKS, runTarget } from '../predict';
 import { mockStage } from '../overlay/mock';
 import { Live } from '../live';
-import { LITE, LITE_POLL_MS, litePoll } from '../lite';
+import { LITE, litePoll } from '../lite';
 import { GroupMeta } from '../groups';
 
 interface Pilot {
@@ -312,7 +312,8 @@ export class LiveStage implements OnInit {
       const t = this.pollTarget();
       if (this.demo() || !t) return;
       this.loadCounts();
-      const id = setInterval(() => document.visibilityState === 'visible' && this.loadCounts(), LITE ? LITE_POLL_MS : 4000);
+      if (LITE) return onCleanup(litePoll(() => this.loadCounts()));
+      const id = setInterval(() => document.visibilityState === 'visible' && this.loadCounts(), 4000);
       onCleanup(() => clearInterval(id));
     });
   }
