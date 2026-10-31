@@ -10,6 +10,7 @@ import { Loader } from '../components/loader';
 import { StageGroups } from '../components/stage-groups';
 import { qualStandings, Round } from '../scoring/scoring';
 import { pageTitle } from '../title';
+import { LITE, litePoll } from '../lite';
 
 interface Stage {
   id: number;
@@ -231,6 +232,7 @@ export class StagePage implements OnInit {
   private readonly t = inject(TranslocoService);
   protected readonly lang = signal(this.t.getActiveLang());
   private sub?: RealtimeChannel;
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly live = computed(() => ['qualifying', 'battles'].includes(this.stage()?.status ?? ''));
   protected readonly description = computed(() => {
@@ -270,7 +272,9 @@ export class StagePage implements OnInit {
     pageTitle((s as unknown as Stage).title_ru);
     // по умолчанию — самое интересное: итоги, иначе сетка, иначе квалификация
     this.tab.set(this.tabs()[0]);
-    if (this.live()) {
+    if (this.live() && LITE) {
+      this.destroyRef.onDestroy(litePoll(() => Promise.all([this.loadRuns(), this.loadBattles()])));
+    } else if (this.live()) {
       const f = `stage_id=eq.${id}`;
       this.sub = supabase
         .channel(`stage-${id}`)

@@ -1,5 +1,6 @@
 import { DestroyRef, effect, inject, Injectable, signal } from '@angular/core';
 import { supabase } from './auth';
+import { LITE } from './lite';
 
 export interface LiveStage {
   id: number;
@@ -31,7 +32,9 @@ export class Live {
    */
   async start() {
     await this.load();
-    this.timer = setInterval(() => document.visibilityState === 'visible' && this.load(), 60_000);
+    // лайт-режим: один раз при открытии сайта, без повторов
+    if (LITE) return;
+    this.timer = setInterval(() => document.visibilityState === 'visible' && this.load(), 120_000);
     document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && this.load());
   }
 

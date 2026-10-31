@@ -4,6 +4,7 @@ import { TranslocoPipe } from '@jsverse/transloco';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '../auth';
 import { notify } from '../notify';
+import { LITE, litePoll } from '../lite';
 
 const WINDOW_MS = 5 * 60_000;
 const LIMIT = 2;
@@ -101,6 +102,8 @@ export class MyProtests implements OnInit {
     return this.protests().filter((p) => p.stage_id === stage).length;
   });
 
+  private readonly destroyRef = inject(DestroyRef);
+
   constructor() {
     const id = setInterval(() => this.now.set(Date.now()), 1000);
     inject(DestroyRef).onDestroy(() => {
@@ -111,6 +114,11 @@ export class MyProtests implements OnInit {
 
   async ngOnInit() {
     await this.load();
+    // лайт-режим: без Realtime (подписка на все дуэли у каждого пилота в кабинете) — опрос раз в 30 с
+    if (LITE) {
+      this.destroyRef.onDestroy(litePoll(() => this.load()));
+      return;
+    }
     // Решение по дуэли приходит в реальном времени — форма появляется сразу
     this.channel = supabase
       .channel(`my-protests-${this.profileId()}`)

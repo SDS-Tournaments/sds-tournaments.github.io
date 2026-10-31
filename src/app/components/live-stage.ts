@@ -10,6 +10,7 @@ import { PredictionPoll } from './prediction-poll';
 import { loadPredictionCounts, PredictionCount, RUN_PICKS, runTarget } from '../predict';
 import { mockStage } from '../overlay/mock';
 import { Live } from '../live';
+import { LITE, LITE_POLL_MS, litePoll } from '../lite';
 import { GroupMeta } from '../groups';
 
 interface Pilot {
@@ -270,6 +271,7 @@ export class LiveStage implements OnInit {
   protected readonly runT = computed(() => (this.status() === 'qualifying' ? runTarget(this.regs(), this.runs()) : null));
   private countsTimer?: ReturnType<typeof setInterval>;
   private readonly sanitizer = inject(DomSanitizer);
+  private readonly destroyRef = inject(DestroyRef);
   private sub?: RealtimeChannel;
 
   protected readonly playerUrl = computed(() => {
@@ -310,7 +312,7 @@ export class LiveStage implements OnInit {
       const t = this.pollTarget();
       if (this.demo() || !t) return;
       this.loadCounts();
-      const id = setInterval(() => document.visibilityState === 'visible' && this.loadCounts(), 4000);
+      const id = setInterval(() => document.visibilityState === 'visible' && this.loadCounts(), LITE ? LITE_POLL_MS : 4000);
       onCleanup(() => clearInterval(id));
     });
   }
@@ -330,6 +332,11 @@ export class LiveStage implements OnInit {
     await this.load();
     const f = `stage_id=eq.${this.stageId()}`;
     // изменения берём прямо из сообщения — без перекачки всех списков у каждого зрителя на каждую оценку
+    if (LITE) {
+      const stop = litePoll(() => this.load());
+      this.destroyRef.onDestroy(stop);
+      return;
+    }
     this.sub = supabase
       .channel(`live-${this.stageId()}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'qual_runs', filter: f }, (e) => this.onRun(e.eventType, e.new as Row, e.old as Row))

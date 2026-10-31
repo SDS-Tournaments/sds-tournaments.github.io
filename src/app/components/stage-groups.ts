@@ -4,6 +4,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '../auth';
 import { GroupMeta, groupLabel } from '../groups';
+import { LITE, litePoll } from '../lite';
 
 interface Reg {
   profile_id: string;
@@ -99,6 +100,7 @@ export class StageGroups implements OnInit {
   /** «Группа» / «Буфер» на языке сайта — подписка, а не translate(): словарь грузится асинхронно, иначе на миг (или навсегда) видны ключи */
   private readonly words = toSignal(this.t.selectTranslate(['groups.group', 'groups.buffer']), { initialValue: ['', ''] });
   private sub?: RealtimeChannel;
+  private readonly destroyRef = inject(DestroyRef);
 
   /** проехал обе зачётные попытки */
   protected readonly done = computed(() => {
@@ -133,6 +135,7 @@ export class StageGroups implements OnInit {
     await this.load();
     const id = this.stageId();
     const f = `stage_id=eq.${id}`;
+    if (LITE) return this.destroyRef.onDestroy(litePoll(() => this.load()));
     this.sub = supabase
       .channel(`groups-${id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'qual_runs', filter: f }, () => this.load())
