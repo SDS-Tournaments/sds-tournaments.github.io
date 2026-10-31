@@ -1,32 +1,6 @@
-// Прогнозы зрителей (0022): квалификация — сколько наберёт пилот на трассе, парные — кто победит в дуэли.
-// Общая логика для сайта (блок эфира) и плашки стрима.
+// Прогнозы зрителей (0022): кто победит в дуэли. Только парные — на квалификацию убрали 2026-11-01.
+// Общая логика для сайта (блок эфира), пульта комментатора и плашки стрима.
 import { supabase } from './auth';
-
-export const RUN_PICKS = ['lt80', '80', '85', '90', '95', '100'] as const;
-export type RunPick = (typeof RUN_PICKS)[number];
-export type BattlePick = 'leader' | 'chaser';
-export const RUN_PICK_LABEL: Record<RunPick, string> = { lt80: '<80', '80': '80+', '85': '85+', '90': '90+', '95': '95+', '100': '100' };
-
-/** В какой вариант попала итоговая оценка заезда (нулевая попытка — «<80») */
-export function pickOfScore(total: number, spin = false): RunPick {
-  if (spin || total < 80) return 'lt80';
-  return total >= 100 ? '100' : total >= 95 ? '95' : total >= 90 ? '90' : total >= 85 ? '85' : '80';
-}
-
-/** Цель голосования в квалификации: пилот на трассе (первый в очереди без обеих зачётных) и его ближайшая зачётная попытка */
-export function runTarget(
-  regs: { profile_id: string; queue_order: number | null }[],
-  runs: { profile_id: string; attempt: number }[],
-): { profileId: string; attempt: 1 | 2 } | null {
-  const queue = [...regs].sort((a, b) => (a.queue_order ?? 1e9) - (b.queue_order ?? 1e9));
-  for (const r of queue) {
-    const done = new Set(runs.filter((x) => x.profile_id === r.profile_id).map((x) => x.attempt));
-    if (done.has(1) && done.has(2)) continue;
-    // во время прогрева (если он есть) голосуем уже за 1-ю зачётную
-    return { profileId: r.profile_id, attempt: !done.has(1) ? 1 : 2 };
-  }
-  return null;
-}
 
 export interface PredictionCount {
   profile_id: string | null;
@@ -36,25 +10,22 @@ export interface PredictionCount {
   n: number;
 }
 
-/** target — только этот заезд/дуэль: зрителям не нужен весь этап (в разы меньше трафика при опросе раз в несколько секунд) */
-export async function loadPredictionCounts(stageId: number, target?: { profileId: string; attempt: number } | { battleId: number }): Promise<PredictionCount[]> {
+/** battleId — только эта дуэль: зрителям не нужен весь этап (в разы меньше трафика при опросе) */
+export async function loadPredictionCounts(stageId: number, battleId?: number): Promise<PredictionCount[]> {
   let q = supabase.rpc('prediction_counts', { p_stage: stageId }, { get: true });
-  if (target) q = 'battleId' in target ? q.eq('battle_id', target.battleId) : q.eq('profile_id', target.profileId).eq('attempt', target.attempt);
+  if (battleId) q = q.eq('battle_id', battleId);
   const { data } = await q;
   return ((data ?? []) as PredictionCount[]).map((r) => ({ ...r, n: Number(r.n) }));
 }
 
-/** Голоса за конкретный заезд или дуэль: вариант → число */
-export function countsFor(rows: PredictionCount[], t: { profileId: string; attempt: number } | { battleId: number }): Map<string, number> {
+/** Голоса за дуэль: вариант (leader / chaser) → число */
+export function countsFor(rows: PredictionCount[], battleId: number): Map<string, number> {
   const m = new Map<string, number>();
-  for (const r of rows) {
-    const hit = 'battleId' in t ? r.battle_id === t.battleId : !r.battle_id && r.profile_id === t.profileId && r.attempt === t.attempt;
-    if (hit) m.set(r.pick, (m.get(r.pick) ?? 0) + r.n);
-  }
+  for (const r of rows) if (r.battle_id === battleId) m.set(r.pick, (m.get(r.pick) ?? 0) + r.n);
   return m;
 }
 
-/** Случайный id браузера: один голос на заезд/дуэль с устройства (вход не нужен) */
+/** Случайный id браузера: один голос на дуэль с устройства (вход не нужен) */
 let memVoter: string | null = null;
 export function voterId(): string {
   try {

@@ -14,7 +14,7 @@ const ACH_TEXT = { ru: ruText.ach, en: enText.ach } as Record<'ru' | 'en', Recor
 import { compareRow } from './compare';
 import { forceNoir } from '../theme';
 import { mockStage } from './mock';
-import { countsFor, loadPredictionCounts, pickOfScore, PredictionCount, RUN_PICK_LABEL, RUN_PICKS, runTarget } from '../predict';
+import { countsFor, loadPredictionCounts, PredictionCount } from '../predict';
 import { DEFAULT_STATE, LANG_SWAP_FULL_MS, LANG_SWAP_MS, OVERLAY_TEXT, OverlayState, Widget } from './state';
 import { GroupMeta, groupLabel } from '../groups';
 
@@ -43,7 +43,6 @@ interface Battle extends TreeBattle {
   decided_at: string | null;
 }
 interface PollView {
-  question: string;
   total: number;
   options: { k: string; label: string; pct: number }[];
   /** правильный вариант (только в показе итога после закрытия) */
@@ -205,52 +204,31 @@ const FLASH_MS = 10_000;
         </div>
       }
 
-      <!-- Прогноз зрителей: живое распределение голосов; после оценки — 8 с «угадали N%» с правильным вариантом -->
+      <!-- Прогноз зрителей (только парные): живое распределение голосов; после решения судей — «угадали N%» -->
       @if (show('poll') && pollView(); as v) {
-        @if (v.options.length === 2) {
-          <!-- парные: полоска выезжает из-за плашки дуэли и стоит над ней; слева — за лидера, справа — за чейзера -->
-          <div class="w poll-strip" [class.closed]="!!v.correct" [class.win-l]="v.correct === 'leader'" [class.win-r]="v.correct === 'chaser'" [style.bottom.px]="stripBottom()" [style.width.px]="duelW() || null" animate.enter="strip-in" animate.leave="strip-out">
-            <span class="ps-label">
-              @if (v.correct) { {{ t().pollGuessed }}: <b>{{ v.guessed }}%</b> } @else { {{ t().pollTitle }} · {{ t().pollHint }} }
+        <!-- парные: полоска выезжает из-за плашки дуэли и стоит над ней; слева — за лидера, справа — за чейзера -->
+        <div class="w poll-strip" [class.closed]="!!v.correct" [class.win-l]="v.correct === 'leader'" [class.win-r]="v.correct === 'chaser'" [style.bottom.px]="stripBottom()" [style.width.px]="duelW() || null" animate.enter="strip-in" animate.leave="strip-out">
+          <span class="ps-label">
+            @if (v.correct) { {{ t().pollGuessed }}: <b>{{ v.guessed }}%</b> } @else { {{ t().pollTitle }} · {{ t().pollHint }} }
+          </span>
+          <div class="ps-row">
+            @let lp = revealX() ?? (v.total ? v.options[0].pct : 50);
+            <span class="ps-v" [class.hit]="v.correct === 'leader'" [class.dim]="v.correct && v.correct !== 'leader'">{{ revealX() !== null ? round(lp) : v.options[0].pct }}%</span>
+            <span class="ps-bar" [class.empty]="!v.total" [style.--x0.%]="lp">
+              <span class="l" [class.hit]="v.correct === 'leader'" [class.dim]="v.correct && v.correct !== 'leader'" [style.--heat.%]="lp" [style.--p]="lp"></span>
+              <span class="r" [class.hit]="v.correct === 'chaser'" [class.dim]="v.correct && v.correct !== 'chaser'" [style.--heat.%]="100 - lp" [style.--p]="100 - lp"></span>
+              <!-- нет голосов — нет и столкновения -->
+              @if (v.total) {
+                <i class="clash" aria-hidden="true"></i>
+                <!-- искры от столкновения: разлетаются веером и гаснут, по кругу с разной задержкой -->
+                <span class="sparks" aria-hidden="true">
+                  @for (k of sparks; track $index) { <i [style.--a.deg]="k.a" [style.--l.px]="k.l" [style.--d.ms]="k.d" [style.--t.ms]="k.t"></i> }
+                </span>
+              }
             </span>
-            <div class="ps-row">
-              @let lp = revealX() ?? (v.total ? v.options[0].pct : 50);
-              <span class="ps-v" [class.hit]="v.correct === 'leader'" [class.dim]="v.correct && v.correct !== 'leader'">{{ revealX() !== null ? round(lp) : v.options[0].pct }}%</span>
-              <span class="ps-bar" [class.empty]="!v.total" [style.--x0.%]="lp">
-                <span class="l" [class.hit]="v.correct === 'leader'" [class.dim]="v.correct && v.correct !== 'leader'" [style.--heat.%]="lp" [style.--p]="lp"></span>
-                <span class="r" [class.hit]="v.correct === 'chaser'" [class.dim]="v.correct && v.correct !== 'chaser'" [style.--heat.%]="100 - lp" [style.--p]="100 - lp"></span>
-                <!-- нет голосов — нет и столкновения -->
-                @if (v.total) {
-                  <i class="clash" aria-hidden="true"></i>
-                  <!-- искры от столкновения: разлетаются веером и гаснут, по кругу с разной задержкой -->
-                  <span class="sparks" aria-hidden="true">
-                    @for (k of sparks; track $index) { <i [style.--a.deg]="k.a" [style.--l.px]="k.l" [style.--d.ms]="k.d" [style.--t.ms]="k.t"></i> }
-                  </span>
-                }
-              </span>
-              <span class="ps-v" [class.hit]="v.correct === 'chaser'" [class.dim]="v.correct && v.correct !== 'chaser'">{{ revealX() !== null ? 100 - round(lp) : v.options[1].pct }}%</span>
-            </div>
+            <span class="ps-v" [class.hit]="v.correct === 'chaser'" [class.dim]="v.correct && v.correct !== 'chaser'">{{ revealX() !== null ? 100 - round(lp) : v.options[1].pct }}%</span>
           </div>
-        } @else {
-        <div class="w poll" animate.enter="in-right" animate.leave="out-right">
-          <div class="poll-head">
-            <span class="label">{{ t().pollTitle }}</span>
-          </div>
-          <b class="q">{{ v.question }}</b>
-          @for (o of v.options; track o.k) {
-            <div class="pr" [class.hit]="v.correct === o.k" [class.dim]="v.correct && v.correct !== o.k" [class.two]="v.options.length === 2">
-              <span class="k">{{ o.label }}</span>
-              <span class="track"><span class="fill" [style.width.%]="o.pct" [style.--heat.%]="o.pct" [style.--p]="o.pct"></span></span>
-              <span class="v">{{ o.pct }}%</span>
-            </div>
-          }
-          @if (v.correct) {
-            <p class="guess">{{ t().pollGuessed }}: <b>{{ v.guessed }}%</b></p>
-          } @else {
-            <p class="hint">{{ t().pollHint }}</p>
-          }
         </div>
-        }
       }
 
       <!-- Карточки дуэли: сравнение сил -->
@@ -485,33 +463,24 @@ export class Overlay implements OnInit {
       ? (this.battles().find((b) => b.id === this.forcePair) ?? null)
       : (this.sorted().find((b) => b.status !== 'done' && b.leader_id && b.chaser_id) ?? null),
   );
-  /** За что голосуют сейчас: пилот на трассе (квала) или текущая дуэль (парные) */
+  /** За что голосуют сейчас: текущая дуэль (прогнозы — только в парных) */
   private readonly pollTarget = computed(() => {
-    const s = this.stage();
-    if (s?.status === 'qualifying') {
-      const t = runTarget(this.regs(), this.runs());
-      return t ? { key: `r${t.profileId}-${t.attempt}`, run: t, battle: null } : null;
-    }
-    const d = s?.status === 'battles' ? this.duel() : null;
-    return d ? { key: `b${d.id}`, run: null, battle: d } : null;
+    const d = this.stage()?.status === 'battles' ? this.duel() : null;
+    return d ? { key: `b${d.id}`, battle: d } : null;
   });
   private readonly pollLive = computed<PollView | null>(() => {
     const t = this.pollTarget();
     if (!t) return null;
-    // парные: пока на плашке дуэли «Победа: ник», следующую пару не показываем — сначала доигрывает итог прошлой
-    if (t.battle && this.flash()) return null;
-    const m = countsFor(this.predCounts(), t.run ? { profileId: t.run.profileId, attempt: t.run.attempt } : { battleId: t.battle!.id });
-    const opts = t.run
-      ? RUN_PICKS.map((k) => ({ k: k as string, label: RUN_PICK_LABEL[k] }))
-      : [
-          { k: 'leader', label: this.p(t.battle!.leader_id).nickname },
-          { k: 'chaser', label: this.p(t.battle!.chaser_id).nickname },
-        ];
+    // пока на плашке дуэли «Победа: ник», следующую пару не показываем — сначала доигрывает итог прошлой
+    if (this.flash()) return null;
+    const m = countsFor(this.predCounts(), t.battle.id);
+    const opts = [
+      { k: 'leader', label: this.p(t.battle.leader_id).nickname },
+      { k: 'chaser', label: this.p(t.battle.chaser_id).nickname },
+    ];
     const total = [...m.values()].reduce((s, n) => s + n, 0);
     const pct = (k: string) => (total ? Math.round(((m.get(k) ?? 0) / total) * 100) : 0);
     return {
-      // ник пилота уже на плашке «На трассе» — здесь только номер попытки
-      question: t.run ? `${this.t().run} ${t.run.attempt}` : this.t().pollBattle,
       total,
       options: opts.map((o) => ({ ...o, pct: pct(o.k) })),
       correct: null,
@@ -695,18 +664,6 @@ export class Overlay implements OnInit {
             { profile_id: null, attempt: null, battle_id: d.id, pick: 'chaser', n: split === null ? 41 : 100 - lead },
           ],
     );
-    // ?qual=1 — квалификация: последний в очереди ещё не проехал зачётные; ?dist=3,5,10,60,15,7 — голоса за <80…100
-    if (q.has('qual')) {
-      const last = [...m.regs].sort((a, b) => (b.queue_order ?? 0) - (a.queue_order ?? 0))[0];
-      this.stage.set({ ...m.stage, status: 'qualifying' });
-      this.runs.set(m.runs.filter((r) => r.profile_id !== last.profile_id || r.attempt === 0));
-      const dist = q.get('dist');
-      this.predCounts.set(
-        !dist || dist === 'none'
-          ? []
-          : dist.split(',').map((n, i) => ({ profile_id: last.profile_id, attempt: 1, battle_id: null, pick: RUN_PICKS[i], n: Number(n) || 0 })),
-      );
-    }
     const done = q.get('pollDone');
     if (done) {
       const v = this.pollLive();
@@ -714,14 +671,10 @@ export class Overlay implements OnInit {
     }
   }
 
-  /** правильный вариант закрытого голосования: оценка заезда или победитель дуэли */
+  /** правильный вариант закрытого голосования: победитель дуэли */
   private pollAnswer(key: string): string | null {
-    if (key.startsWith('b')) {
-      const b = this.battles().find((x) => `b${x.id}` === key);
-      return b?.winner_id ? (b.winner_id === b.leader_id ? 'leader' : 'chaser') : null;
-    }
-    const r = this.runs().find((x) => `r${x.profile_id}-${x.attempt}` === key);
-    return r ? pickOfScore(r.total, r.spin) : null;
+    const b = this.battles().find((x) => `b${x.id}` === key);
+    return b?.winner_id ? (b.winner_id === b.leader_id ? 'leader' : 'chaser') : null;
   }
 
   private readonly pollWatch = effect(() => {
@@ -735,11 +688,11 @@ export class Overlay implements OnInit {
           const guessed = prev.view.options.find((o) => o.k === correct)?.pct ?? 0;
           this.showReveal({ ...prev.view, correct, guessed });
           clearTimeout(this.revealTimer);
-          // парные: анимация «победитель забирает полоску» ~3.4 с, потом полоска уезжает; квала — 8 с с подсветкой
+          // анимация «победитель забирает полоску» ~3.4 с, потом полоска уезжает
           this.revealTimer = setTimeout(() => {
             this.pollReveal.set(null);
             this.revealX.set(null);
-          }, prev.key.startsWith('b') ? 5400 : 8000);
+          }, 5400);
         }
       }
       this.pollPrev = t && live ? { key: t.key, view: live } : null;
@@ -759,7 +712,6 @@ export class Overlay implements OnInit {
   private showReveal(view: PollView) {
     this.pollReveal.set(view);
     cancelAnimationFrame(this.revealFrame);
-    if (view.options.length !== 2) return this.revealX.set(null);
     const from = view.total ? view.options[0].pct : 50;
     const to = view.correct === 'leader' ? 100 : 0;
     const total = 4600;
@@ -777,7 +729,7 @@ export class Overlay implements OnInit {
 
   private async loadCounts() {
     const s = this.stage();
-    if (this.state().mock || !s || (s.status !== 'qualifying' && s.status !== 'battles')) return;
+    if (this.state().mock || s?.status !== 'battles') return;
     this.predCounts.set(await loadPredictionCounts(s.id));
   }
 

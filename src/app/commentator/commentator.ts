@@ -6,7 +6,7 @@ import { supabase } from '../auth';
 import { batched } from '../lite';
 import { loadSkillRuns } from '../data/skills';
 import { loadStandings } from '../data/standings';
-import { countsFor, loadPredictionCounts, PredictionCount, RUN_PICK_LABEL, RUN_PICKS } from '../predict';
+import { countsFor, loadPredictionCounts, PredictionCount } from '../predict';
 import { bracketSize, Fail, qualStandings, Round, SkillRun } from '../scoring/scoring';
 import { STAGE_STATUS } from '../admin/labels';
 import { Chance, duelChances, DuelSide, qualChances, qualTargets } from './chances';
@@ -126,17 +126,6 @@ const FAIL_LABEL: Record<Fail, string> = { spin: 'Спин', crash: 'Авари�
                   }
                 </div>
               </div>
-
-              @if (votes(); as v) {
-                <div class="votes">
-                  <span class="lbl">Зрители думают ({{ v.total }})</span>
-                  <div class="vbars">
-                    @for (o of v.options; track o.k) {
-                      <div class="vb" [class.lead]="o.lead"><span class="mono">{{ o.label }}</span><span class="bar"><i [style.width.%]="o.pct"></i></span><span class="mono">{{ o.pct }}%</span></div>
-                    }
-                  </div>
-                </div>
-              }
 
               @if (qChances().length) {
                 <div class="chances">
@@ -284,9 +273,6 @@ const FAIL_LABEL: Record<Fail, string> = { spin: 'Спин', crash: 'Авари�
     .big { font-size: 34px; line-height: 1.1; color: var(--primary); }
     .run.zero .big { color: var(--error); font-size: 22px; }
     .target p { margin: 0; font-size: 14px; b { color: var(--primary); } }
-    .votes .vbars { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px 16px; }
-    .vb { display: grid; grid-template-columns: 40px 1fr 40px; gap: 8px; align-items: center; font-size: 13px; }
-    .vb.lead { color: var(--primary); }
     .bar, .split { height: 6px; border-radius: 3px; background: var(--surface-3); overflow: hidden; }
     .bar i, .split i { display: block; height: 100%; background: var(--primary); }
     .chances { display: grid; gap: 8px; }
@@ -405,18 +391,6 @@ export class Commentator implements OnInit, OnDestroy {
     const attempt = !has(1) ? 1 : !has(2) ? 2 : null;
     return qualChances({ attempt, runs, leaderBest: this.targets()?.leader ?? null, debut: !(this.results().get(f.profile_id)?.length) });
   });
-  /** прогноз зрителей за ближайшую зачётную попытку выбранного пилота */
-  protected readonly votes = computed(() => {
-    const f = this.focus();
-    if (!f) return null;
-    const runs = this.runMap().get(f.profile_id) ?? [];
-    const attempt = runs.some((r) => r.attempt === 1) ? 2 : 1;
-    const m = countsFor(this.preds(), { profileId: f.profile_id, attempt });
-    const total = [...m.values()].reduce((s, n) => s + n, 0);
-    if (!total) return null;
-    const max = Math.max(...m.values());
-    return { total, options: RUN_PICKS.map((k) => ({ k, label: RUN_PICK_LABEL[k], pct: Math.round(((m.get(k) ?? 0) / total) * 100), lead: (m.get(k) ?? 0) === max })) };
-  });
 
   // ── парные ──
   protected readonly sortedBattles = computed(() => [...this.battles()].sort((a, b) => ORDER.indexOf(a.round) - ORDER.indexOf(b.round) || a.slot - b.slot));
@@ -451,7 +425,7 @@ export class Commentator implements OnInit, OnDestroy {
   protected readonly duelVotes = computed(() => {
     const b = this.duel();
     if (!b) return null;
-    const m = countsFor(this.preds(), { battleId: b.id });
+    const m = countsFor(this.preds(), b.id);
     const total = (m.get('leader') ?? 0) + (m.get('chaser') ?? 0);
     if (!total) return null;
     const leader = Math.round(((m.get('leader') ?? 0) / total) * 100);

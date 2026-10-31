@@ -1309,32 +1309,6 @@
   from { opacity: 0; transform: translateX(-8px); }
 }
 
-/* Прогноз зрителей — правый нижний угол */
-.poll {
-  @extend %glass;
-  right: 56px;
-  bottom: 72px;
-  width: 440px;
-  padding: 20px 24px;
-  border-radius: 14px;
-  display: grid;
-  gap: 10px;
-  .poll-head { display: flex; justify-content: space-between; align-items: baseline; }
-  .pv { font: 500 14px var(--mono); color: rgba(255, 255, 255, 0.6); }
-  .q { font-size: 22px; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .pr { display: grid; grid-template-columns: 64px 1fr 56px; align-items: center; gap: 12px; transition: opacity 400ms; }
-  .pr.two { grid-template-columns: 150px 1fr 56px; }
-  .k { font: 600 18px var(--mono); color: rgba(255, 255, 255, 0.85); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .pr.two .k { font-family: var(--font); }
-  .track { height: 12px; border-radius: 6px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
-  .fill { display: block; height: 100%; border-radius: 6px; background: linear-gradient(90deg, rgba(10, 186, 181, 0.55), var(--primary)); transition: width 700ms cubic-bezier(0.22, 1, 0.36, 1); }
-  .v { font: 600 18px var(--mono); text-align: right; }
-  .pr.dim { opacity: 0.35; }
-  .pr.hit .k, .pr.hit .v { color: var(--primary); }
-  .pr.hit .fill { background: var(--primary); box-shadow: 0 0 16px var(--primary-glow); }
-  .guess { margin: 4px 0 0; font-size: 16px; color: rgba(255, 255, 255, 0.75); b { color: var(--primary); font: 400 26px 'Russo One', var(--font); } }
-  .hint { margin: 2px 0 0; font-size: 13px; letter-spacing: 1px; color: rgba(255, 255, 255, 0.5); }
-}
 /* Прогноз в парных — полоска над плашкой дуэли (выезжает из-за неё) */
 .poll-strip {
   @extend %glass;
@@ -1417,12 +1391,6 @@
 }
 /* стили плашек красят полоски по-своему — у прогноза цвет «силы» важнее (как у оценки) */
 .screen .poll-strip .ps-bar .l { background: linear-gradient(90deg, color-mix(in oklab, var(--hot), transparent 70%), var(--hot) 70%, color-mix(in oklab, var(--hot), #fff 55%)) !important; }
-.screen .poll .fill {
-  --hot: color-mix(in oklch longer hue, #0abab5, #ff5c5c var(--heat, 0%));
-  background: linear-gradient(90deg, color-mix(in oklab, var(--hot), transparent 55%), var(--hot)) !important;
-  box-shadow: 0 0 calc(4px + var(--p, 0) * 0.16px) color-mix(in oklab, var(--hot), transparent 40%) !important;
-}
-.screen .poll .pr.hit .fill { box-shadow: 0 0 18px var(--hot) !important; }
 @keyframes clash-win {
   0%, 33% { scale: 1; opacity: 1; }
   72% { scale: 1.9; opacity: 1; }
@@ -1455,30 +1423,17 @@
 
 /* ── прогноз в стилях плашек ── */
 .screen[data-skin='arena'] {
-  .poll,
   .poll-strip {
     background: rgba(5, 5, 5, 0.94);
     border: 0;
     backdrop-filter: none;
     box-shadow: 0 24px 70px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.06);
   }
-  .poll { border-radius: 12px; }
   .poll-strip { border-radius: 12px 12px 0 0; }
-  .poll .label, .poll-strip .ps-label { color: #9a9a9a; letter-spacing: 4px; }
-  .poll .v { font: 400 22px 'Russo One', var(--font); }
-  .poll .track, .poll-strip .ps-bar { background: #1c1c1c; }
+  .poll-strip .ps-label { color: #9a9a9a; letter-spacing: 4px; }
+  .poll-strip .ps-bar { background: #1c1c1c; }
 }
 .screen[data-skin='race'] {
-  .poll {
-    background: linear-gradient(100deg, rgba(8, 8, 8, 0.96) 70%, rgba(10, 60, 58, 0.96));
-    border: 0;
-    border-radius: 0;
-    backdrop-filter: none;
-    clip-path: polygon(22px 0, 100% 0, calc(100% - 22px) 100%, 0 100%);
-    box-shadow: inset 6px 0 0 var(--primary);
-    padding-left: 40px;
-    padding-right: 40px;
-  }
   .poll-strip {
     background: linear-gradient(100deg, rgba(8, 8, 8, 0.96) 70%, rgba(10, 60, 58, 0.96));
     border: 0;
@@ -1488,13 +1443,12 @@
     /* тот же наклон, что у плашки дуэли — читается как одна графика */
     clip-path: polygon(22px 0, 100% 0, calc(100% - 22px) 100%, 0 100%);
   }
-  .poll .label, .poll-strip .ps-label { font-style: italic; font-weight: 700; }
-  .poll .q, .poll .v, .poll-strip .ps-v { font-style: italic; }
-  .poll .fill, .poll-strip .ps-bar .l { background: repeating-linear-gradient(-55deg, var(--primary) 0 10px, #7ff5ef 10px 20px); }
-  .poll .track, .poll-strip .ps-bar { border-radius: 0; }
+  .poll-strip .ps-label { font-style: italic; font-weight: 700; }
+  .poll-strip .ps-v { font-style: italic; }
+  .poll-strip .ps-bar .l { background: repeating-linear-gradient(-55deg, var(--primary) 0 10px, #7ff5ef 10px 20px); }
+  .poll-strip .ps-bar { border-radius: 0; }
 }
 .screen[data-skin='hud'] {
-  .poll,
   .poll-strip {
     border: 1px solid rgba(10, 186, 181, 0.3);
     background:
@@ -1506,9 +1460,7 @@
     backdrop-filter: blur(6px);
     box-shadow: 0 0 40px -12px var(--primary-glow);
   }
-  .poll { border-radius: 2px; }
   .poll-strip { border-radius: 2px 2px 0 0; border-bottom: 0; }
-  .poll .v, .poll .q { font-family: 'Russo One', var(--font); font-weight: 400; }
-  .poll .track, .poll-strip .ps-bar { border-radius: 0; height: 8px; }
-  .poll .fill, .poll-strip .ps-bar .l { background: var(--primary); box-shadow: 0 0 10px var(--primary-glow); }
+  .poll-strip .ps-bar { border-radius: 0; height: 8px; }
+  .poll-strip .ps-bar .l { background: var(--primary); box-shadow: 0 0 10px var(--primary-glow); }
 }

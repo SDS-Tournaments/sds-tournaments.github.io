@@ -407,7 +407,6 @@
   },
   "poll": {
     "title": "Viewers’ prediction",
-    "run": "Run {{n}}: how much will {{name}} score?",
     "battle": "Who wins the battle?",
     "votes": "votes: {{n}}",
     "mine": "Your pick is in",

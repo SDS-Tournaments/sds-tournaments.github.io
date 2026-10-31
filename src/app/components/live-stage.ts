@@ -7,7 +7,7 @@ import { qualStandings } from '../scoring/scoring';
 import { Loader } from './loader';
 import { StageGroups } from './stage-groups';
 import { PredictionPoll } from './prediction-poll';
-import { loadPredictionCounts, PredictionCount, RUN_PICKS, runTarget } from '../predict';
+import { loadPredictionCounts, PredictionCount } from '../predict';
 import { mockStage } from '../overlay/mock';
 import { Live } from '../live';
 import { LITE, litePoll } from '../lite';
@@ -101,11 +101,6 @@ type Row = Record<string, unknown>;
             </div>
           }
         } @else {
-          @if (runT(); as t) {
-            <div class="poll-top">
-              <app-prediction-poll [stageId]="stageId()" [pilotId]="t.profileId" [attempt]="t.attempt" [pilotName]="p(t.profileId).nickname" [counts]="predCounts()" [demo]="!!demo()" [forcePick]="demo()?.pick ?? null" (voted)="loadCounts()" />
-            </div>
-          }
           <p class="eyebrow">{{ 'live.qual' | transloco }}</p>
           <ol class="top">
             @for (r of top(); track r.id) {
@@ -240,8 +235,6 @@ type Row = Record<string, unknown>;
     .ghost .bar { height: 8px; border-radius: 4px; background: color-mix(in oklab, var(--ink), transparent 85%); animation: ghost 1.6s ease-in-out infinite; }
     @keyframes ghost { 50% { opacity: 0.35; } }
     /* в квалификации прогноз — над таблицей: черта снизу, а не сверху */
-    .poll-top { margin-bottom: 20px; }
-    .poll-top ::ng-deep .poll { margin-top: 0; padding: 0 0 16px; border-top: 0; border-bottom: 1px solid var(--hairline); }
     @media (prefers-reduced-motion: reduce) { .pulse::after, .ghost .bar { animation: none; } }
   `,
 })
@@ -267,8 +260,6 @@ export class LiveStage implements OnInit {
   private readonly battles = signal<Battle[]>([]);
   /** итоги прогнозов зрителей этапа */
   protected readonly predCounts = signal<PredictionCount[]>([]);
-  /** за кого голосуем в квалификации: пилот на трассе и его зачётная попытка */
-  protected readonly runT = computed(() => (this.status() === 'qualifying' ? runTarget(this.regs(), this.runs()) : null));
   private countsTimer?: ReturnType<typeof setInterval>;
   private readonly sanitizer = inject(DomSanitizer);
   private readonly destroyRef = inject(DestroyRef);
@@ -318,15 +309,8 @@ export class LiveStage implements OnInit {
     });
   }
 
-  /** за что сейчас голосуют: заезд на трассе или текущая дуэль */
-  private readonly pollTarget = computed(() => {
-    if (this.status() === 'qualifying') {
-      const t = this.runT();
-      return t ? { profileId: t.profileId, attempt: t.attempt } : null;
-    }
-    const b = this.current();
-    return b ? { battleId: b.id } : null;
-  });
+  /** за что сейчас голосуют: текущая дуэль (прогнозы — только в парных) */
+  private readonly pollTarget = computed(() => (this.status() === 'battles' ? (this.current()?.id ?? null) : null));
 
   async ngOnInit() {
     if (this.demo()) return this.showDemo();
@@ -401,21 +385,18 @@ export class LiveStage implements OnInit {
     this.battles.set(m.battles as unknown as Battle[]);
     const d = this.current();
     this.predCounts.set(
-      this.status() === 'qualifying'
-        ? [3, 5, 10, 60, 15, 7].map((n, i) => ({ profile_id: last, attempt: 1, battle_id: null, pick: RUN_PICKS[i], n }))
-        : d
-          ? [
-              { profile_id: null, attempt: null, battle_id: d.id, pick: 'leader', n: 62 },
-              { profile_id: null, attempt: null, battle_id: d.id, pick: 'chaser', n: 41 },
-            ]
-          : [],
+      d && this.status() === 'battles'
+        ? [
+            { profile_id: null, attempt: null, battle_id: d.id, pick: 'leader', n: 62 },
+            { profile_id: null, attempt: null, battle_id: d.id, pick: 'chaser', n: 41 },
+          ]
+        : [],
     );
     this.loaded.set(true);
   }
 
   async loadCounts() {
     if (this.demo()) return;
-    if (this.status() !== 'qualifying' && this.status() !== 'battles') return;
     const t = this.pollTarget();
     if (!t) return;
     this.predCounts.set(await loadPredictionCounts(this.stageId(), t));
