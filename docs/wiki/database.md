@@ -27,8 +27,8 @@
 | `predictions` (0022) | stage_id, battle_id (pick leader/chaser), voter (случайный id браузера), уникально на дуэль; profile_id+attempt — старые голоса за заезды квалы (с 0027 не принимаются) | все / все (insert только с battle_id — 0027; триггер закрывает после решения), штаб — delete |
 | `pilot_contacts` (0019) | profile_id, discord (2–64), updated_at | **сам и штаб** / сам или admin. Ник Discord — приватный, поэтому не в profiles |
 | `seasons` | number, title, status, qual_points, battle_points (jsonb, RDS 2024), team_counted=3, champion_pilot_id/team_id | все (кроме draft) / admin |
-| `stages` | season_id, ord, **track_map_url**, **zones** [{name, line, angle, style}] (0021), title_ru/en, description_ru/en, track, **starts_at** (день 1, квала), **battles_at** (день 2, Top 32), status, weights {angle,style,line} (сумма 100), judges, bracket_size (auto/32/16/8), warmup (0023), **group_meta** [{buffer, name}] по номеру группы (0025), sponsor_id, twitch_channel | все (0006) / staff |
-| `registrations` | (stage_id, profile_id), team_id (снимок), group_no, queue_order, status | все / пилот сам (insert, отмена) или staff |
+| `stages` | season_id, ord, **track_map_url**, **zones** [{name, line, angle, style}] (0021), title_ru/en, description_ru/en, track, **starts_at** (день 1, квала), **battles_at** (день 2, Top 32), status, weights {angle,style,line} (сумма 100), judges, bracket_size (auto/32/16/8), warmup (0023), **group_meta** [{buffer, name}] по номеру группы (0025), **reg_closed** — регистрация закрыта, статус тот же (0028), sponsor_id, twitch_channel | все (0006) / staff |
+| `registrations` | (stage_id, profile_id), team_id (снимок), group_no, queue_order, status | все / пилот сам (insert и повторная запись — пока этап в «Регистрации» и не `reg_closed`; отмена — пока в «Регистрации») или staff |
 | `qual_runs` | stage_id, profile_id, attempt 0–2 (0 — прогрев), angle/style/line (шаг 0.5), spin, **fail** (spin/crash/straight/offtrack, 0014), total (generated: spin → 0) | все / staff |
 | `battles` | stage_id, round, slot, leader_id, chaser_id, winner_id, omt_count 0–2, status, result, decided_at | все / staff |
 | `battle_votes` | (battle_id, try 0–2, judge), vote | все / staff |
@@ -92,9 +92,9 @@
 | 0022 | Прогнозы зрителей: `predictions` (анонимно, voter = id браузера), `guard_prediction` (открыто, пока нет оценки/победителя), `prediction_counts(stage)`, Realtime |
 | 0023 | `stages.warmup` (прогрев вкл/выкл), `profiles.custom_nickname` / `custom_avatar` (steam-auth не перезаписывает), бакет `avatars` (пишет admin) |
 | 0025 | `stages.group_meta` — буфер-группы и их названия |
-$1| 0027 | `predictions` убраны из Realtime (комментатор и плашка опрашивают итоги), голос — только за дуэль (`vote`: `battle_id is not null`) |
+$1$1| 0028 | `stages.reg_closed`; политики `pilot registers` / `pilot withdraws`: при закрытой — записаться и записаться снова нельзя, сняться можно |
 | 0024 | Общий пульт судей: `judge_marks` (черновые баллы/голоса, PK stage+target+crit; target `q:<pilot>:<attempt>` / `b:<battle>:<try>`), `judge_live` (общий выбор пилота), только штаб, Realtime |
 | 0021 | Трасса этапа: `stages.track_map_url`, `stages.zones` (jsonb), бакет `tracks` (пишет штаб) |
 
-Статус: 0001–0027 на проде выполнены (0023–0024 — 2026-10-28, 0025–0026 — 2026-10-30/31, 0027 — 2026-11-01, проверено запросом). 0001–0019 на **проде** выполнены (0019 — таблица точно есть; триггер — если владелец запускал SQL целиком).
+Статус: 0001–0028 на проде выполнены (0023–0024 — 2026-10-28, 0025–0026 — 2026-10-30/31, 0027–0028 — 2026-11-01, проверено запросом). 0001–0019 на **проде** выполнены (0019 — таблица точно есть; триггер — если владелец запускал SQL целиком).
 На **staging** 0017–0019 — не подтверждено, проверить перед прогоном.
