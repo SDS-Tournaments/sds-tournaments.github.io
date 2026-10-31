@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '../auth';
+import { batched } from '../lite';
 import { Fail, qualStandings } from '../scoring/scoring';
 import { AdminBattles } from './battles';
 import { STAGE_STATUS } from './labels';
@@ -471,11 +472,12 @@ export class AdminJudge implements OnInit, OnDestroy {
     await this.live.start(id);
     if (data?.status === 'battles' || data?.status === 'finished') this.mode.set('battles');
     await this.load();
-    // Несколько пультов одновременно: любое изменение → перезагрузка
+    // Несколько пультов одновременно: любое изменение → перезагрузка (пачка событий — одна)
+    const reload = batched(() => this.load());
     this.channel = supabase
       .channel(`judge-${id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'qual_runs', filter: `stage_id=eq.${id}` }, () => this.load())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'registrations', filter: `stage_id=eq.${id}` }, () => this.load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'qual_runs', filter: `stage_id=eq.${id}` }, reload)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'registrations', filter: `stage_id=eq.${id}` }, reload)
       .subscribe();
   }
 

@@ -1,10 +1,9 @@
 import { Component, computed, DestroyRef, inject, input, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { TranslocoPipe } from '@jsverse/transloco';
-import { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '../auth';
 import { notify } from '../notify';
-import { LITE, litePoll } from '../lite';
+import { litePoll } from '../lite';
 
 const WINDOW_MS = 5 * 60_000;
 const LIMIT = 2;
@@ -90,7 +89,6 @@ export class MyProtests implements OnInit {
   private readonly now = signal(Date.now());
   protected video: Record<number, string> = {};
   protected reason: Record<number, string> = {};
-  private channel?: RealtimeChannel;
 
   /** Проигранные дуэли, по которым ещё можно подать протест */
   protected readonly open = computed(() =>
@@ -108,23 +106,13 @@ export class MyProtests implements OnInit {
     const id = setInterval(() => this.now.set(Date.now()), 1000);
     inject(DestroyRef).onDestroy(() => {
       clearInterval(id);
-      if (this.channel) supabase.removeChannel(this.channel);
     });
   }
 
   async ngOnInit() {
     await this.load();
-    // лайт-режим: без Realtime (подписка на все дуэли у каждого пилота в кабинете) — опрос ~раз в 45 с
-    if (LITE) {
-      this.destroyRef.onDestroy(litePoll(() => this.load()));
-      return;
-    }
-    // Решение по дуэли приходит в реальном времени — форма появляется сразу
-    this.channel = supabase
-      .channel(`my-protests-${this.profileId()}`)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'battles' }, () => this.load())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'protests', filter: `profile_id=eq.${this.profileId()}` }, () => this.load())
-      .subscribe();
+    // опрос ~раз в 45 с, не Realtime: подписка на все дуэли у каждого пилота в кабинете — каждое решение судей всем пилотам
+    this.destroyRef.onDestroy(litePoll(() => this.load()));
   }
 
   private async load() {

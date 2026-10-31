@@ -3,6 +3,7 @@ import { NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '../auth';
+import { batched } from '../lite';
 import { loadSkillRuns } from '../data/skills';
 import { loadStandings } from '../data/standings';
 import { countsFor, loadPredictionCounts, PredictionCount, RUN_PICK_LABEL, RUN_PICKS } from '../predict';
@@ -478,19 +479,23 @@ export class Commentator implements OnInit, OnDestroy {
     if (st.status === 'battles' || st.status === 'finished') this.mode.set('battles');
     await this.loadLive();
     await this.loadPilots(st);
+    const live = batched(() => this.loadLive());
     this.channel = supabase
       .channel(`commentator-${id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'qual_runs', filter: `stage_id=eq.${id}` }, () => this.loadLive())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'battles', filter: `stage_id=eq.${id}` }, () => this.loadLive())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'registrations', filter: `stage_id=eq.${id}` }, () => this.loadLive())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'qual_runs', filter: `stage_id=eq.${id}` }, live)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'battles', filter: `stage_id=eq.${id}` }, live)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'registrations', filter: `stage_id=eq.${id}` }, live)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'judge_live', filter: `stage_id=eq.${id}` }, () => this.loadTarget())
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'predictions', filter: `stage_id=eq.${id}` }, () => this.loadPreds())
       .subscribe();
+    // голоса зрителей — опросом: через Realtime каждый голос был сообщением (сотни в секунду при лимите Free 100/с)
+    this.predsTimer = setInterval(() => this.loadPreds(), 3000);
   }
 
   ngOnDestroy() {
     if (this.channel) supabase.removeChannel(this.channel);
+    clearInterval(this.predsTimer);
   }
+  private predsTimer?: ReturnType<typeof setInterval>;
 
   /** то, что меняется во время этапа */
   private async loadLive() {

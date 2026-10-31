@@ -1,6 +1,7 @@
 import { Component, computed, inject, input, isDevMode, OnDestroy, OnInit, output, signal } from '@angular/core';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '../auth';
+import { batched } from '../lite';
 import { battleOutcome, bracketSize, buildBracket, QualRow, Round, Vote } from '../scoring/scoring';
 import { canChange, reseat, targetsOf } from './bracket-ops';
 import { finishStage } from './finish';
@@ -294,10 +295,12 @@ export class AdminBattles implements OnInit, OnDestroy {
   async ngOnInit() {
     supabase.from('stages').select('status').eq('id', this.stageId()).single().then(({ data }) => this.finished.set(data?.status === 'finished'));
     await this.load();
+    // рассадка сетки — пачка вставок; перечитываем один раз
+    const reload = batched(() => this.load());
     this.channel = supabase
       .channel(`battles-${this.stageId()}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'battles', filter: `stage_id=eq.${this.stageId()}` }, () => this.load())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'protests', filter: `stage_id=eq.${this.stageId()}` }, () => this.load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'battles', filter: `stage_id=eq.${this.stageId()}` }, reload)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'protests', filter: `stage_id=eq.${this.stageId()}` }, reload)
       .subscribe();
   }
 

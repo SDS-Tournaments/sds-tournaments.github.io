@@ -1,5 +1,5 @@
 import { vi } from 'vitest';
-import { LITE_POLL_MS, litePoll } from './lite';
+import { batched, LITE_POLL_MS, litePoll } from './lite';
 
 describe('litePoll', () => {
   it('опрашивает примерно раз в интервал со случайным сдвигом, останавливается', () => {
@@ -17,6 +17,23 @@ describe('litePoll', () => {
     stop();
     vi.advanceTimersByTime(LITE_POLL_MS * 5);
     expect(fn).toHaveBeenCalledTimes(n);
+    vi.useRealTimers();
+  });
+});
+
+describe('batched', () => {
+  it('пачка вызовов — один запуск, следующая пачка — ещё один', () => {
+    vi.useFakeTimers();
+    const fn = vi.fn();
+    const go = batched(fn, 1000);
+    for (let i = 0; i < 140; i++) go();
+    expect(fn).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1000);
+    expect(fn).toHaveBeenCalledTimes(1);
+    go();
+    go();
+    vi.advanceTimersByTime(1000);
+    expect(fn).toHaveBeenCalledTimes(2);
     vi.useRealTimers();
   });
 });

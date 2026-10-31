@@ -2,6 +2,7 @@ import { Component, computed, DestroyRef, effect, ElementRef, inject, OnInit, si
 import { ActivatedRoute } from '@angular/router';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '../auth';
+import { batched } from '../lite';
 import { BracketTree, TreeBattle, TreePilot } from '../components/bracket-tree';
 import { CardData, PilotCard } from '../components/pilot-card';
 import { Achievement, Fail, Legacy, liveRunAchievements, mergeSkills, qualStandings, Round, SkillRun, skills } from '../scoring/scoring';
@@ -354,7 +355,7 @@ export class Overlay implements OnInit {
   /** закрытое голосование — показываем 8 с с правильным вариантом */
   private readonly pollReveal = signal<PollView | null>(null);
   private pollPrev: { key: string; view: PollView } | null = null;
-  private countsTimer?: ReturnType<typeof setTimeout>;
+  private countsPoll?: ReturnType<typeof setInterval>;
   private revealTimer?: ReturnType<typeof setTimeout>;
   private readonly voteRows = signal<{ battle_id: number; try: number; judge: string; vote: string }[]>([]);
   protected readonly pilots = signal(new Map<string, Pilot>());
@@ -663,6 +664,7 @@ export class Overlay implements OnInit {
       clearInterval(tick);
       clearInterval(rot);
       clearInterval(swap);
+      clearInterval(this.countsPoll);
       restoreTheme();
       if (this.channel) supabase.removeChannel(this.channel);
     });
@@ -786,21 +788,20 @@ export class Overlay implements OnInit {
     ]);
     this.sponsors.set((sp ?? []).filter((s) => s.on_overlay));
     await this.applyState({ ...DEFAULT_STATE, ...(st?.state ?? {}) });
+    // пачка изменений (сохранение групп, рассадка сетки) — одна перезагрузка
+    const stage = batched(() => this.loadStage());
     this.channel = supabase
       .channel('overlay')
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'overlay_state' }, (e) =>
         this.applyState({ ...DEFAULT_STATE, ...((e.new as { state: OverlayState }).state ?? {}) }),
       )
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'qual_runs' }, () => this.loadStage())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'battles' }, () => this.loadStage())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'qual_runs' }, stage)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'battles' }, stage)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'battle_votes' }, () => this.loadVotes())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'registrations' }, () => this.loadStage())
-      // голоса зрителей идут пачками — пересчитываем не чаще раза в 0.7 с
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'predictions' }, () => {
-        clearTimeout(this.countsTimer);
-        this.countsTimer = setTimeout(() => this.loadCounts(), 700);
-      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'registrations' }, stage)
       .subscribe();
+    // голоса зрителей — опросом: через Realtime каждый голос был сообщением (сотни в секунду при лимите Free 100/с)
+    this.countsPoll = setInterval(() => this.loadCounts(), 3000);
   }
 
   // ?stage=ID&show=duel,score — посмотреть плашки без пульта (только чтение, базу не меняет)

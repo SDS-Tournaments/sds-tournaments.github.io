@@ -2,7 +2,6 @@ import { DatePipe } from '@angular/common';
 import { Component, computed, DestroyRef, inject, input, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
-import { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '../auth';
 import { BracketTree, TreeBattle, TreePilot } from '../components/bracket-tree';
 import { LiveStage } from '../components/live-stage';
@@ -10,7 +9,7 @@ import { Loader } from '../components/loader';
 import { StageGroups } from '../components/stage-groups';
 import { qualStandings, Round } from '../scoring/scoring';
 import { pageTitle } from '../title';
-import { LITE, litePoll } from '../lite';
+import { litePoll } from '../lite';
 
 interface Stage {
   id: number;
@@ -231,7 +230,6 @@ export class StagePage implements OnInit {
   }
   private readonly t = inject(TranslocoService);
   protected readonly lang = signal(this.t.getActiveLang());
-  private sub?: RealtimeChannel;
   private readonly destroyRef = inject(DestroyRef);
 
   protected readonly live = computed(() => ['qualifying', 'battles'].includes(this.stage()?.status ?? ''));
@@ -255,7 +253,6 @@ export class StagePage implements OnInit {
 
   constructor() {
     this.t.langChanges$.subscribe((l) => this.lang.set(l));
-    inject(DestroyRef).onDestroy(() => this.sub && supabase.removeChannel(this.sub));
   }
 
   async ngOnInit() {
@@ -272,16 +269,8 @@ export class StagePage implements OnInit {
     pageTitle((s as unknown as Stage).title_ru);
     // по умолчанию — самое интересное: итоги, иначе сетка, иначе квалификация
     this.tab.set(this.tabs()[0]);
-    if (this.live() && LITE) {
-      this.destroyRef.onDestroy(litePoll(() => Promise.all([this.loadRuns(), this.loadBattles()])));
-    } else if (this.live()) {
-      const f = `stage_id=eq.${id}`;
-      this.sub = supabase
-        .channel(`stage-${id}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'qual_runs', filter: f }, () => this.loadRuns())
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'battles', filter: f }, () => this.loadBattles())
-        .subscribe();
-    }
+    // таблицы под эфиром — опросом, не Realtime: иначе каждая оценка = перекачка списка у каждого зрителя
+    if (this.live()) this.destroyRef.onDestroy(litePoll(() => Promise.all([this.loadRuns(), this.loadBattles()])));
   }
 
   private async load() {
