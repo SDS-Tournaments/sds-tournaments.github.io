@@ -271,9 +271,12 @@ export class AdminParticipants implements OnInit {
     const meta: GroupMeta[] = kept.map((x) => (x.m.buffer ? { buffer: true, name: x.m.name?.trim() || null } : {}));
     let queue = 0;
     const rows = [
-      ...groups.flatMap((g, gi) => g.map((r) => ({ stage_id: this.stageId(), profile_id: r.profile_id, group_no: gi + 1, queue_order: ++queue }))),
-      ...this.unassigned().map((r) => ({ stage_id: this.stageId(), profile_id: r.profile_id, group_no: null, queue_order: null })),
-    ];
+      ...groups.flatMap((g, gi) => g.map((r) => ({ r, group_no: gi + 1, queue_order: ++queue }))),
+      ...this.unassigned().map((r) => ({ r, group_no: null, queue_order: null })),
+    ]
+      // только изменённые: перезапись всех ~140 строк разом положила базу 2026-10-31 (каждая строка — событие каждому подписчику)
+      .filter((x) => x.r.group_no !== x.group_no || x.r.queue_order !== x.queue_order)
+      .map((x) => ({ stage_id: this.stageId(), profile_id: x.r.profile_id, group_no: x.group_no, queue_order: x.queue_order }));
     const { error: e1 } = await supabase.from('stages').update({ group_meta: meta }).eq('id', this.stageId());
     const { error } = e1 ? { error: e1 } : rows.length ? await supabase.from('registrations').upsert(rows) : { error: null };
     this.busy.set(false);

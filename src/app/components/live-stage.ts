@@ -342,9 +342,9 @@ export class LiveStage implements OnInit {
       .channel(`live-${this.stageId()}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'qual_runs', filter: f }, (e) => this.onRun(e.eventType, e.new as Row, e.old as Row))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'battles', filter: f }, (e) => this.onBattle(e.eventType, e.new as Row, e.old as Row))
-      // перестановки в очереди / буфер — редко, тут можно перечитать
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'registrations', filter: f }, () => this.loadRegs())
       .subscribe();
+    // очередь и группы — опросом, не Realtime: сохранение групп в админке = сотня событий каждому зрителю (авария 2026-10-31)
+    this.destroyRef.onDestroy(litePoll(() => this.loadRegs()));
   }
 
   private async load() {

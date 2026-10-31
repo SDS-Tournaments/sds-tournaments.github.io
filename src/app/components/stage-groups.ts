@@ -1,10 +1,9 @@
 import { Component, computed, DestroyRef, inject, input, OnInit, signal } from '@angular/core';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '../auth';
 import { GroupMeta, groupLabel } from '../groups';
-import { LITE, litePoll } from '../lite';
+import { litePoll } from '../lite';
 
 interface Reg {
   profile_id: string;
@@ -99,7 +98,6 @@ export class StageGroups implements OnInit {
   private readonly t = inject(TranslocoService);
   /** «Группа» / «Буфер» на языке сайта — подписка, а не translate(): словарь грузится асинхронно, иначе на миг (или навсегда) видны ключи */
   private readonly words = toSignal(this.t.selectTranslate(['groups.group', 'groups.buffer']), { initialValue: ['', ''] });
-  private sub?: RealtimeChannel;
   private readonly destroyRef = inject(DestroyRef);
 
   /** проехал обе зачётные попытки */
@@ -125,23 +123,13 @@ export class StageGroups implements OnInit {
     });
   });
 
-  constructor() {
-    inject(DestroyRef).onDestroy(() => this.sub && supabase.removeChannel(this.sub));
-  }
-
   async ngOnInit() {
     if (this.demo()) return this.showDemo();
     if (this.data()) return;
     await this.load();
-    const id = this.stageId();
-    const f = `stage_id=eq.${id}`;
-    if (LITE) return this.destroyRef.onDestroy(litePoll(() => this.load()));
-    this.sub = supabase
-      .channel(`groups-${id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'qual_runs', filter: f }, () => this.load())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'registrations', filter: f }, () => this.load())
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'stages', filter: `id=eq.${id}` }, () => this.load())
-      .subscribe();
+    // опросом, не Realtime: сам блок виден до старта квалы (в эфире данные даёт live-stage), а сохранение групп в админке —
+    // сотня событий каждому зрителю (авария 2026-10-31)
+    this.destroyRef.onDestroy(litePoll(() => this.load()));
   }
 
   /** 3 группы по 10 + буфер «EN сервер»; по ходу квалы: группа 1 проехала, во 2-й едет 4-й пилот */
