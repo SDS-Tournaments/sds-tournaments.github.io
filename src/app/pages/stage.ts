@@ -9,7 +9,7 @@ import { Loader } from '../components/loader';
 import { StageGroups } from '../components/stage-groups';
 import { qualStandings, Round } from '../scoring/scoring';
 import { pageTitle } from '../title';
-import { litePoll } from '../lite';
+import { litePoll, SLOW_POLL_MS } from '../lite';
 
 interface Stage {
   id: number;
@@ -269,8 +269,8 @@ export class StagePage implements OnInit {
     pageTitle((s as unknown as Stage).title_ru);
     // по умолчанию — самое интересное: итоги, иначе сетка, иначе квалификация
     this.tab.set(this.tabs()[0]);
-    // таблицы под эфиром — опросом, не Realtime: иначе каждая оценка = перекачка списка у каждого зрителя
-    if (this.live()) this.destroyRef.onDestroy(litePoll(() => Promise.all([this.loadRuns(), this.loadBattles()])));
+    // таблицы под эфиром — редким опросом, не Realtime: живое — в блоке эфира сверху, а каждая перекачка списков — трафик
+    if (this.live()) this.destroyRef.onDestroy(litePoll(() => Promise.all([this.loadRuns(), this.loadBattles()]), SLOW_POLL_MS));
   }
 
   private async load() {

@@ -10,7 +10,7 @@ import { PredictionPoll } from './prediction-poll';
 import { loadPredictionCounts, PredictionCount } from '../predict';
 import { mockStage } from '../overlay/mock';
 import { Live } from '../live';
-import { LITE, litePoll } from '../lite';
+import { appendNew, LITE, litePoll, SLOW_POLL_MS } from '../lite';
 import { GroupMeta } from '../groups';
 
 interface Pilot {
@@ -29,6 +29,9 @@ interface Battle {
   omt_count: number;
 }
 const ORDER = ['r32', 'r16', 'qf', 'sf', 'third', 'final'];
+const RUN_COLS = 'id, profile_id, attempt, total';
+const BATTLE_COLS = 'id, round, slot, leader_id, chaser_id, winner_id, status, omt_count';
+
 interface Run {
   id: number;
   profile_id: string;
@@ -318,8 +321,9 @@ export class LiveStage implements OnInit {
     const f = `stage_id=eq.${this.stageId()}`;
     // изменения берём прямо из сообщения — без перекачки всех списков у каждого зрителя на каждую оценку
     if (LITE) {
-      const stop = litePoll(() => this.load());
-      this.destroyRef.onDestroy(stop);
+      // часто — только новые оценки и дуэли; редко — всё целиком (очередь, группы, правки и удаления оценок)
+      this.destroyRef.onDestroy(litePoll(() => this.poll()));
+      this.destroyRef.onDestroy(litePoll(() => this.load(), SLOW_POLL_MS));
       return;
     }
     this.sub = supabase
@@ -328,19 +332,35 @@ export class LiveStage implements OnInit {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'battles', filter: f }, (e) => this.onBattle(e.eventType, e.new as Row, e.old as Row))
       .subscribe();
     // очередь и группы — опросом, не Realtime: сохранение групп в админке = сотня событий каждому зрителю (авария 2026-10-31)
-    this.destroyRef.onDestroy(litePoll(() => this.loadRegs()));
+    this.destroyRef.onDestroy(litePoll(() => this.loadRegs(), SLOW_POLL_MS));
   }
 
   private async load() {
     const id = this.stageId();
     const [runs, battles] = await Promise.all([
-      supabase.from('qual_runs').select('id, profile_id, attempt, total').eq('stage_id', id),
-      supabase.from('battles').select('id, round, slot, leader_id, chaser_id, winner_id, status, omt_count').eq('stage_id', id),
+      supabase.from('qual_runs').select(RUN_COLS).eq('stage_id', id),
+      supabase.from('battles').select(BATTLE_COLS).eq('stage_id', id),
       this.loadRegs(),
     ]);
     this.runs.set((runs.data ?? []).map((r) => ({ ...r, total: Number(r.total) })));
     this.battles.set(battles.data ?? []);
     this.loaded.set(true);
+  }
+
+  /**
+   * Частый опрос: оценки новее известных и дуэли (их немного) — без перекачки участников и всех оценок.
+   * shortcut: правка/удаление оценки (и редкая запись, сохранённая позже соседней с большим id) — с полной сверкой раз в SLOW_POLL_MS.
+   */
+  private async poll() {
+    const id = this.stageId();
+    const last = Math.max(0, ...this.runs().map((r) => r.id));
+    const [runs, battles] = await Promise.all([
+      supabase.from('qual_runs').select(RUN_COLS).eq('stage_id', id).gt('id', last),
+      supabase.from('battles').select(BATTLE_COLS).eq('stage_id', id),
+    ]);
+    const fresh = (runs.data ?? []).map((r) => ({ ...r, total: Number(r.total) }));
+    if (fresh.length) this.runs.update((list) => appendNew(list, fresh));
+    if (battles.data) this.battles.set(battles.data);
   }
 
   private async loadRegs() {

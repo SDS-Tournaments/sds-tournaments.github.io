@@ -3,7 +3,7 @@ import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { supabase } from '../auth';
 import { GroupMeta, groupLabel } from '../groups';
-import { litePoll } from '../lite';
+import { litePoll, SLOW_POLL_MS } from '../lite';
 
 interface Reg {
   profile_id: string;
@@ -129,7 +129,7 @@ export class StageGroups implements OnInit {
     await this.load();
     // опросом, не Realtime: сам блок виден до старта квалы (в эфире данные даёт live-stage), а сохранение групп в админке —
     // сотня событий каждому зрителю (авария 2026-10-31)
-    this.destroyRef.onDestroy(litePoll(() => this.load()));
+    this.destroyRef.onDestroy(litePoll(() => this.load(), SLOW_POLL_MS));
   }
 
   /** 3 группы по 10 + буфер «EN сервер»; по ходу квалы: группа 1 проехала, во 2-й едет 4-й пилот */

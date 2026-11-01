@@ -7,21 +7,26 @@
  */
 export const LITE = true;
 export const LITE_POLL_MS = 45_000;
+/**
+ * Редкий опрос: то, что по ходу эфира почти не меняется (очередь, группы), и полная сверка оценок.
+ * Трафик Free — 5 ГБ/мес: список участников с аватарками ~10 КБ, оценки к концу квалы ~12 КБ (сжатые).
+ */
+export const SLOW_POLL_MS = 120_000;
 
 /**
- * Опрос примерно раз в LITE_POLL_MS, только когда вкладка видна; возвращает функцию остановки.
+ * Опрос примерно раз в ms, только когда вкладка видна; возвращает функцию остановки.
  * У каждого зрителя свой случайный сдвиг и разброс ±20% — запросы не приходят в базу пачкой в одну секунду.
  */
-export function litePoll(fn: () => unknown): () => void {
+export function litePoll(fn: () => unknown, ms = LITE_POLL_MS): () => void {
   let t: ReturnType<typeof setTimeout>;
-  const next = (ms: number) => {
+  const next = (delay: number) => {
     t = setTimeout(() => {
       if (document.visibilityState === 'visible') fn();
-      next(LITE_POLL_MS * (0.8 + Math.random() * 0.4));
-    }, ms);
+      next(ms * (0.8 + Math.random() * 0.4));
+    }, delay);
   };
   // первый опрос — в случайный момент от 0.5 до 1.5 интервала после открытия (данные только что загружены)
-  next(LITE_POLL_MS * (0.5 + Math.random()));
+  next(ms * (0.5 + Math.random()));
   return () => clearTimeout(t);
 }
 
@@ -37,4 +42,11 @@ export function batched(fn: () => unknown, ms = 1000): () => void {
       fn();
     }, ms);
   };
+}
+
+/** Добавить новые записи из частого опроса, не задваивая уже известные (полная сверка могла принести их раньше) */
+export function appendNew<T extends { id: number }>(list: T[], fresh: T[]): T[] {
+  const known = new Set(list.map((x) => x.id));
+  const add = fresh.filter((x) => !known.has(x.id));
+  return add.length ? [...list, ...add] : list;
 }

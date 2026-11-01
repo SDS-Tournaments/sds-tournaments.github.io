@@ -1,5 +1,5 @@
 import { vi } from 'vitest';
-import { batched, LITE_POLL_MS, litePoll } from './lite';
+import { appendNew, batched, LITE_POLL_MS, litePoll } from './lite';
 
 describe('litePoll', () => {
   it('опрашивает примерно раз в интервал со случайным сдвигом, останавливается', () => {
@@ -35,5 +35,14 @@ describe('batched', () => {
     vi.advanceTimersByTime(1000);
     expect(fn).toHaveBeenCalledTimes(2);
     vi.useRealTimers();
+  });
+});
+
+describe('appendNew', () => {
+  it('добавляет только неизвестные, без новых — тот же список', () => {
+    const list = [{ id: 1 }, { id: 2 }];
+    expect(appendNew(list, [{ id: 2 }, { id: 3 }])).toEqual([{ id: 1 }, { id: 2 }, { id: 3 }]);
+    expect(appendNew(list, [{ id: 1 }])).toBe(list);
+    expect(appendNew(list, [])).toBe(list);
   });
 });
