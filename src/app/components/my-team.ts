@@ -82,6 +82,7 @@ interface Member {
             {{ 'team.logo' | transloco }}
             <input type="file" accept="image/png,image/jpeg,image/webp" (change)="uploadLogo($event, t)" />
           </label>
+          <button class="btn btn-ghost del" (click)="deleteTeam(t)" [disabled]="busy()">{{ 'team.delete' | transloco }}</button>
         </div>
       } @else if (myStatus() === 'pending' && myInvited()) {
         <div class="inline">
@@ -95,7 +96,10 @@ interface Member {
       }
     } @else if (ownTeam(); as own) {
       <p class="muted">{{ 'team.ownNotEntered' | transloco: { name: own.name } }}</p>
-      <button class="btn btn-primary" (click)="join(own.id)" [disabled]="busy()">{{ 'team.enter' | transloco }}</button>
+      <div class="inline">
+        <button class="btn btn-primary" (click)="join(own.id)" [disabled]="busy()">{{ 'team.enter' | transloco }}</button>
+        <button class="btn btn-ghost del" (click)="deleteTeam(own)" [disabled]="busy()">{{ 'team.delete' | transloco }}</button>
+      </div>
     } @else {
       <div class="choose">
         <form class="field" (ngSubmit)="create()">
@@ -137,6 +141,7 @@ interface Member {
     .num { color: var(--primary); min-width: 32px; }
     .nick { flex: 1; }
     .tag { font: 600 11px var(--mono); padding: 1px 6px; border-radius: var(--r-sm); background: var(--primary); color: var(--on-primary); }
+    .del { color: var(--error); justify-self: start; }
     .sm { min-height: 30px; padding: 4px 12px; font-size: 13px; }
     .x { border: 0; background: none; color: var(--ink-tertiary); cursor: pointer; &:hover { color: var(--error); } }
     .small { font-size: 13px; margin: 0; }
@@ -275,6 +280,19 @@ export class MyTeam implements OnInit {
       this.query = '';
       this.found.set([]);
     }
+  }
+
+  /** капитан удаляет свою команду (0029): только без результатов этапов, иначе она пропала бы из истории */
+  async deleteTeam(t: Team) {
+    if (!confirm(this.t.translate('team.deleteConfirm', { name: t.name }))) return;
+    this.busy.set(true);
+    this.error.set(null);
+    const { data, error } = await supabase.from('teams').delete().eq('id', t.id).select('id');
+    this.busy.set(false);
+    if (error) return this.error.set(error.message);
+    // RLS молчит: 0 строк — у команды уже есть результаты (удаляет только admin)
+    if (!data.length) return this.error.set(this.t.translate('team.deleteHasHistory'));
+    await this.load();
   }
 
   async uploadLogo(e: Event, t: Team) {

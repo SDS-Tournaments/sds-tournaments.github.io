@@ -174,7 +174,10 @@
     "request": "Or request to join an existing one",
     "send": "Send request",
     "dupTeam": "This name is taken or you already captain another team",
-    "dupMember": "This driver is already in a team or has a pending request this season"
+    "dupMember": "This driver is already in a team or has a pending request this season",
+    "delete": "Delete team",
+    "deleteConfirm": "Delete team “{{name}}”? All pilots will leave it. This cannot be undone.",
+    "deleteHasHistory": "The team already has stage results — only an admin can delete it, contact the staff."
   },
   "teams": {
     "members": "Drivers on roster: {{n}}",
