@@ -34,7 +34,7 @@
 | `battle_votes` | (battle_id, try 0–2, judge), vote | все / staff |
 | `stage_results` | stage_id, profile_id, team_id, qual_place, battle_place, stage_place, qual_points, battle_points, total | все / staff |
 | `achievements` | (profile_id, code, stage_id) | все / staff |
-| `teams` | name (2–40, unique), logo_url, captain_id | все / создатель-капитан, admin |
+| `teams` | name (2–40, unique), logo_url, captain_id | все / создатель-капитан, admin; удалить — admin или капитан, пока нет результатов этапов (0029) |
 | `team_members` | (season_id, profile_id), team_id, status, **invited** (0013) | все / заявка, приглашение, принятие (0013), admin |
 | `sanctions` | profile_id, stage_id, type, reason | staff / staff (insert), admin (delete) |
 | `sponsors` | name, logo_url, url, tier, active, starts_at, ends_at, on_overlay, sort | активные — все / admin |
@@ -92,9 +92,12 @@
 | 0022 | Прогнозы зрителей: `predictions` (анонимно, voter = id браузера), `guard_prediction` (открыто, пока нет оценки/победителя), `prediction_counts(stage)`, Realtime |
 | 0023 | `stages.warmup` (прогрев вкл/выкл), `profiles.custom_nickname` / `custom_avatar` (steam-auth не перезаписывает), бакет `avatars` (пишет admin) |
 | 0025 | `stages.group_meta` — буфер-группы и их названия |
-$1$1| 0028 | `stages.reg_closed`; политики `pilot registers` / `pilot withdraws`: при закрытой — записаться и записаться снова нельзя, сняться можно |
+| 0026 | `private_settings.discord_webhook_test`, `discord_test_mode` — тестовый канал Discord |
+| 0027 | `predictions` убраны из Realtime (комментатор и плашка опрашивают итоги), голос — только за дуэль (`vote`: `battle_id is not null`) |
+| 0028 | `stages.reg_closed`; политики `pilot registers` / `pilot withdraws`: при закрытой — записаться и записаться снова нельзя, сняться можно |
+| 0029 | `teams`: капитан удаляет свою команду, пока у неё нет результатов этапов и титула чемпиона (политика `captain deletes`; состав — каскадом) |
 | 0024 | Общий пульт судей: `judge_marks` (черновые баллы/голоса, PK stage+target+crit; target `q:<pilot>:<attempt>` / `b:<battle>:<try>`), `judge_live` (общий выбор пилота), только штаб, Realtime |
 | 0021 | Трасса этапа: `stages.track_map_url`, `stages.zones` (jsonb), бакет `tracks` (пишет штаб) |
 
-Статус: 0001–0028 на проде выполнены (0023–0024 — 2026-10-28, 0025–0026 — 2026-10-30/31, 0027–0028 — 2026-11-01, проверено запросом). 0001–0019 на **проде** выполнены (0019 — таблица точно есть; триггер — если владелец запускал SQL целиком).
+Статус: 0001–0029 на проде выполнены (0023–0024 — 2026-10-28, 0025–0026 — 2026-10-30/31, 0027–0028 — 2026-11-01, 0029 — 2026-11-02, проверено запросом). 0001–0019 на **проде** выполнены (0019 — таблица точно есть; триггер — если владелец запускал SQL целиком).
 На **staging** 0017–0019 — не подтверждено, проверить перед прогоном.
