@@ -85,6 +85,8 @@ export class StageGroups implements OnInit {
   readonly stageId = input.required<number>();
   /** статус этапа: в «Квалификации» первая группа «едет», даже пока оценок ещё нет */
   readonly status = input<string>('registration');
+  /** как часто перечитывать (аварийный сайт — реже) */
+  readonly poll = input(SLOW_POLL_MS);
   /** витрина (UI kit): вымышленные группы без базы — до старта или по ходу квалы */
   readonly demo = input<'before' | 'live' | null>(null);
   /** данные из блока эфира (там они уже есть и обновляются) — свой запрос и подписка не нужны */
@@ -129,7 +131,7 @@ export class StageGroups implements OnInit {
     await this.load();
     // опросом, не Realtime: сам блок виден до старта квалы (в эфире данные даёт live-stage), а сохранение групп в админке —
     // сотня событий каждому зрителю (авария 2026-10-31)
-    this.destroyRef.onDestroy(litePoll(() => this.load(), SLOW_POLL_MS));
+    this.destroyRef.onDestroy(litePoll(() => this.load(), this.poll()));
   }
 
   /** 3 группы по 10 + буфер «EN сервер»; по ходу квалы: группа 1 проехала, во 2-й едет 4-й пилот */

@@ -7,7 +7,7 @@ import { Live } from '../live';
 import { StageGroups } from './stage-groups';
 
 // Аварийный сайт (Админка → Настройки → «Аварийный сайт»): зрителям — только трансляция и группы квалификации.
-// Из базы — настройки и идущий этап при открытии, группы раз в ~2 мин. Штаб после входа видит полный сайт.
+// Из базы — настройки и идущий этап при открытии, группы раз в ~4 мин. Штаб после входа видит полный сайт.
 @Component({
   selector: 'app-emergency-page',
   imports: [TranslocoPipe, StageGroups],
@@ -28,7 +28,7 @@ import { StageGroups } from './stage-groups';
       }
       @if (live.stage(); as s) {
         @if (s.status === 'qualifying') {
-          <app-stage-groups class="card" [stageId]="s.id" [status]="s.status" />
+          <app-stage-groups class="card" [stageId]="s.id" [status]="s.status" [poll]="240000" />
         }
       }
       @if (discord(); as d) {

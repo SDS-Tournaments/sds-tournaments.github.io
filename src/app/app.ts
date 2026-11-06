@@ -79,7 +79,8 @@ export class App {
     // загрузочный экран «SAD» уходит, когда первая страница открылась и её запросы к базе вернулись
     inject(Router).events.pipe(filter((e) => e instanceof NavigationEnd), take(1)).subscribe(() => finishBoot());
     if (!this.bare) this.live.start();
-    if (!this.bare)
+    // спонсор подвала — после настроек: на аварийном сайте подвала нет, лишний запрос не нужен
+    const loadSponsor = () =>
       supabase
         .from('sponsors')
         .select('name, url')
@@ -98,6 +99,7 @@ export class App {
           this.discord.set(data?.discord_invite ?? null);
           this.twitch.set(data?.twitch_channel ?? null);
           this.emergency.set(!!data?.emergency);
+          if (!data?.emergency) loadSponsor();
         });
   }
 
