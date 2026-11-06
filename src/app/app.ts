@@ -11,11 +11,12 @@ import { Lang, saveLang } from './i18n';
 import { Live } from './live';
 import { ScrollRail } from './components/scroll-rail';
 import { ThemePicker } from './components/theme-picker';
+import { EmergencyPage } from './components/emergency-page';
 import { Theme } from './theme';
 import { STAGING } from './supabase.config';
 
 @Component({
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, TranslocoPipe, ProtestBell, ThemePicker, ScrollRail],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, TranslocoPipe, ProtestBell, ThemePicker, ScrollRail, EmergencyPage],
   selector: 'app-root',
   styleUrl: './app.scss',
   templateUrl: './app.html',
@@ -60,6 +61,18 @@ export class App {
   protected readonly general = signal<{ name: string; url: string | null } | null>(null);
   /** приглашение в Discord для подвала — из Админки → Настройки */
   protected readonly discord = signal<string | null>(null);
+  protected readonly twitch = signal<string | null>(null);
+
+  /**
+   * Аварийный сайт (Админка → Настройки): зрителям вместо сайта — трансляция и группы (страницы не грузятся, база почти не трогается).
+   * Штаб после входа и служебные адреса (админка, пульты, плашка, возврат из Steam) — как обычно.
+   */
+  private readonly emergency = signal(false);
+  protected readonly emergencyView = computed(() => {
+    if (!this.emergency() || /^\/(admin|judge|commentator|broadcast|overlay|auth)/.test(this.url() || location.pathname)) return false;
+    const role = this.auth.profile()?.role;
+    return role !== 'admin' && role !== 'staff';
+  });
 
   constructor() {
     this.transloco.langChanges$.subscribe((l) => (document.documentElement.lang = l));
@@ -79,9 +92,13 @@ export class App {
     if (!this.bare)
       supabase
         .from('app_settings')
-        .select('discord_invite')
+        .select('discord_invite, twitch_channel, emergency')
         .single()
-        .then(({ data }) => this.discord.set(data?.discord_invite ?? null));
+        .then(({ data }) => {
+          this.discord.set(data?.discord_invite ?? null);
+          this.twitch.set(data?.twitch_channel ?? null);
+          this.emergency.set(!!data?.emergency);
+        });
   }
 
   protected onScroll() {

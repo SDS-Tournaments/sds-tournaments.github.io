@@ -8,6 +8,7 @@ export interface LiveStage {
   title_ru: string;
   title_en: string | null;
   status: 'qualifying' | 'battles';
+  twitch_channel: string | null;
 }
 
 /**
@@ -39,7 +40,7 @@ export class Live {
   }
 
   private async load() {
-    const { data } = await supabase.from('stages').select('id, ord, title_ru, title_en, status').in('status', ['qualifying', 'battles']).limit(1).maybeSingle();
+    const { data } = await supabase.from('stages').select('id, ord, title_ru, title_en, status, twitch_channel').in('status', ['qualifying', 'battles']).limit(1).maybeSingle();
     this.stage.set(data as LiveStage | null);
   }
 

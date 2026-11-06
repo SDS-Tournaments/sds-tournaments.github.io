@@ -447,5 +447,10 @@
   "busy": {
     "text": "The server is overloaded — the site paused to give it room. The Twitch stream is unaffected.",
     "retry": "Retrying in {{s}}s"
+  },
+  "emergency": {
+    "note": "The site is temporarily in light mode: stream and groups only. The full version will be back soon.",
+    "staffLogin": "Staff login",
+    "noStream": "The stream will start soon."
   }
 }

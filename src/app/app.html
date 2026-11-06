@@ -1,3 +1,6 @@
+@if (emergencyView()) {
+<app-emergency-page [twitch]="twitch()" [discord]="discord()" />
+} @else {
 @if (!bare) {
 <!-- Фон всех страниц: неоновые свечения, сетка-телеметрия, зерно; во время этапа — разгорается -->
 <div class="backdrop" aria-hidden="true">
@@ -89,5 +92,6 @@
     <span>⚠ {{ 'busy.text' | transloco }}</span>
     <b class="mono">{{ 'busy.retry' | transloco: { s } }}</b>
   </div>
+}
 }
 @if (staging && !bare) { <div class="staging">ТЕСТОВАЯ БАЗА</div> }

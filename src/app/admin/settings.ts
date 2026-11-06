@@ -18,6 +18,16 @@ import { supabase } from '../auth';
         </label>
       </section>
 
+      <section class="card stack" [class.alarm]="emergency">
+        <h2 class="h">Аварийный сайт</h2>
+        <label class="check"><input type="checkbox" name="em" [(ngModel)]="emergency" /> Включить: зрителям — только трансляция и группы квалификации</label>
+        <p class="muted small">
+          На случай, если база упала: перезапустите её, включите галочку и сохраните. Сайт почти перестанет обращаться к базе.
+          Срабатывает у зрителей при открытии или обновлении страницы. Админка, пульты судей и комментатора, плашка в OBS работают как обычно;
+          штаб после входа через Steam видит полный сайт. Не забудьте выключить, когда всё наладится.
+        </p>
+      </section>
+
       <section class="card stack">
         <h2 class="h">Регламент</h2>
         <p class="muted small">
@@ -56,12 +66,15 @@ import { supabase } from '../auth';
     code { font-family: var(--mono); color: var(--primary); }
     .doc { font-size: 13px; line-height: 1.6; resize: vertical; }
     .row { display: flex; gap: 12px; align-items: center; }
+    .check { display: flex; gap: 8px; align-items: center; font-weight: 600; }
+    .alarm { border-color: var(--warning); }
     .ok { color: var(--primary); }
     .bad { color: var(--error); }
   `,
 })
 export class AdminSettings implements OnInit {
   protected twitch = '';
+  protected emergency = false;
   protected version = '';
   protected ru = '';
   protected en = '';
@@ -70,7 +83,7 @@ export class AdminSettings implements OnInit {
   protected readonly ok = signal(true);
 
   async ngOnInit() {
-    const s = await supabase.from('app_settings').select('twitch_channel, regulation_ru, regulation_en, regulation_version').single();
+    const s = await supabase.from('app_settings').select('twitch_channel, emergency, regulation_ru, regulation_en, regulation_version').single();
     this.twitch = s.data?.twitch_channel ?? '';
     this.version = s.data?.regulation_version ?? '';
     this.ru = s.data?.regulation_ru ?? '';
@@ -80,7 +93,7 @@ export class AdminSettings implements OnInit {
   async save() {
     this.busy.set(true);
     const nul = (v: string) => v.trim() || null;
-    const a = await supabase.from('app_settings').update({ twitch_channel: nul(this.twitch), regulation_version: nul(this.version), regulation_ru: nul(this.ru), regulation_en: nul(this.en) }).eq('id', 1).select('id');
+    const a = await supabase.from('app_settings').update({ twitch_channel: nul(this.twitch), emergency: this.emergency, regulation_version: nul(this.version), regulation_ru: nul(this.ru), regulation_en: nul(this.en) }).eq('id', 1).select('id');
     this.busy.set(false);
     // RLS не даёт ошибку, а просто не обновляет строку — проверяем, что строка правда записалась
     const err = a.error?.message ?? (!a.data?.length ? 'База не приняла изменения: сохранять настройки может только организатор (роль «Организатор»).' : null);
