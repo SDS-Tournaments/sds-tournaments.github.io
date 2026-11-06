@@ -39,6 +39,7 @@ function ok() {
 export async function guardedFetch(input: RequestInfo | URL, init: RequestInit | undefined, next: (i: RequestInfo | URL, n?: RequestInit) => Promise<Response>): Promise<Response> {
   if (!isDb(urlOf(input)) || priority()) return next(input, init);
   if (Date.now() < dbBusyUntil()) throw new TypeError('Сервер перегружен — пауза');
+  const t0 = Date.now();
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), TIMEOUT_MS);
   init?.signal?.addEventListener('abort', () => ctl.abort());
@@ -48,7 +49,9 @@ export async function guardedFetch(input: RequestInfo | URL, init: RequestInit |
     else ok();
     return res;
   } catch (e) {
-    if (!init?.signal?.aborted) failed();
+    // вкладку «заморозили» (фон, сон, телефон в кармане) — таймер сработал сильно позже 12 с: это не база
+    const frozen = Date.now() - t0 > TIMEOUT_MS * 1.5;
+    if (!init?.signal?.aborted && !frozen) failed();
     throw e;
   } finally {
     clearTimeout(timer);

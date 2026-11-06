@@ -33,4 +33,24 @@ describe('db-guard', () => {
     await guardedFetch('https://x.supabase.co/auth/v1/token', undefined, next);
     expect(next).toHaveBeenCalled();
   });
+
+  it('таймаут из-за «заморозки» вкладки (часы ушли далеко вперёд) — не ошибка базы; честный таймаут — ошибка', async () => {
+    vi.useFakeTimers();
+    const hang = (_: RequestInfo | URL, n?: RequestInit) =>
+      new Promise<Response>((_ok, fail) => n?.signal?.addEventListener('abort', () => fail(new DOMException('aborted', 'AbortError'))));
+    for (let i = 0; i < 3; i++) {
+      const p = guardedFetch(URL_DB, undefined, hang).catch(() => null);
+      vi.setSystemTime(Date.now() + 60_000); // вкладка спала минуту
+      vi.advanceTimersByTime(12_000);
+      await p;
+    }
+    expect(dbBusyUntil()).toBe(0);
+    for (let i = 0; i < 3; i++) {
+      const p = guardedFetch(URL_DB, undefined, hang).catch(() => null);
+      vi.advanceTimersByTime(12_000);
+      await p;
+    }
+    expect(dbBusyUntil()).toBeGreaterThan(0);
+    vi.useRealTimers();
+  });
 });
