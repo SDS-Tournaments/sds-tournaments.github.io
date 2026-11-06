@@ -936,10 +936,11 @@
   text-shadow: 0 0 26px color-mix(in oklab, var(--hot), transparent 40%) !important;
 }
 /* максимальный балл (итог или отдельный критерий) — цифра трясётся и вспыхивает */
-.screen .score .v.max {
+/* .bar — сильнее, чем появление цифры (v-in ниже), иначе тряска перебивается; сначала въезжает, потом трясётся */
+.screen .score .bar .v.max {
   display: inline-block;
   color: #ff5c5c;
-  animation: max-shake 0.5s linear infinite, max-glow 1.2s ease-in-out infinite;
+  animation: v-in 500ms ease-out var(--fd) both, max-shake 0.5s linear infinite, max-glow 1.2s ease-in-out infinite;
 }
 .screen .score .total b.max {
   display: inline-block;
