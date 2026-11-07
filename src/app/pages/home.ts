@@ -45,6 +45,7 @@ import { Reveal } from '../reveal';
           [registered]="nextCount()"
           [status]="next()?.status ?? 'registration'"
           [regClosed]="!!next()?.reg_closed"
+          [offAir]="!!next()?.off_air"
         />
       </div>
     </section>
@@ -320,7 +321,7 @@ export class Home implements OnInit {
   protected readonly nextCount = signal(0);
   /** всё для первого экрана загружено — до этого показываем лоадер, а не пустые блоки */
   protected readonly ready = signal(false);
-  protected readonly live = computed(() => (this.next()?.status === 'qualifying' || this.next()?.status === 'battles' ? this.next() : null));
+  protected readonly live = computed(() => ((this.next()?.status === 'qualifying' || this.next()?.status === 'battles') && !this.next()?.off_air ? this.next() : null));
   protected readonly twitch = signal<string | null>(null);
   protected readonly pilots = signal<PilotStanding[]>([]);
   protected readonly teams = signal<TeamStanding[]>([]);
@@ -348,7 +349,7 @@ export class Home implements OnInit {
 
   private async load() {
     const [stages, settings, sponsors, season] = await Promise.all([
-      supabase.from('stages').select('id, title_ru, title_en, track, starts_at, battles_at, status, reg_closed, twitch_channel').in('status', ['registration', 'qualifying', 'qual_done', 'battles']).order('starts_at'),
+      supabase.from('stages').select('id, title_ru, title_en, track, starts_at, battles_at, status, reg_closed, off_air, twitch_channel').in('status', ['registration', 'qualifying', 'qual_done', 'battles']).order('starts_at'),
       supabase.from('app_settings').select('twitch_channel').single(),
       supabase.from('sponsors').select('id, name, logo_url, url, tier').order('tier').order('sort'),
       currentSeason(),
@@ -422,6 +423,7 @@ interface StageCard {
   battles_at?: string | null;
   status: string;
   reg_closed?: boolean;
+  off_air?: boolean;
   twitch_channel: string | null;
 }
 interface Sponsor {

@@ -91,8 +91,8 @@ const step = (level: number) => (Math.max(1, level) - 1) / (HYPE_STEPS.length - 
       <!-- этап в два дня: квалификация и парные -->
       @if (startsAt()) {
         <div class="days" [class.one]="!battlesAt()">
-          <div class="day" [class.past]="status() === 'qual_done'">
-            <span class="dl">{{ 'home.next.day1' | transloco }}@if (status() === 'qual_done') { ✓ }</span>
+          <div class="day" [class.past]="between()">
+            <span class="dl">{{ 'home.next.day1' | transloco }}@if (between()) { ✓ }</span>
             <span class="dv mono"><b>{{ startsAt() | date: 'dd.MM' }}</b> {{ startsAt() | date: 'HH:mm' }}</span>
           </div>
           @if (battlesAt(); as b) {
@@ -103,7 +103,7 @@ const step = (level: number) => (Math.max(1, level) - 1) / (HYPE_STEPS.length - 
           }
         </div>
       }
-      @if (status() === 'qual_done') { <p class="eyebrow wait">{{ 'home.next.untilBattles' | transloco }}</p> }
+      @if (between()) { <p class="eyebrow wait">{{ 'home.next.untilBattles' | transloco }}</p> }
 
       @if (!live() && target()) {
         <div class="timer mono" role="timer">
@@ -472,12 +472,16 @@ export class NextStage {
   startsAt = input<Date | null>(null);
   battlesAt = input<Date | null>(null);
   /** до чего считаем: квала уже прошла — до парных */
-  protected readonly target = computed(() => (this.status() === 'qual_done' ? this.battlesAt() : this.startsAt()));
+  protected readonly target = computed(() => (this.between() ? this.battlesAt() : this.startsAt()));
   registered = input(0);
   status = input<string>('registration');
   /** регистрация закрыта, этап ещё не начался */
   regClosed = input(false);
-  protected readonly live = computed(() => this.status() === 'qualifying' || this.status() === 'battles');
+  /** этап идёт, но трансляции сейчас нет (Админка → этап → «Снять с эфира») */
+  offAir = input(false);
+  protected readonly live = computed(() => (this.status() === 'qualifying' || this.status() === 'battles') && !this.offAir());
+  /** между днями: квала завершена или парные ещё не в эфире — отсчёт до парных */
+  protected readonly between = computed(() => this.status() === 'qual_done' || (this.offAir() && this.status() === 'battles'));
   /** хайп только пока идёт регистрация */
   protected readonly hypeOn = computed(() => !!this.stage() && this.status() === 'registration');
   protected readonly hy = computed(() => hype(this.registered()));

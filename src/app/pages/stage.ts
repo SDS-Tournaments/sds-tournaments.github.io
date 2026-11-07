@@ -22,6 +22,7 @@ interface Stage {
   starts_at: string | null;
   battles_at?: string | null;
   status: string;
+  off_air?: boolean;
   twitch_channel: string | null;
   season: { title: string } | null;
   track_map_url?: string | null;
@@ -232,7 +233,7 @@ export class StagePage implements OnInit {
   protected readonly lang = signal(this.t.getActiveLang());
   private readonly destroyRef = inject(DestroyRef);
 
-  protected readonly live = computed(() => ['qualifying', 'battles'].includes(this.stage()?.status ?? ''));
+  protected readonly live = computed(() => ['qualifying', 'battles'].includes(this.stage()?.status ?? '') && !this.stage()?.off_air);
   protected readonly description = computed(() => {
     const s = this.stage();
     return (this.lang() === 'en' && s?.description_en) || s?.description_ru || null;
@@ -258,7 +259,7 @@ export class StagePage implements OnInit {
   async ngOnInit() {
     const id = Number(this.id());
     const [{ data: s }, settings] = await Promise.all([
-      supabase.from('stages').select('id, ord, title_ru, title_en, description_ru, description_en, track, starts_at, battles_at, status, twitch_channel, track_map_url, zones, season:seasons(title)').eq('id', id).maybeSingle(),
+      supabase.from('stages').select('id, ord, title_ru, title_en, description_ru, description_en, track, starts_at, battles_at, status, off_air, twitch_channel, track_map_url, zones, season:seasons(title)').eq('id', id).maybeSingle(),
       supabase.from('app_settings').select('twitch_channel').single(),
     ]);
     if (!s) return this.missing.set(true);

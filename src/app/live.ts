@@ -1,6 +1,6 @@
 import { DestroyRef, effect, inject, Injectable, signal } from '@angular/core';
 import { supabase } from './auth';
-import { LITE } from './lite';
+import { LITE, litePoll, SLOW_POLL_MS } from './lite';
 
 export interface LiveStage {
   id: number;
@@ -33,14 +33,14 @@ export class Live {
    */
   async start() {
     await this.load();
-    // лайт-режим: один раз при открытии сайта, без повторов
-    if (LITE) return;
+    // лайт-режим: редкий опрос — чтобы «Снять с эфира» в админке убирало LIVE и у открытых вкладок
+    if (LITE) return void litePoll(() => this.load(), SLOW_POLL_MS * 2);
     this.timer = setInterval(() => document.visibilityState === 'visible' && this.load(), 120_000);
     document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && this.load());
   }
 
   private async load() {
-    const { data } = await supabase.from('stages').select('id, ord, title_ru, title_en, status, twitch_channel').in('status', ['qualifying', 'battles']).limit(1).maybeSingle();
+    const { data } = await supabase.from('stages').select('id, ord, title_ru, title_en, status, twitch_channel').in('status', ['qualifying', 'battles']).eq('off_air', false).limit(1).maybeSingle();
     this.stage.set(data as LiveStage | null);
   }
 

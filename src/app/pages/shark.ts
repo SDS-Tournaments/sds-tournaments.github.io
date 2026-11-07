@@ -70,6 +70,7 @@ import { Home } from './home';
             [registered]="nextCount()"
             [status]="next()?.status ?? 'registration'"
             [regClosed]="!!next()?.reg_closed"
+            [offAir]="!!next()?.off_air"
           />
         </div>
       </div>

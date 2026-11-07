@@ -24,6 +24,8 @@ interface Stage {
   status: (typeof STAGE_FLOW)[number];
   /** регистрация закрыта, статус тот же (0028): записаться нельзя, сняться можно */
   reg_closed: boolean;
+  /** этап идёт, но трансляции сейчас нет (перерыв, между днями) — на сайте не LIVE (0031) */
+  off_air: boolean;
   weights: Record<Crit, number>;
   judges: Record<Crit, string>;
   bracket_size: string;
@@ -73,6 +75,12 @@ const CRITS: { key: Crit; label: string }[] = [
           </li>
         }
       </ol>
+      @if (st.status === 'qualifying' || st.status === 'battles') {
+        <p class="reg">
+          Трансляция: <b [class.off]="st.off_air">{{ st.off_air ? 'не в эфире — на сайте без LIVE' : 'в эфире — на сайте LIVE' }}</b>
+          <button type="button" class="btn btn-secondary" (click)="toggleAir()" [disabled]="busy()">{{ st.off_air ? '▶ В эфир' : '⏸ Снять с эфира' }}</button>
+        </p>
+      }
       @if (st.status === 'registration') {
         <p class="reg">
           Запись пилотов: <b [class.off]="st.reg_closed">{{ st.reg_closed ? 'закрыта' : 'открыта' }}</b>
@@ -309,7 +317,7 @@ export class AdminStage implements OnInit {
   async ngOnInit() {
     const { data, error } = await supabase
       .from('stages')
-      .select('id, season_id, ord, title_ru, title_en, description_ru, description_en, track, starts_at, battles_at, status, reg_closed, weights, judges, bracket_size, warmup, twitch_channel, track_map_url, zones')
+      .select('id, season_id, ord, title_ru, title_en, description_ru, description_en, track, starts_at, battles_at, status, reg_closed, off_air, weights, judges, bracket_size, warmup, twitch_channel, track_map_url, zones')
       .eq('id', this.id())
       .single();
     if (error) return this.note(error.message, false);
@@ -405,15 +413,30 @@ export class AdminStage implements OnInit {
     // Возврат назад — осознанное действие
     if (STAGE_FLOW.indexOf(status) < this.flowIndex() && !confirm(`Вернуть этап в статус «${STAGE_STATUS[status]}»?`)) return;
     this.busy.set(true);
-    const { error } = await supabase.from('stages').update({ status }).eq('id', st.id);
+    // старт квалы или парных — сразу в эфир
+    const off_air = status === 'qualifying' || status === 'battles' ? false : st.off_air;
+    const { error } = await supabase.from('stages').update({ status, off_air }).eq('id', st.id);
     this.busy.set(false);
     if (error) return this.note(error.message, false);
-    this.st.set({ ...st, status });
+    this.st.set({ ...st, status, off_air });
     this.note(`Статус: ${STAGE_STATUS[status]}`, true);
     if (status === 'registration') notify('registration', st.id);
     // старт квалы, следом — какая группа едет и какая готовится
     if (status === 'qualifying') notify('stage_start', st.id).then(() => notify('groups', st.id));
     if (status === 'battles') notify('battles_start', st.id);
+  }
+
+  /** снять с эфира / вернуть: этап идёт, но LIVE на сайте только когда трансляция есть */
+  async toggleAir() {
+    const st = this.st();
+    if (!st) return;
+    const off_air = !st.off_air;
+    this.busy.set(true);
+    const { error } = await supabase.from('stages').update({ off_air }).eq('id', st.id);
+    this.busy.set(false);
+    if (error) return this.note(error.message, false);
+    this.st.set({ ...st, off_air });
+    this.note(off_air ? 'Снято с эфира — у зрителей LIVE пропадёт при обновлении страницы (у открытых — в течение ~4 мин)' : 'В эфире', true);
   }
 
   /** закрыть / снова открыть запись, статус этапа не меняется */
