@@ -4,7 +4,7 @@ import { DomSanitizer } from '@angular/platform-browser';
 import { inject } from '@angular/core';
 import { supabase } from '../auth';
 import { forceNoir } from '../theme';
-import { DEFAULT_STATE, OverlayState, SKIN_LABEL, SKINS, Widget, WIDGET_LABEL, WIDGETS } from './state';
+import { DEFAULT_STATE, OverlayState, SIZES, SKIN_LABEL, SKINS, Widget, WIDGET_LABEL, WIDGETS } from './state';
 
 // Пульт управляющего трансляцией: этап, какие плашки показаны, язык, превью и ссылка для OBS. Только RU.
 @Component({
@@ -48,6 +48,15 @@ import { DEFAULT_STATE, OverlayState, SKIN_LABEL, SKINS, Widget, WIDGET_LABEL, W
           <div class="seg">
             @for (k of skins; track k) {
               <button [class.on]="(state().skin ?? 'hud') === k" (click)="patch({ skin: k })">{{ skinLabel[k] }}</button>
+            }
+          </div>
+        </div>
+
+        <div class="lang">
+          <span class="lbl">Размер плашек</span>
+          <div class="seg">
+            @for (n of sizes; track n) {
+              <button [class.on]="(state().size ?? 100) === n" (click)="patch({ size: n })">{{ n }}%</button>
             }
           </div>
         </div>
@@ -138,6 +147,7 @@ export class Broadcast implements OnInit {
   protected readonly widgets = WIDGETS;
   protected readonly label = WIDGET_LABEL;
   protected readonly skins = SKINS;
+  protected readonly sizes = SIZES;
   protected readonly skinLabel = SKIN_LABEL;
   protected readonly obsUrl = `${location.origin}/overlay`;
   protected readonly previewUrl = inject(DomSanitizer).bypassSecurityTrustResourceUrl('/overlay?preview=1');

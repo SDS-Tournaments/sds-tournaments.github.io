@@ -22,6 +22,10 @@
   position: absolute;
   z-index: 2;
 }
+/* размер плашек из пульта; вместе с плашкой масштабируются её отступы от края — стопки в углах не разъезжаются */
+.w:not(.full) {
+  zoom: var(--ui, 1);
+}
 .label {
   font-size: 14px;
   letter-spacing: 3px;

@@ -69,7 +69,7 @@ const FLASH_MS = 10_000;
   selector: 'app-overlay',
   imports: [BracketTree, PilotCard],
   template: `
-    <div class="screen" [class.preview]="preview" [class.flip]="flip()" [attr.data-skin]="skin()">
+    <div class="screen" [class.preview]="preview" [class.flip]="flip()" [attr.data-skin]="skin()" [style.--ui]="(state().size ?? 100) / 100">
       @if (preview && state().mock) { <div class="mock-badge">ТЕСТ · вымышленные данные (в OBS — без этой метки)</div> }
       <!-- Стадия этапа -->
       @if (show('stage') && stage(); as s) {
