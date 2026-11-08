@@ -16,6 +16,8 @@ export interface OverlayState {
   skin?: Skin;
   /** размер плашек в процентах (полноэкранные — сетка, подиум, сравнение пары — не меняются) */
   size?: number;
+  /** id пары, где лидер и чейзер сейчас поменялись (2-й заезд); у следующей пары роли снова обычные */
+  swapDuel?: number | null;
 }
 
 export const SKINS = ['classic', 'arena', 'race', 'hud'] as const;
@@ -23,6 +25,12 @@ export type Skin = (typeof SKINS)[number];
 export const SKIN_LABEL: Record<Skin, string> = { classic: 'Классика', arena: 'Арена', race: 'Гонка', hud: 'HUD' };
 
 export const SIZES = [100, 85, 75, 60] as const;
+
+const ROUNDS = ['r32', 'r16', 'qf', 'sf', 'third', 'final'];
+/** Пара на трассе: первая нерешённая, где оба пилота известны */
+export function currentDuel<T extends { round: string; slot: number; status: string; leader_id: string | null; chaser_id: string | null }>(list: T[]): T | null {
+  return [...list].sort((a, b) => ROUNDS.indexOf(a.round) - ROUNDS.indexOf(b.round) || a.slot - b.slot).find((b) => b.status !== 'done' && b.leader_id && b.chaser_id) ?? null;
+}
 
 export const LANG_SWAP_MS = 8000;
 /** полноэкранные плашки (сетка, подиум, представление пары) меняют язык чаще */

@@ -15,7 +15,7 @@ import { compareRow } from './compare';
 import { forceNoir } from '../theme';
 import { mockStage } from './mock';
 import { countsFor, loadPredictionCounts, PredictionCount } from '../predict';
-import { DEFAULT_STATE, LANG_SWAP_FULL_MS, LANG_SWAP_MS, OVERLAY_TEXT, OverlayState, Widget } from './state';
+import { currentDuel, DEFAULT_STATE, LANG_SWAP_FULL_MS, LANG_SWAP_MS, OVERLAY_TEXT, OverlayState, Widget } from './state';
 import { GroupMeta, groupLabel } from '../groups';
 
 interface Pilot extends TreePilot {
@@ -185,8 +185,8 @@ const FLASH_MS = 10_000;
             </div>
           } @else if (duel(); as d) {
             <span class="round">{{ t()[d.round] }}@if (d.omt_count) { · OMT {{ d.omt_count }} }</span>
-            <div class="side">
-              <span class="role">{{ t().leader }}</span>
+            <div class="side" [class.lead]="!swapped()">
+              <span class="role">{{ swapped() ? t().chaser : t().leader }}</span>
               <span class="plate">{{ p(d.leader_id).start_number ?? '—' }}</span>
               <b>{{ p(d.leader_id).nickname }}</b>
             </div>
@@ -195,8 +195,8 @@ const FLASH_MS = 10_000;
                 <span class="vote" [class]="v ?? 'wait'"></span>
               }
             </div>
-            <div class="side right">
-              <span class="role">{{ t().chaser }}</span>
+            <div class="side right" [class.lead]="swapped()">
+              <span class="role">{{ swapped() ? t().leader : t().chaser }}</span>
               <span class="plate">{{ p(d.chaser_id).start_number ?? '—' }}</span>
               <b>{{ p(d.chaser_id).nickname }}</b>
             </div>
@@ -236,8 +236,8 @@ const FLASH_MS = 10_000;
         <div class="w full matchup" animate.enter="in-fade" animate.leave="out-fade">
           <p class="mu-round">{{ t()[m.round] }} · {{ t().pair }} {{ m.slot + 1 }}</p>
           <div class="mu">
-            <div class="mu-card left">
-              <span class="role">{{ t().leader }}</span>
+            <div class="mu-card left" [class.lead]="!swapped()">
+              <span class="role">{{ swapped() ? t().chaser : t().leader }}</span>
               <app-pilot-card [d]="m.a" [downloadable]="false" />
             </div>
             <div class="mu-stats">
@@ -254,8 +254,8 @@ const FLASH_MS = 10_000;
                 </div>
               }
             </div>
-            <div class="mu-card right">
-              <span class="role">{{ t().chaser }}</span>
+            <div class="mu-card right" [class.lead]="swapped()">
+              <span class="role">{{ swapped() ? t().leader : t().chaser }}</span>
               <app-pilot-card [d]="m.b" [downloadable]="false" />
             </div>
           </div>
@@ -455,14 +455,15 @@ export class Overlay implements OnInit {
     return Math.min(1.6, 1760 / w, 1000 / h);
   });
 
-  private readonly sorted = computed(() => [...this.battles()].sort((a, b) => ORDER.indexOf(a.round) - ORDER.indexOf(b.round) || a.slot - b.slot));
   // ?pair=ID — показать конкретную пару (превью карточек на завершённом этапе)
   private readonly forcePair = Number(this.route.snapshot.queryParamMap.get('pair')) || null;
   protected readonly duel = computed(() =>
     this.forcePair
       ? (this.battles().find((b) => b.id === this.forcePair) ?? null)
-      : (this.sorted().find((b) => b.status !== 'done' && b.leader_id && b.chaser_id) ?? null),
+      : currentDuel(this.battles()),
   );
+  /** пульт поменял роли в этой паре; пилоты остаются на своих сторонах — как и прогноз зрителей над плашкой */
+  protected readonly swapped = computed(() => !!this.duel() && this.duel()!.id === this.state().swapDuel);
   /** За что голосуют сейчас: текущая дуэль (прогнозы — только в парных) */
   private readonly pollTarget = computed(() => {
     const d = this.stage()?.status === 'battles' ? this.duel() : null;

@@ -4,7 +4,9 @@ import { DomSanitizer } from '@angular/platform-browser';
 import { inject } from '@angular/core';
 import { supabase } from '../auth';
 import { forceNoir } from '../theme';
-import { DEFAULT_STATE, OverlayState, SIZES, SKIN_LABEL, SKINS, Widget, WIDGET_LABEL, WIDGETS } from './state';
+import { litePoll } from '../lite';
+import { mockStage } from './mock';
+import { currentDuel, DEFAULT_STATE, OverlayState, SIZES, SKIN_LABEL, SKINS, Widget, WIDGET_LABEL, WIDGETS } from './state';
 
 // Пульт управляющего трансляцией: этап, какие плашки показаны, язык, превью и ссылка для OBS. Только RU.
 @Component({
@@ -61,6 +63,16 @@ import { DEFAULT_STATE, OverlayState, SIZES, SKIN_LABEL, SKINS, Widget, WIDGET_L
           </div>
         </div>
 
+        @if (duel(); as d) {
+          <div class="pair">
+            <span class="lbl">Лидер в этом заезде</span>
+            <div class="seg">
+              <button [class.on]="state().swapDuel !== d.id" [attr.aria-pressed]="state().swapDuel !== d.id" (click)="patch({ swapDuel: null })">{{ d.a }}</button>
+              <button [class.on]="state().swapDuel === d.id" [attr.aria-pressed]="state().swapDuel === d.id" (click)="patch({ swapDuel: d.id })">{{ d.b }}</button>
+            </div>
+          </div>
+        }
+
         <div class="list">
           @for (w of widgets; track w) {
             <button class="toggle" [class.on]="state().visible[w]" (click)="toggle(w)" [attr.aria-pressed]="!!state().visible[w]">
@@ -112,6 +124,8 @@ import { DEFAULT_STATE, OverlayState, SIZES, SKIN_LABEL, SKINS, Widget, WIDGET_L
     .seg { display: flex; padding: 3px; border: 1px solid var(--hairline-strong); border-radius: var(--r-pill); }
     .seg button { min-width: 44px; padding: 6px 10px; border: 0; border-radius: var(--r-pill); background: none; color: var(--ink-muted); font: 500 13px var(--mono); cursor: pointer; }
     .seg button.on { background: var(--primary); color: var(--on-primary); }
+    .pair { display: grid; gap: 6px; }
+    .pair button { flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .list { display: grid; gap: 6px; }
     .toggle {
       display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--hairline-strong); border-radius: var(--r-md);
@@ -144,6 +158,8 @@ export class Broadcast implements OnInit {
   protected readonly stages = signal<{ id: number; title_ru: string; status: string }[]>([]);
   protected readonly error = signal<string | null>(null);
   protected readonly copied = signal(false);
+  /** пара на трассе: a — лидер 1-го заезда, b — чейзер */
+  protected readonly duel = signal<{ id: number; a: string; b: string } | null>(null);
   protected readonly widgets = WIDGETS;
   protected readonly label = WIDGET_LABEL;
   protected readonly skins = SKINS;
@@ -154,7 +170,10 @@ export class Broadcast implements OnInit {
 
   constructor() {
     // пульт трансляции всегда в NOIR, как и сами плашки
-    inject(DestroyRef).onDestroy(forceNoir());
+    const destroy = inject(DestroyRef);
+    destroy.onDestroy(forceNoir());
+    // судьи решили пару — в пульте появляется следующая; открыт один пульт, опрос базу не нагружает
+    destroy.onDestroy(litePoll(() => this.loadDuel(), 5000));
   }
 
   async ngOnInit() {
@@ -167,6 +186,24 @@ export class Broadcast implements OnInit {
     if (!s.stageId) s.stageId = (stages ?? []).find((x) => x.status === 'qualifying' || x.status === 'qual_done' || x.status === 'battles')?.id ?? null;
     this.state.set(s);
     this.stages.set(stages ?? []);
+    await this.loadDuel();
+  }
+
+  private async loadDuel() {
+    if (this.state().mock) {
+      const m = mockStage();
+      const d = currentDuel(m.battles);
+      return this.duel.set(d && { id: d.id, a: m.pilots.get(d.leader_id!)!.nickname, b: m.pilots.get(d.chaser_id!)!.nickname });
+    }
+    const id = this.state().stageId;
+    if (!id) return this.duel.set(null);
+    const { data } = await supabase
+      .from('battles')
+      .select('id, round, slot, status, leader_id, chaser_id, leader:profiles!battles_leader_id_fkey(nickname), chaser:profiles!battles_chaser_id_fkey(nickname)')
+      .eq('stage_id', id);
+    if (!data) return; // сбой сети — оставляем пару на экране, следующий опрос обновит
+    const d = currentDuel(data as unknown as { id: number; round: string; slot: number; status: string; leader_id: string | null; chaser_id: string | null; leader: { nickname: string } | null; chaser: { nickname: string } | null }[]);
+    this.duel.set(d && { id: d.id, a: d.leader?.nickname ?? '?', b: d.chaser?.nickname ?? '?' });
   }
 
   protected toggle(w: Widget) {
@@ -182,6 +219,7 @@ export class Broadcast implements OnInit {
     this.state.set(next);
     const { error } = await supabase.from('overlay_state').update({ state: next, updated_at: new Date().toISOString() }).eq('id', 1);
     this.error.set(error?.message ?? null);
+    if ('stageId' in p || 'mock' in p) await this.loadDuel();
   }
 
   async copy() {
