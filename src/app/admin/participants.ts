@@ -1,22 +1,29 @@
 import { CdkDrag, CdkDragDrop, CdkDragHandle, CdkDropList, CdkDropListGroup, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
-import { Component, input, isDevMode, OnInit, signal } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
+import { Component, computed, DestroyRef, inject, input, isDevMode, OnInit, signal } from '@angular/core';
 import { supabase } from '../auth';
+import { litePoll } from '../lite';
+import { notify } from '../notify';
 import { assignGroups } from '../scoring/scoring';
-import { GroupMeta, groupLabel } from '../groups';
+import { confirmedFirst, GroupMeta, groupLabel, restoreSpot } from '../groups';
 
 interface Reg {
   profile_id: string;
   group_no: number | null;
   queue_order: number | null;
+  status: string;
   created_at: string;
   profile: { nickname: string; start_number: number | null; avatar_url: string | null } | null;
   team: { name: string } | null;
 }
 
+const SAVE_CHUNK = 10;
+const SAVE_PAUSE_MS = 1000;
+
 // Участники этапа: группы по 10 и очередь квалификации (перетаскиванием)
 @Component({
   selector: 'app-admin-participants',
-  imports: [CdkDropListGroup, CdkDropList, CdkDrag, CdkDragHandle],
+  imports: [CdkDropListGroup, CdkDropList, CdkDrag, CdkDragHandle, NgTemplateOutlet],
   template: `
     <section class="card stack">
       <header class="top">
@@ -29,7 +36,26 @@ interface Reg {
           <button class="btn btn-ghost" (click)="load()" [disabled]="busy()">↻ Обновить</button>
         </div>
       </header>
+      @if (status() === 'registration') {
+        <div class="checkin">
+          <span>Подтвердили участие: <b class="mono">{{ confirmedCount() }}</b> из {{ total() }} · <span class="subtle">{{ checkinNote() }}</span></span>
+          <button class="btn btn-primary" (click)="closeAndRebuild()" [disabled]="busy() || !total()">{{ closed() ? 'Перестроить группы ещё раз' : 'Закрыть подтверждение и перестроить группы' }}</button>
+        </div>
+      }
       <p class="muted small">Перетаскивайте пилотов между группами и внутри группы — это порядок выезда в квалификации. Группы двигаются стрелками ▲▼. Буфер — запасная группа со своим названием (например, «EN сервер»): едет там, где стоит в списке. Не забудьте сохранить.</p>
+
+      <!-- содержимое строки пилота: ручка перетаскивания остаётся снаружи, иначе cdkDragHandle не найдёт cdkDrag -->
+      <ng-template #row let-r>
+        <span class="num mono">{{ r.profile?.start_number ?? '—' }}</span>
+        <span class="who"><span class="nick">{{ r.profile?.nickname }}</span>@if (r.status === 'no_show') { <span class="ns">неявка</span> } @else if (discord().get(r.profile_id); as d) { <span class="dc mono subtle" title="Discord">{{ d }}</span> } @else { <span class="nodc">нет Discord</span> }</span>
+        @if (r.status === 'no_show') {
+          <button class="btn btn-ghost back" (click)="restore(r)" [disabled]="busy()">Вернуть</button>
+        } @else {
+          <span class="team subtle">{{ r.team?.name ?? '' }}</span>
+        }
+        <button class="ci" [class.on]="checked().has(r.profile_id)" [attr.aria-pressed]="checked().has(r.profile_id)" title="Подтвердил участие" aria-label="Подтвердил участие" (click)="toggleCheck(r)">✓</button>
+        <button class="x" title="Снять с этапа" (click)="withdraw(r)">✕</button>
+      </ng-template>
 
       <div class="groups" cdkDropListGroup>
         @if (unassigned().length) {
@@ -37,12 +63,9 @@ interface Reg {
             <h3>Без группы <span class="mono subtle">{{ unassigned().length }}</span></h3>
             <ol cdkDropList [cdkDropListData]="unassigned()" (cdkDropListDropped)="drop($event)">
               @for (r of unassigned(); track r.profile_id) {
-                <li cdkDrag class="pilot">
+                <li cdkDrag class="pilot" [class.absent]="r.status === 'no_show'">
                   <span cdkDragHandle class="grip" aria-hidden="true">⋮⋮</span>
-                  <span class="num mono">{{ r.profile?.start_number ?? '—' }}</span>
-                  <span class="who"><span class="nick">{{ r.profile?.nickname }}</span>@if (discord().get(r.profile_id); as d) { <span class="dc mono subtle" title="Discord">{{ d }}</span> } @else { <span class="nodc">нет Discord</span> }</span>
-                  <span class="team subtle">{{ r.team?.name ?? '' }}</span>
-                  <button class="x" title="Снять с этапа" (click)="withdraw(r)">✕</button>
+                  <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: r }" />
                 </li>
               }
             </ol>
@@ -67,12 +90,9 @@ interface Reg {
             </h3>
             <ol cdkDropList [cdkDropListData]="g" (cdkDropListDropped)="drop($event)">
               @for (r of g; track r.profile_id) {
-                <li cdkDrag class="pilot">
+                <li cdkDrag class="pilot" [class.absent]="r.status === 'no_show'">
                   <span cdkDragHandle class="grip" aria-hidden="true">⋮⋮</span>
-                  <span class="num mono">{{ r.profile?.start_number ?? '—' }}</span>
-                  <span class="who"><span class="nick">{{ r.profile?.nickname }}</span>@if (discord().get(r.profile_id); as d) { <span class="dc mono subtle" title="Discord">{{ d }}</span> } @else { <span class="nodc">нет Discord</span> }</span>
-                  <span class="team subtle">{{ r.team?.name ?? '' }}</span>
-                  <button class="x" title="Снять с этапа" (click)="withdraw(r)">✕</button>
+                  <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: r }" />
                 </li>
               } @empty {
                 <li class="empty subtle">Перетащите сюда пилотов</li>
@@ -104,7 +124,9 @@ interface Reg {
     .count { margin-left: 6px; color: var(--primary); }
     .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
     .small { font-size: 14px; margin: 0; }
-    .groups { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+    .groups { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); }
+    .checkin { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; padding: 12px 14px; border: 1px solid var(--primary); border-radius: var(--r-md); background: var(--primary-soft); }
+    .checkin b { color: var(--primary); }
     .group {
       border: 1px solid var(--hairline-strong);
       border-radius: var(--r-md);
@@ -123,7 +145,7 @@ interface Reg {
     ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; min-height: 44px; }
     .pilot {
       display: grid;
-      grid-template-columns: 20px 40px 1fr auto 24px;
+      grid-template-columns: 20px 40px 1fr auto 24px 24px;
       align-items: center;
       gap: 8px;
       padding: 8px 10px;
@@ -139,6 +161,10 @@ interface Reg {
     .who { display: grid; min-width: 0; line-height: 1.25; }
     .dc, .nodc { font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .nodc { color: var(--warning); }
+    .absent { opacity: 0.55; }
+    .ns { font-size: 11px; color: var(--warning); }
+    .back { padding: 2px 8px; font-size: 12px; }
+    .ci { width: 24px; height: 24px; padding: 0; border: 1px solid var(--hairline-strong); border-radius: var(--r-sm); background: none; color: var(--ink-tertiary); cursor: pointer; &.on { border-color: var(--primary); background: var(--primary); color: var(--on-primary); } }
     .x { border: 0; background: none; color: var(--ink-tertiary); cursor: pointer; &:hover { color: var(--error); } }
     .empty { padding: 10px; font-size: 13px; text-align: center; }
     .cdk-drag-preview { box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 0 1px var(--primary); }
@@ -159,6 +185,12 @@ export class AdminParticipants implements OnInit {
   /** ник Discord участника (pilot_contacts) */
   protected readonly discord = signal(new Map<string, string>());
   protected readonly total = signal(0);
+  protected readonly status = signal('');
+  protected readonly closed = signal(false);
+  private readonly startsAt = signal<string | null>(null);
+  /** кто нажал «Я буду» или кого отметил админ */
+  protected readonly checked = signal(new Set<string>());
+  protected readonly confirmedCount = computed(() => [...this.unassigned(), ...this.groups().flat()].filter((r) => r.status === 'registered' && this.checked().has(r.profile_id)).length);
   protected readonly busy = signal(false);
   protected readonly dirty = signal(false);
   protected readonly msg = signal<string | null>(null);
@@ -166,21 +198,88 @@ export class AdminParticipants implements OnInit {
   // shortcut: кнопки тестовых пилотов только на локальном сайте; для пробного этапа на проде — включить там же
   protected readonly dev = isDevMode();
 
+  private readonly destroy = inject(DestroyRef);
+
   ngOnInit() {
     this.load();
+    // только галочки — опрос не трогает группы, которые админ может сейчас перетаскивать
+    this.destroy.onDestroy(litePoll(() => this.status() === 'registration' && this.loadChecks(), 15_000));
+  }
+
+  private async loadChecks() {
+    const { data } = await supabase.from('stage_checkins').select('profile_id').eq('stage_id', this.stageId());
+    if (data) this.checked.set(new Set(data.map((c) => c.profile_id)));
+  }
+
+  protected checkinNote() {
+    if (this.closed()) return 'закрыто';
+    const at = this.startsAt();
+    return at && Date.now() >= Date.parse(at) - 3_600_000 ? 'открыто, пилоты нажимают «Я буду»' : 'откроется за час до старта';
+  }
+
+  async toggleCheck(r: Reg) {
+    const row = { stage_id: this.stageId(), profile_id: r.profile_id };
+    const on = this.checked().has(r.profile_id);
+    const { error } = on ? await supabase.from('stage_checkins').delete().match(row) : await supabase.from('stage_checkins').insert(row);
+    if (error) return this.note(error.message, false);
+    const next = new Set(this.checked());
+    if (on) next.delete(r.profile_id);
+    else next.add(r.profile_id);
+    this.checked.set(next);
+  }
+
+  /** Подтвердившие занимают первые группы, остальные — за ними; буферы не меняются */
+  async closeAndRebuild() {
+    if (this.dirty()) return this.note('Сначала сохраните очередь или нажмите «Обновить»', false);
+    const { count, error: e0 } = await supabase.from('qual_runs').select('profile_id', { count: 'exact', head: true }).eq('stage_id', this.stageId());
+    if (e0) return this.note(e0.message, false);
+    if (count) return this.note('Уже есть оценки — перестраивать группы нельзя', false);
+    await this.load();
+    if (!confirm(`Закрыть подтверждение и перестроить группы?\n\nПодтвердили: ${this.confirmedCount()} из ${this.total()}. Они займут первые группы, остальные пойдут за ними. Буферы не изменятся. В Discord уйдёт сообщение.`)) return;
+    this.busy.set(true);
+    const { error } = await supabase.from('stages').update({ checkin_closed: true }).eq('id', this.stageId());
+    if (error) {
+      this.busy.set(false);
+      return this.note(error.message, false);
+    }
+    this.closed.set(true);
+    const current = [...this.groups().filter((_, i) => !this.meta()[i]?.buffer).flat(), ...this.unassigned()];
+    this.arrange(confirmedFirst(current, (r) => r.status === 'registered' && this.checked().has(r.profile_id)));
+    if (!(await this.save())) return;
+    notify('groups_ready', this.stageId());
+    this.note('Группы перестроены, сообщение ушло в Discord', true);
+  }
+
+  async restore(r: Reg) {
+    this.busy.set(true);
+    const { data: runs, error: e0 } = await supabase.from('qual_runs').select('profile_id, attempt').eq('stage_id', this.stageId());
+    if (e0) {
+      this.busy.set(false);
+      return this.note(e0.message, false);
+    }
+    const spot = restoreSpot([...this.unassigned(), ...this.groups().flat()], runs ?? [], r.profile_id);
+    const { error } = await supabase.from('registrations').update({ status: 'registered', ...spot }).eq('stage_id', this.stageId()).eq('profile_id', r.profile_id);
+    this.busy.set(false);
+    if (error) return this.note(error.message, false);
+    await this.load();
+    this.note(`${r.profile?.nickname} возвращён`, true);
   }
 
   async load() {
     const { data, error } = await supabase
       .from('registrations')
-      .select('profile_id, group_no, queue_order, created_at, profile:profiles(nickname, start_number, avatar_url), team:teams(name)')
+      .select('profile_id, group_no, queue_order, status, created_at, profile:profiles(nickname, start_number, avatar_url), team:teams(name)')
       .eq('stage_id', this.stageId())
-      .eq('status', 'registered')
+      .in('status', ['registered', 'no_show'])
       .order('queue_order', { nullsFirst: false })
       .order('created_at');
     if (error) return this.note(error.message, false);
     const rows = data as unknown as Reg[];
-    const { data: st } = await supabase.from('stages').select('group_meta').eq('id', this.stageId()).single();
+    const { data: st } = await supabase.from('stages').select('group_meta, status, checkin_closed, starts_at').eq('id', this.stageId()).single();
+    this.status.set(st?.status ?? '');
+    this.closed.set(!!st?.checkin_closed);
+    this.startsAt.set(st?.starts_at ?? null);
+    await this.loadChecks();
     const { data: dc } = await supabase.from('pilot_contacts').select('profile_id, discord').in('profile_id', rows.map((r) => r.profile_id));
     this.discord.set(new Map((dc ?? []).map((c) => [c.profile_id, c.discord])));
     const max = Math.max(0, ...rows.map((r) => r.group_no ?? 0));
@@ -189,13 +288,12 @@ export class AdminParticipants implements OnInit {
     this.groups.set(Array.from({ length: count }, (_, g) => rows.filter((r) => r.group_no === g + 1)));
     this.meta.set(Array.from({ length: count }, (_, g) => meta[g] ?? {}));
     this.unassigned.set(rows.filter((r) => !r.group_no));
-    this.total.set(rows.length);
+    this.total.set(rows.filter((r) => r.status === 'registered').length);
     this.dirty.set(false);
   }
 
   /** по 10 раскладываются все, кроме буферов — они остаются как есть, в конце */
   split(shuffle: boolean) {
-    const buffers = this.groups().flatMap((g, i) => (this.meta()[i]?.buffer ? [{ g, m: this.meta()[i] }] : []));
     const all = [...this.unassigned(), ...this.groups().filter((_, i) => !this.meta()[i]?.buffer).flat()];
     all.sort((a, b) => a.created_at.localeCompare(b.created_at));
     if (shuffle)
@@ -203,7 +301,12 @@ export class AdminParticipants implements OnInit {
         const j = Math.floor(Math.random() * (i + 1)); // Фишер–Йетс
         [all[i], all[j]] = [all[j], all[i]];
       }
-    const ordered = all;
+    this.arrange(all);
+  }
+
+  /** список → обычные группы по 10, буферы в конце как были */
+  private arrange(ordered: Reg[]) {
+    const buffers = this.groups().flatMap((g, i) => (this.meta()[i]?.buffer ? [{ g, m: this.meta()[i] }] : []));
     const rows = assignGroups(ordered);
     const count = Math.max(0, ...rows.map((r) => r.group));
     this.groups.set([...Array.from({ length: count }, (_, g) => rows.filter((r) => r.group === g + 1).map((r) => r.item)), ...buffers.map((b) => b.g)]);
@@ -261,7 +364,7 @@ export class AdminParticipants implements OnInit {
     this.dirty.set(true);
   }
 
-  async save() {
+  async save(): Promise<boolean> {
     this.busy.set(true);
     // пустые обычные группы выкидываем, пустой буфер оставляем — он может понадобиться по ходу квалы
     const kept = this.groups()
@@ -278,11 +381,23 @@ export class AdminParticipants implements OnInit {
       .filter((x) => x.r.group_no !== x.group_no || x.r.queue_order !== x.queue_order)
       .map((x) => ({ stage_id: this.stageId(), profile_id: x.r.profile_id, group_no: x.group_no, queue_order: x.queue_order }));
     const { error: e1 } = await supabase.from('stages').update({ group_meta: meta }).eq('id', this.stageId());
-    const { error } = e1 ? { error: e1 } : rows.length ? await supabase.from('registrations').upsert(rows) : { error: null };
+    let error = e1;
+    // порциями с паузой: каждая строка — событие каждому открытому пульту, лимит Realtime на Free — 100 сообщений в секунду
+    for (let i = 0; !error && i < rows.length; i += SAVE_CHUNK) {
+      if (i) {
+        this.note(`Сохраняю… ${i} из ${rows.length}`, true);
+        await new Promise((r) => setTimeout(r, SAVE_PAUSE_MS));
+      }
+      ({ error } = await supabase.from('registrations').upsert(rows.slice(i, i + SAVE_CHUNK)));
+    }
     this.busy.set(false);
-    if (error) return this.note(error.message, false);
+    if (error) {
+      this.note(error.message, false);
+      return false;
+    }
     await this.load();
     this.note('Очередь сохранена', true);
+    return true;
   }
 
   async withdraw(r: Reg) {

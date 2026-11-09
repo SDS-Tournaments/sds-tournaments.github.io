@@ -8,7 +8,7 @@ import { Fail, qualStandings } from '../scoring/scoring';
 import { AdminBattles } from './battles';
 import { STAGE_STATUS } from './labels';
 import { JudgeLive, Seat } from './judge-live';
-import { GroupMeta, groupLabel } from '../groups';
+import { GroupMeta, groupLabel, restoreSpot } from '../groups';
 import { notify } from '../notify';
 
 type Crit = 'angle' | 'style' | 'line';
@@ -116,20 +116,30 @@ const SEAT_LABEL = Object.fromEntries(SEATS.map((s) => [s.key, s.label])) as Rec
         <aside class="queue card">
           <h2 class="h">Очередь <span class="mono subtle">{{ doneCount() }}/{{ queue().length }}</span></h2>
           <ol>
-            @for (r of queue(); track r.profile_id; let i = $index) {
-              @if (i === 0 || r.group_no !== queue()[i - 1].group_no) {
+            @for (r of rows(); track r.profile_id; let i = $index) {
+              @if (i === 0 || r.group_no !== rows()[i - 1].group_no) {
                 <li class="ghead" [class.buf]="isBuffer(r.group_no)">{{ gl(r.group_no) }}</li>
               }
-              <li>
-                <button class="qrow" [class.cur]="r.profile_id === current()?.profile_id" [class.done]="isDone(r.profile_id)" (click)="pick(r.profile_id)">
-                  <span class="num mono">{{ r.profile?.start_number ?? '—' }}</span>
-                  <span class="nick">{{ r.profile?.nickname }}</span>
-                  <span class="dots">
-                    @for (a of attempts(); track a.n) {
-                      <i [class.on]="hasRun(r.profile_id, a.n)" [class.spin]="runOf(r.profile_id, a.n)?.spin" [title]="a.label"></i>
-                    }
-                  </span>
-                </button>
+              <li class="qline">
+                @if (r.status === 'no_show') {
+                  <div class="qrow absent">
+                    <span class="num mono">{{ r.profile?.start_number ?? '—' }}</span>
+                    <span class="nick">{{ r.profile?.nickname }}</span>
+                    <span class="ns">неявка</span>
+                  </div>
+                  @if (live.chief()) { <button class="qact back" (click)="restore(r)" [disabled]="busy()">Вернуть</button> }
+                } @else {
+                  <button class="qrow" [class.cur]="r.profile_id === current()?.profile_id" [class.done]="isDone(r.profile_id)" (click)="pick(r.profile_id)">
+                    <span class="num mono">{{ r.profile?.start_number ?? '—' }}</span>
+                    <span class="nick">{{ r.profile?.nickname }}</span>
+                    <span class="dots">
+                      @for (a of attempts(); track a.n) {
+                        <i [class.on]="hasRun(r.profile_id, a.n)" [class.spin]="runOf(r.profile_id, a.n)?.spin" [title]="a.label"></i>
+                      }
+                    </span>
+                  </button>
+                  @if (live.chief() && !ran(r.profile_id)) { <button class="qact" title="Неявка" aria-label="Неявка" (click)="noShow(r)" [disabled]="busy()">✕</button> }
+                }
               </li>
             }
           </ol>
@@ -141,7 +151,7 @@ const SEAT_LABEL = Object.fromEntries(SEATS.map((s) => [s.key, s.label])) as Rec
             <div class="pilot">
               <span class="plate mono">{{ c.profile?.start_number ?? '—' }}</span>
               <div>
-                <p class="eyebrow">{{ gl(c.group_no) }} · в очереди {{ c.queue_order ?? '—' }}</p>
+                <p class="eyebrow">{{ gl(c.group_no) }} · в очереди {{ queue().indexOf(c) + 1 }}</p>
                 <h2 class="nick-big">{{ c.profile?.nickname }}</h2>
                 <p class="subtle car">{{ c.profile?.car ?? '' }}</p>
                 @if (warnings().get(c.profile_id); as n) {
@@ -200,6 +210,8 @@ const SEAT_LABEL = Object.fromEntries(SEATS.map((s) => [s.key, s.label])) as Rec
               <div class="incidents">
                 <button class="btn btn-ghost" (click)="disconnect(c)" [disabled]="busy()">Дисконнект → в конец группы</button>
                 @if (!isBuffer(c.group_no)) { <button class="btn btn-ghost" (click)="toBuffer(c)" [disabled]="busy()" title="Например, нужен другой сервер — пилот проедет вместе с буфер-группой">→ В буфер</button> }
+                @if (!ran(c.profile_id)) { <button class="btn btn-ghost" (click)="noShow(c)" [disabled]="busy()">Неявка</button> }
+                @if (absentGroup().length > 1) { <button class="btn btn-ghost" (click)="noShowGroup()" [disabled]="busy()">Остальные в группе не пришли ({{ absentGroup().length }})</button> }
                 <button class="btn btn-ghost danger" (click)="techLoss(c)" [disabled]="busy()">Техпоражение</button>
               </div>
             }
@@ -271,6 +283,12 @@ const SEAT_LABEL = Object.fromEntries(SEATS.map((s) => [s.key, s.label])) as Rec
     .h { font-size: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; }
 
     .queue ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; max-height: 70vh; overflow-y: auto; }
+    .qline { display: flex; gap: 4px; align-items: center; }
+    .qline .qrow { flex: 1; min-width: 0; }
+    .qrow.absent { opacity: 0.5; cursor: default; }
+    .ns { font-size: 11px; color: var(--warning); }
+    .qact { flex-shrink: 0; min-width: 28px; height: 28px; padding: 0 6px; border: 1px solid var(--hairline); border-radius: var(--r-sm); background: none; color: var(--ink-tertiary); font-size: 12px; cursor: pointer; &:hover:not(:disabled) { color: var(--warning); border-color: var(--warning); } }
+    .qact.back { color: var(--primary); border-color: var(--primary); }
     .ghead { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--ink-subtle); padding: 10px 4px 4px; }
     .qrow {
       width: 100%; display: grid; grid-template-columns: 36px 1fr auto; gap: 8px; align-items: center;
@@ -375,6 +393,17 @@ export class AdminJudge implements OnInit, OnDestroy {
       .filter((r) => r.status === 'registered')
       .sort((a, b) => (a.queue_order ?? 1e9) - (b.queue_order ?? 1e9)),
   );
+  /** очередь для показа: неявки остаются на своих местах серыми */
+  protected readonly rows = computed(() =>
+    this.regs()
+      .filter((r) => r.status === 'registered' || r.status === 'no_show')
+      .sort((a, b) => (a.queue_order ?? 1e9) - (b.queue_order ?? 1e9)),
+  );
+  /** кто в группе текущего пилота ещё не выезжал */
+  protected readonly absentGroup = computed(() => {
+    const c = this.current();
+    return c ? this.queue().filter((r) => r.group_no === c.group_no && !this.ran(r.profile_id)) : [];
+  });
   protected readonly unordered = computed(() => this.queue().some((r) => r.queue_order === null));
   private readonly runMap = computed(() => {
     const m = new Map<string, Map<number, Run>>();
@@ -524,7 +553,8 @@ export class AdminJudge implements OnInit, OnDestroy {
     const st = this.stage();
     if (!st || !confirm(`${c.profile?.nickname}: перенести в буфер?`)) return;
     const meta = [...(st.group_meta ?? [])];
-    const q = this.queue().filter((r) => r.group_no);
+    // вместе с неявками — их места в очереди не должны совпасть с новой нумерацией
+    const q = this.rows().filter((r) => r.group_no);
     let buf = meta.findIndex((m) => m?.buffer) + 1;
     this.busy.set(true);
     if (!buf) {
@@ -677,6 +707,43 @@ export class AdminJudge implements OnInit, OnDestroy {
     await this.load();
     this.note(`${c.profile?.nickname}: техпоражение`, true);
     this.advance();
+  }
+
+  /** была ли хоть одна запись заезда, включая прогрев */
+  protected ran(pid: string) {
+    return !!this.runMap().get(pid)?.size;
+  }
+
+  private async markAbsent(list: Reg[]) {
+    this.busy.set(true);
+    const { error } = await supabase.from('registrations').update({ status: 'no_show' }).eq('stage_id', Number(this.id())).in('profile_id', list.map((r) => r.profile_id));
+    this.busy.set(false);
+    if (error) return this.note(error.message, false);
+    const cur = this.current();
+    await this.load();
+    this.note(list.length > 1 ? `Неявка: ${list.length} пилотов` : `${list[0].profile?.nickname}: неявка`, true);
+    if (cur && list.some((r) => r.profile_id === cur.profile_id)) this.advance();
+  }
+
+  noShow(r: Reg) {
+    return this.markAbsent([r]);
+  }
+
+  noShowGroup() {
+    const list = this.absentGroup();
+    if (confirm(`Отметить неявку всем, кто ещё не выезжал в этой группе (${list.length})?\n\n${list.map((r) => r.profile?.nickname).join(', ')}`)) return this.markAbsent(list);
+    return;
+  }
+
+  /** на своё место; если очередь его уже прошла — в конец идущей группы (restoreSpot) */
+  async restore(r: Reg) {
+    this.busy.set(true);
+    const spot = restoreSpot(this.regs(), this.runs(), r.profile_id);
+    const { error } = await supabase.from('registrations').update({ status: 'registered', ...spot }).eq('stage_id', Number(this.id())).eq('profile_id', r.profile_id);
+    this.busy.set(false);
+    if (error) return this.note(error.message, false);
+    await this.load();
+    this.note(`${r.profile?.nickname} возвращён: ${this.gl(spot.group_no)}`, true);
   }
 
   private note(text: string, ok: boolean) {

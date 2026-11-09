@@ -8,6 +8,8 @@ type Stage = { id: number; title_ru: string; status: string };
 /** что прогоняем в тестовый канал — все объявления сайта */
 const RUN_ALL: { type: string; label: string }[] = [
   { type: 'registration', label: 'Открыта регистрация' },
+  { type: 'checkin_open', label: 'Подтвердите участие (за час до старта)' },
+  { type: 'groups_ready', label: 'Группы квалификации готовы' },
   { type: 'stage_start', label: 'LIVE — этап начался' },
   { type: 'groups', label: 'Группа едет / готовится' },
   { type: 'battles_start', label: 'LIVE — парные заезды' },

@@ -10,13 +10,14 @@ import { ProtestBell } from './components/protest-bell';
 import { Lang, saveLang } from './i18n';
 import { Live } from './live';
 import { ScrollRail } from './components/scroll-rail';
+import { CheckinBanner } from './components/checkin-banner';
 import { ThemePicker } from './components/theme-picker';
 import { EmergencyPage } from './components/emergency-page';
 import { Theme } from './theme';
 import { STAGING } from './supabase.config';
 
 @Component({
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, TranslocoPipe, ProtestBell, ThemePicker, ScrollRail, EmergencyPage],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, TranslocoPipe, ProtestBell, ThemePicker, ScrollRail, EmergencyPage, CheckinBanner],
   selector: 'app-root',
   styleUrl: './app.scss',
   templateUrl: './app.html',

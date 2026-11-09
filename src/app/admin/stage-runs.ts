@@ -147,7 +147,7 @@ export class AdminStageRuns implements OnInit {
     const q = this.q().trim().toLowerCase();
     const pl = this.place();
     return this.regs()
-      .filter((r) => r.status !== 'withdrawn')
+      .filter((r) => r.status !== 'withdrawn' && r.status !== 'no_show')
       .filter((r) => !q || (r.profile?.nickname ?? '').toLowerCase().includes(q) || String(r.profile?.start_number ?? '').startsWith(q))
       .sort((a, b) => (pl.get(a.profile_id) ?? 1e9) - (pl.get(b.profile_id) ?? 1e9) || (a.queue_order ?? 1e9) - (b.queue_order ?? 1e9));
   });

@@ -2,7 +2,8 @@
 // Два канала: RU и EN (зарубежные пилоты) — каждое объявление уходит в оба на своём языке; протесты — только в RU (штабу).
 // Тестовый канал: test: true в запросе (штаб, «Прогнать все сообщения») или включённый тестовый режим — всё уходит только туда,
 // оба языка подряд, с пометкой «🧪 ТЕСТ»; протест в тесте не помечается отправленным и может быть любой давности.
-// Вебхуки — в private_settings (видны только admin). Вызывать может: штаб — любые события, пилот — только свой свежий протест.
+// Вебхуки — в private_settings (видны только admin). Вызывать может: штаб — любые события, пилот — только свой свежий протест,
+// таймер базы (send_checkin_open, заголовок x-cron-secret) — только «подтвердите участие». Деплой с --no-verify-jwt: токен проверяется здесь.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, {
@@ -48,6 +49,11 @@ const T = {
     now: '🟢 Едет',
     next: '⏳ Готовится',
     last: 'Это последняя группа квалификации.',
+    checkinTitle: '✋ Подтвердите участие',
+    checkinText: 'Нажмите «Я буду» на сайте. Подтвердившие едут в первых группах, остальные — после них.',
+    start: 'Старт квалификации',
+    readyTitle: '📋 Группы квалификации готовы',
+    readyText: 'Группы перестроены: проверьте свою на странице этапа.',
   },
   en: {
     testTitle: '✅ Webhook works',
@@ -70,6 +76,11 @@ const T = {
     now: '🟢 Now driving',
     next: '⏳ Get ready',
     last: 'This is the last qualifying group.',
+    checkinTitle: '✋ Confirm your participation',
+    checkinText: 'Press "I\'ll be there" on the website. Confirmed drivers go in the first groups, the rest after them.',
+    start: 'Qualifying starts',
+    readyTitle: '📋 Qualifying groups are ready',
+    readyText: 'The groups have been rebuilt: check yours on the round page.',
   },
 };
 
@@ -109,16 +120,22 @@ async function send(hook: string, embed: Embed) {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: cors });
 
-  const token = req.headers.get('Authorization')?.replace('Bearer ', '') ?? '';
-  const { data: who } = await db.auth.getUser(token);
-  const uid = who.user?.id;
-  if (!uid) return json({ error: 'Нужен вход' }, 401);
-  const { data: me } = await db.from('profiles').select('role').eq('id', uid).single();
-  const staff = me?.role === 'admin' || me?.role === 'staff';
-
   const body = await req.json();
   const { type, id, lang } = body;
-  const { data: settings } = await db.from('private_settings').select('discord_webhook_url, discord_webhook_en, discord_webhook_test, discord_test_mode').eq('id', 1).single();
+  const { data: settings } = await db.from('private_settings').select('discord_webhook_url, discord_webhook_en, discord_webhook_test, discord_test_mode, cron_secret').eq('id', 1).single();
+  const cron = type === 'checkin_open' && !!settings?.cron_secret && req.headers.get('x-cron-secret') === settings.cron_secret;
+
+  let uid: string | undefined;
+  let staff = cron;
+  if (!cron) {
+    const token = req.headers.get('Authorization')?.replace('Bearer ', '') ?? '';
+    const { data: who } = await db.auth.getUser(token);
+    uid = who.user?.id;
+    if (!uid) return json({ error: 'Нужен вход' }, 401);
+    const { data: me } = await db.from('profiles').select('role').eq('id', uid).single();
+    staff = me?.role === 'admin' || me?.role === 'staff';
+  }
+
   const testRun = (staff && body.test === true) || lang === 'test' || !!settings?.discord_test_mode;
   if (testRun && !staff && type !== 'protest') return json({ error: 'Только для штаба' }, 403);
   const hooks: Partial<Record<Lang, string>> = {};
@@ -186,6 +203,15 @@ Deno.serve(async (req) => {
         color: RED,
         url: link,
       });
+    } else if (type === 'checkin_open') {
+      build = (l) => ({
+        title: T[l].checkinTitle,
+        description: `**${name(l)}**\n${T[l].start}: ${date(s.starts_at, l)}\n\n${T[l].checkinText}${SITE ? `\n${SITE}` : ''}`,
+        color: AMBER,
+        url: SITE || undefined,
+      });
+    } else if (type === 'groups_ready') {
+      build = (l) => ({ title: T[l].readyTitle, description: `**${name(l)}**\n\n${T[l].readyText}${link ? `\n${link}` : ''}`, color: TIFFANY, url: link });
     } else if (type === 'groups') {
       // группа на трассе = первая по очереди, где кто-то ещё не проехал обе зачётные; следующая — за ней
       const [{ data: regs }, { data: runs }] = await Promise.all([

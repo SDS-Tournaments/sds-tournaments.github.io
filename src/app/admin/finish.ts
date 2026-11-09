@@ -18,7 +18,7 @@ export async function finishStage(stageId: number): Promise<string | null> {
     supabase.from('battles').select('round, leader_id, chaser_id, winner_id, result, omt_count').eq('stage_id', stageId),
     supabase.from('team_members').select('profile_id, team_id').eq('season_id', stage.season_id).eq('status', 'approved'),
     supabase.from('stages').select('id').eq('season_id', stage.season_id).eq('status', 'finished').lt('ord', stage.ord).order('ord'),
-    supabase.from('stages').select('id, ord').eq('season_id', stage.season_id).neq('status', 'draft'),
+    supabase.from('stages').select('id, ord').eq('season_id', stage.season_id),
   ]);
   const err = [season, regs, runs, battles, members, prevStages, seasonStages].find((r) => r.error)?.error;
   if (err) return err.message;
@@ -58,7 +58,7 @@ export async function finishStage(stageId: number): Promise<string | null> {
   // Достижения: история побед — из уже завершённых этапов
   const prevIds = (prevStages.data ?? []).map((s) => s.id);
   const lastPrev = prevIds.at(-1);
-  // «А мне тут понравилось...»: этап последний в сезоне и все прошлые этапы сезона завершены
+  // «А мне тут понравилось...»: этап последний в сезоне (черновики — тоже будущие этапы) и все прошлые завершены
   const others = (seasonStages.data ?? []).filter((s) => s.id !== stageId);
   const lastOfSeason = others.every((s) => s.ord < stage.ord) && others.length === prevIds.length;
   const [prevWins, everWins, earlier, prevBattles, seasonRides] = await Promise.all([

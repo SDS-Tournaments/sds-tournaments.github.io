@@ -452,5 +452,13 @@
     "note": "The site is temporarily in light mode: stream and groups only. The full version will be back soon.",
     "staffLogin": "Staff login",
     "noStream": "The stream will start soon."
+  },
+  "checkin": {
+    "title": "{{stage}}: confirm your participation",
+    "text": "Press the button if you will be at qualifying. Confirmed drivers go in the first groups.",
+    "yes": "I'll be there",
+    "done": "You confirmed your participation: {{stage}}",
+    "cancel": "Cancel",
+    "error": "That did not work: confirmation may have closed. Please refresh the page."
   }
 }
