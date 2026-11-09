@@ -125,9 +125,10 @@ const SEAT_LABEL = Object.fromEntries(SEATS.map((s) => [s.key, s.label])) as Rec
                   <div class="qrow absent">
                     <span class="num mono">{{ r.profile?.start_number ?? '—' }}</span>
                     <span class="nick">{{ r.profile?.nickname }}</span>
-                    <span class="ns">неявка</span>
+                    <!-- у главного судьи подпись заменяет кнопка: колонка узкая, иначе ник не виден -->
+                    @if (!live.chief()) { <span class="ns">неявка</span> }
                   </div>
-                  @if (live.chief()) { <button class="qact back" (click)="restore(r)" [disabled]="busy()">Вернуть</button> }
+                  @if (live.chief()) { <button class="qact back" (click)="restore(r)" [disabled]="busy()" title="Неявка — вернуть в очередь">Вернуть</button> }
                 } @else {
                   <button class="qrow" [class.cur]="r.profile_id === current()?.profile_id" [class.done]="isDone(r.profile_id)" (click)="pick(r.profile_id)">
                     <span class="num mono">{{ r.profile?.start_number ?? '—' }}</span>
