@@ -2,7 +2,7 @@ import { Component, computed, inject, input, isDevMode, OnDestroy, OnInit, outpu
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '../auth';
 import { batched } from '../lite';
-import { battleOutcome, bracketSize, buildBracket, QualRow, Round, Vote } from '../scoring/scoring';
+import { battleOutcome, bracketSize, buildBracket, QualRow, Round, Vote, duelOrder } from '../scoring/scoring';
 import { canChange, reseat, targetsOf } from './bracket-ops';
 import { finishStage } from './finish';
 import { notify } from '../notify';
@@ -20,6 +20,7 @@ interface Battle {
   omt_count: number;
   status: 'pending' | 'running' | 'done';
   result: 'normal' | 'tech_loss' | 'bye' | 'qual_tiebreak' | 'contact' | null;
+  deferred_at: string | null;
 }
 type Crit = 'angle' | 'style' | 'line';
 export interface PilotInfo {
@@ -118,6 +119,7 @@ const RESULT_LABEL: Record<string, string> = { normal: '', tech_loss: 'техп�
               </div>
               @if (live.chief()) {
               <div class="incidents">
+                @if (canDefer(b)) { <button class="btn btn-secondary" (click)="defer(b)" [disabled]="busy()" title="Пара уйдёт в конец раунда, пульт, плашки и сайт сразу перейдут к следующей">⏭ Отложить пару</button> }
                 <button class="btn btn-ghost danger" (click)="techLoss(b, 'leader')" [disabled]="busy()">Техпоражение: {{ info(b.leader_id).nickname }}</button>
                 <button class="btn btn-ghost danger" (click)="techLoss(b, 'chaser')" [disabled]="busy()">Техпоражение: {{ info(b.chaser_id).nickname }}</button>
                 <button class="btn btn-ghost danger" (click)="contact(b, 'leader')" [disabled]="busy()" title="Врезался в соперника — поражение">💥 Врезался: {{ info(b.leader_id).nickname }}</button>
@@ -140,6 +142,17 @@ const RESULT_LABEL: Record<string, string> = { normal: '', tech_loss: 'техп�
                 <button class="btn btn-primary big" (click)="finish()" [disabled]="busy()">Подвести итоги и завершить этап</button>
               }
               @if (msg()) { <p [class]="ok() ? 'ok' : 'bad'">{{ msg() }}</p> }
+            </div>
+          }
+          @if (live.chief() && deferred().length) {
+            <div class="later">
+              <span class="subtle small">Отложены — выйдут в конце раунда</span>
+              @for (d of deferred(); track d.id) {
+                <div class="later-row">
+                  <span>{{ roundLabel[d.round] }} · {{ info(d.leader_id).nickname }} — {{ info(d.chaser_id).nickname }}</span>
+                  <button class="btn btn-ghost small" (click)="bringBack(d)" [disabled]="busy()">Вернуть сейчас</button>
+                </div>
+              }
             </div>
           }
         </section>
@@ -212,6 +225,8 @@ const RESULT_LABEL: Record<string, string> = { normal: '', tech_loss: 'техп�
     .commit { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; padding-top: 8px; border-top: 1px solid var(--hairline); }
     .preview { font-size: 15px; color: var(--primary); }
     .incidents { display: flex; flex-wrap: wrap; gap: 8px; }
+    .later { display: grid; gap: 6px; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--hairline); }
+    .later-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
     .danger { color: var(--error); }
     .decided { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; p { margin: 0; flex-basis: 100%; } }
     .win { color: var(--primary); }
@@ -264,11 +279,12 @@ export class AdminBattles implements OnInit, OnDestroy {
   protected readonly byes = computed(() => Math.max(0, this.size() - this.standings().length));
   protected readonly flags = computed(() => {
     const f: Record<number, string> = {};
+    for (const b of this.battles()) if (b.deferred_at && b.status !== 'done') f[b.id] = 'отложена';
     for (const id of this.blocked()) f[id] = 'ждёт';
     for (const id of this.protested()) f[id] = 'протест';
     return f;
   });
-  private readonly sorted = computed(() => [...this.battles()].sort((a, b) => ORDER.indexOf(a.round) - ORDER.indexOf(b.round) || a.slot - b.slot));
+  private readonly sorted = computed(() => [...this.battles()].sort(duelOrder));
   /** Пары, которые ждут решения по протесту (туда ушли участники оспоренной дуэли) */
   protected readonly blocked = computed(() => {
     const ids = new Set<number>();
@@ -286,6 +302,7 @@ export class AdminBattles implements OnInit, OnDestroy {
     if (sel) return this.battles().find((b) => b.id === sel) ?? null;
     return this.sorted().find((b) => b.status !== 'done' && b.leader_id && b.chaser_id && !this.blocked().has(b.id)) ?? null;
   });
+  protected readonly deferred = computed(() => this.sorted().filter((b) => b.deferred_at && b.status !== 'done' && b.id !== this.current()?.id));
   protected readonly champion = computed(() => this.battles().find((b) => b.round === 'final')?.winner_id ?? null);
   protected readonly allVoted = computed(() => CRITS.every((c) => this.votes()[c.key]));
 
@@ -310,7 +327,7 @@ export class AdminBattles implements OnInit, OnDestroy {
 
   private async load() {
     const [battles, protests] = await Promise.all([
-      supabase.from('battles').select('id, round, slot, leader_id, chaser_id, winner_id, omt_count, status, result').eq('stage_id', this.stageId()),
+      supabase.from('battles').select('id, round, slot, leader_id, chaser_id, winner_id, omt_count, status, result, deferred_at').eq('stage_id', this.stageId()),
       supabase.from('protests').select('battle_id').eq('stage_id', this.stageId()).eq('status', 'pending'),
     ]);
     this.battles.set((battles.data ?? []) as Battle[]);
@@ -388,6 +405,29 @@ export class AdminBattles implements OnInit, OnDestroy {
     await this.decide(b, winnerSide, out === 'tiebreak' ? 'qual_tiebreak' : 'normal');
   }
 
+  /** Есть кем заменить: другая готовая пара этого же раунда (следующий раунд ждёт победителя) */
+  protected canDefer(b: Battle) {
+    return this.battles().some((x) => x.id !== b.id && x.round === b.round && x.status !== 'done' && x.leader_id && x.chaser_id && !this.blocked().has(x.id));
+  }
+
+  defer(b: Battle) {
+    return this.setDeferred(b, new Date().toISOString(), 'Пара отложена до конца раунда');
+  }
+
+  bringBack(b: Battle) {
+    return this.setDeferred(b, null, 'Пара снова на своём месте');
+  }
+
+  private async setDeferred(b: Battle, deferred_at: string | null, text: string) {
+    this.busy.set(true);
+    const { error } = await supabase.from('battles').update({ deferred_at }).eq('id', b.id);
+    this.busy.set(false);
+    if (error) return this.note(error.message, false);
+    this.selected.set(null);
+    await this.load();
+    this.note(text, true);
+  }
+
   async techLoss(b: Battle, loser: 'leader' | 'chaser') {
     const nick = this.info(loser === 'leader' ? b.leader_id : b.chaser_id).nickname;
     if (!confirm(`Техническое поражение: ${nick}?`)) return;
@@ -438,7 +478,7 @@ export class AdminBattles implements OnInit, OnDestroy {
       ...(next ? [reseat(next, b.winner_id, null, q)] : []),
       ...(third ? [reseat(third, loser, null, q)] : []),
       supabase.from('battle_votes').delete().eq('battle_id', b.id),
-      supabase.from('battles').update({ winner_id: null, status: 'pending', result: null, decided_at: null, omt_count: 0 }).eq('id', b.id),
+      supabase.from('battles').update({ winner_id: null, status: 'pending', result: null, decided_at: null, omt_count: 0, deferred_at: null }).eq('id', b.id),
     ]);
     this.busy.set(false);
     const err = results.find((r) => r.error)?.error;

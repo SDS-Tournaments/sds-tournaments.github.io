@@ -3,7 +3,7 @@ import { DomSanitizer } from '@angular/platform-browser';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '../auth';
-import { qualStandings } from '../scoring/scoring';
+import { qualStandings, duelOrder } from '../scoring/scoring';
 import { Loader } from './loader';
 import { StageGroups } from './stage-groups';
 import { PredictionPoll } from './prediction-poll';
@@ -27,10 +27,10 @@ interface Battle {
   winner_id: string | null;
   status: string;
   omt_count: number;
+  deferred_at?: string | null;
 }
-const ORDER = ['r32', 'r16', 'qf', 'sf', 'third', 'final'];
 const RUN_COLS = 'id, profile_id, attempt, total';
-const BATTLE_COLS = 'id, round, slot, leader_id, chaser_id, winner_id, status, omt_count';
+const BATTLE_COLS = 'id, round, slot, leader_id, chaser_id, winner_id, status, omt_count, deferred_at';
 
 interface Run {
   id: number;
@@ -281,7 +281,7 @@ export class LiveStage implements OnInit {
       this.regs().map((r) => ({ id: r.profile_id, queueOrder: r.queue_order ?? 1e9, runs: this.runs().filter((x) => x.profile_id === r.profile_id) })),
     ),
   );
-  private readonly sorted = computed(() => [...this.battles()].sort((a, b) => ORDER.indexOf(a.round) - ORDER.indexOf(b.round) || a.slot - b.slot));
+  private readonly sorted = computed(() => [...this.battles()].sort(duelOrder));
   protected readonly current = computed(() => this.sorted().find((b) => b.status !== 'done' && b.leader_id && b.chaser_id) ?? null);
   protected readonly upNext = computed(() => {
     const cur = this.current();

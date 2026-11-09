@@ -7,7 +7,7 @@ import { batched } from '../lite';
 import { loadSkillRuns } from '../data/skills';
 import { loadStandings } from '../data/standings';
 import { countsFor, loadPredictionCounts, PredictionCount } from '../predict';
-import { bracketSize, Fail, qualStandings, Round, SkillRun } from '../scoring/scoring';
+import { bracketSize, Fail, qualStandings, Round, SkillRun, duelOrder } from '../scoring/scoring';
 import { STAGE_STATUS } from '../admin/labels';
 import { Chance, duelChances, DuelSide, qualChances, qualTargets } from './chances';
 import { ACH, Dossier, DossierPilot, DossierResult } from './dossier';
@@ -393,7 +393,7 @@ export class Commentator implements OnInit, OnDestroy {
   });
 
   // ── парные ──
-  protected readonly sortedBattles = computed(() => [...this.battles()].sort((a, b) => ORDER.indexOf(a.round) - ORDER.indexOf(b.round) || a.slot - b.slot));
+  protected readonly sortedBattles = computed(() => [...this.battles()].sort(duelOrder));
   protected readonly duel = computed(() => {
     const id = this.pickedDuel();
     if (id && !this.follow()) return this.battles().find((b) => b.id === id) ?? null;
@@ -480,7 +480,7 @@ export class Commentator implements OnInit, OnDestroy {
         .select('profile_id, group_no, queue_order, status, profile:profiles(id, steam_id, nickname, start_number, avatar_url, livery_url, car, engine, gearbox, power_hp, bio_ru, bio_en, legacy)')
         .eq('stage_id', id),
       supabase.from('qual_runs').select('profile_id, attempt, angle, style, line, spin, fail, total').eq('stage_id', id),
-      supabase.from('battles').select('id, round, slot, leader_id, chaser_id, winner_id, omt_count, status, result').eq('stage_id', id),
+      supabase.from('battles').select('id, round, slot, leader_id, chaser_id, winner_id, omt_count, status, result, deferred_at').eq('stage_id', id),
     ]);
     this.regs.set((regs.data ?? []) as unknown as Reg[]);
     this.runs.set((runs.data ?? []).map((r) => ({ ...r, total: Number(r.total) })) as Run[]);

@@ -1,4 +1,5 @@
 // Состояние плашек трансляции — хранится в overlay_state.state (одна строка, Realtime)
+import { duelOrder } from '../scoring/scoring';
 
 export const WIDGETS = ['stage', 'onTrack', 'score', 'qualTable', 'duel', 'matchup', 'bracket', 'podium', 'sponsors', 'protest', 'poll'] as const;
 export type Widget = (typeof WIDGETS)[number];
@@ -26,10 +27,9 @@ export const SKIN_LABEL: Record<Skin, string> = { classic: 'Классика', a
 
 export const SIZES = [100, 85, 75, 60] as const;
 
-const ROUNDS = ['r32', 'r16', 'qf', 'sf', 'third', 'final'];
 /** Пара на трассе: первая нерешённая, где оба пилота известны */
-export function currentDuel<T extends { round: string; slot: number; status: string; leader_id: string | null; chaser_id: string | null }>(list: T[]): T | null {
-  return [...list].sort((a, b) => ROUNDS.indexOf(a.round) - ROUNDS.indexOf(b.round) || a.slot - b.slot).find((b) => b.status !== 'done' && b.leader_id && b.chaser_id) ?? null;
+export function currentDuel<T extends { round: string; slot: number; status: string; leader_id: string | null; chaser_id: string | null; deferred_at?: string | null }>(list: T[]): T | null {
+  return [...list].sort(duelOrder).find((b) => b.status !== 'done' && b.leader_id && b.chaser_id) ?? null;
 }
 
 export const LANG_SWAP_MS = 8000;

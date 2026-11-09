@@ -199,10 +199,10 @@ export class Broadcast implements OnInit {
     if (!id) return this.duel.set(null);
     const { data } = await supabase
       .from('battles')
-      .select('id, round, slot, status, leader_id, chaser_id, leader:profiles!battles_leader_id_fkey(nickname), chaser:profiles!battles_chaser_id_fkey(nickname)')
+      .select('id, round, slot, status, deferred_at, leader_id, chaser_id, leader:profiles!battles_leader_id_fkey(nickname), chaser:profiles!battles_chaser_id_fkey(nickname)')
       .eq('stage_id', id);
     if (!data) return; // сбой сети — оставляем пару на экране, следующий опрос обновит
-    const d = currentDuel(data as unknown as { id: number; round: string; slot: number; status: string; leader_id: string | null; chaser_id: string | null; leader: { nickname: string } | null; chaser: { nickname: string } | null }[]);
+    const d = currentDuel(data as unknown as { id: number; round: string; slot: number; status: string; deferred_at: string | null; leader_id: string | null; chaser_id: string | null; leader: { nickname: string } | null; chaser: { nickname: string } | null }[]);
     this.duel.set(d && { id: d.id, a: d.leader?.nickname ?? '?', b: d.chaser?.nickname ?? '?' });
   }
 

@@ -1,6 +1,12 @@
 // Правила подсчёта SDS — spec §5. Чистые функции, без обращения к базе.
 
 export type Round = 'r32' | 'r16' | 'qf' | 'sf' | 'third' | 'final';
+
+const ROUND_ORDER: string[] = ['r32', 'r16', 'qf', 'sf', 'third', 'final'];
+/** Порядок заездов (пульт, плашки, комментатор, сайт): раунд, внутри раунда отложенные — после остальных, раньше отложенная — раньше выйдет */
+export function duelOrder(a: { round: string; slot: number; deferred_at?: string | null }, b: { round: string; slot: number; deferred_at?: string | null }): number {
+  return ROUND_ORDER.indexOf(a.round) - ROUND_ORDER.indexOf(b.round) || (a.deferred_at ?? '').localeCompare(b.deferred_at ?? '') || a.slot - b.slot;
+}
 export type Vote = 'leader' | 'chaser' | 'omt';
 /** Чем закончился этап для пилота в сетке */
 export type Finish = 'win' | 'final' | 'third-win' | 'third-loss' | 'qf' | 'r16' | 'r32';

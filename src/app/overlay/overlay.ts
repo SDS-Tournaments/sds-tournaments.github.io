@@ -41,6 +41,7 @@ interface Run {
 }
 interface Battle extends TreeBattle {
   decided_at: string | null;
+  deferred_at?: string | null;
 }
 interface PollView {
   total: number;
@@ -782,7 +783,7 @@ export class Overlay implements OnInit {
     const [regs, runs, battles, results, teams] = await Promise.all([
       supabase.from('registrations').select('profile_id, group_no, queue_order, profile:profiles(nickname, start_number, avatar_url, car)').eq('stage_id', id).eq('status', 'registered'),
       supabase.from('qual_runs').select('profile_id, attempt, angle, style, line, spin, fail, total, created_at').eq('stage_id', id),
-      supabase.from('battles').select('id, round, slot, leader_id, chaser_id, winner_id, omt_count, status, result, decided_at').eq('stage_id', id),
+      supabase.from('battles').select('id, round, slot, leader_id, chaser_id, winner_id, omt_count, status, result, decided_at, deferred_at').eq('stage_id', id),
       supabase.from('stage_results').select('profile_id, stage_place').eq('stage_id', id).lte('stage_place', 3),
       supabase.from('team_members').select('profile_id, team:teams(name)').eq('season_id', stage.season_id).eq('status', 'approved'),
     ]);
