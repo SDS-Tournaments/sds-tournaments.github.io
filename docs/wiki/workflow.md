@@ -39,11 +39,11 @@ CI (`pages.yml`): `npm ci` → тесты → сборка → копии `index
 ## Edge-функции
 Деплоит **владелец** (автоматический режим блокировал прод-деплой). Даём команды:
 ```bash
-npx supabase functions deploy discord-notify --project-ref dghjrbxffsmmdalzdycz
+npx supabase functions deploy discord-notify --no-verify-jwt --project-ref dghjrbxffsmmdalzdycz
 npx supabase functions deploy steam-auth --no-verify-jwt --project-ref dghjrbxffsmmdalzdycz
 npx supabase functions deploy test-pilots --project-ref dghjrbxffsmmdalzdycz
 ```
-Для staging — `--project-ref oqmepaxnccxqupemvewy`. `steam-auth` всегда с `--no-verify-jwt` (Steam возвращает без токена).
+Для staging — `--project-ref oqmepaxnccxqupemvewy`. `steam-auth` и `discord-notify` всегда с `--no-verify-jwt` (`discord-notify` вызывает таймер базы; Steam возвращает без токена).
 
 ## Приёмы правки файлов
 - Многострочные правки — Node-скриптом из scratchpad, записанным через Write (heredoc в bash ломается на кавычках,
